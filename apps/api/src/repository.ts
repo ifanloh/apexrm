@@ -17,6 +17,10 @@ function toIsoString(value: string | Date) {
   return value instanceof Date ? value.toISOString() : value;
 }
 
+function normalizeBib(value: string) {
+  return value.trim().toUpperCase();
+}
+
 export type ScanProcessResult =
   | {
       status: "accepted";
@@ -54,6 +58,7 @@ export async function processSingleScan(
     const tx = txAny as unknown as Sql;
     const crewCode = actor.crewCode ?? scan.crewId;
     const crewName = actor.displayName ?? actor.email ?? crewCode;
+    const normalizedBib = normalizeBib(scan.bib);
 
     const [crew] = await tx<{ id: string }[]>`
       insert into public.crews (auth_user_id, code, name, role)
@@ -68,7 +73,7 @@ export async function processSingleScan(
 
     const [participant] = await tx<{ id: string }[]>`
       insert into public.participants (bib, name)
-      values (${scan.bib}, ${`Runner ${scan.bib}`})
+      values (${normalizedBib}, ${`Runner ${normalizedBib}`})
       on conflict (bib) do update
       set name = public.participants.name
       returning id
@@ -81,7 +86,7 @@ export async function processSingleScan(
       from public.scans
       where race_id = ${scan.raceId}
         and checkpoint_id = ${scan.checkpointId}
-        and bib = ${scan.bib}
+        and upper(trim(bib)) = ${normalizedBib}
       limit 1
     `;
 
@@ -90,7 +95,7 @@ export async function processSingleScan(
         clientScanId: scan.clientScanId,
         raceId: scan.raceId,
         checkpointId: scan.checkpointId,
-        bib: scan.bib,
+        bib: normalizedBib,
         crewId: scan.crewId,
         deviceId: scan.deviceId,
         scannedAt: scan.scannedAt,
@@ -106,7 +111,7 @@ export async function processSingleScan(
           'duplicate_scan',
           ${scan.raceId},
           ${scan.checkpointId},
-          ${scan.bib},
+          ${normalizedBib},
           ${tx.json({
             clientScanId: scan.clientScanId,
             deviceId: scan.deviceId,
@@ -153,7 +158,7 @@ export async function processSingleScan(
         ${scan.raceId},
         ${scan.checkpointId},
         ${participant.id},
-        ${scan.bib},
+        ${normalizedBib},
         ${crew.id},
         ${crewCode},
         ${scan.deviceId},
@@ -166,7 +171,7 @@ export async function processSingleScan(
 
     const leaderboard = await getCheckpointLeaderboard(tx, scan.checkpointId);
     const notification = await maybeNotifyTop5(tx, {
-      bib: scan.bib,
+      bib: normalizedBib,
       checkpointId: scan.checkpointId,
       participantId: participant.id,
       position: insertedScan.position,
@@ -177,7 +182,7 @@ export async function processSingleScan(
       clientScanId: scan.clientScanId,
       raceId: scan.raceId,
       checkpointId: scan.checkpointId,
-      bib: scan.bib,
+      bib: normalizedBib,
       crewId: crewCode,
       deviceId: scan.deviceId,
       scannedAt: scan.scannedAt,

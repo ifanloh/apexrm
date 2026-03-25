@@ -17,6 +17,9 @@ create table if not exists public.participants (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists participants_bib_normalized_unique
+  on public.participants ((upper(trim(bib))));
+
 create table if not exists public.checkpoints (
   id text primary key,
   code text not null unique,
@@ -47,6 +50,9 @@ create table if not exists public.scans (
 create unique index if not exists scans_race_checkpoint_bib_unique
   on public.scans (race_id, checkpoint_id, bib);
 
+create unique index if not exists scans_race_checkpoint_bib_normalized_unique
+  on public.scans (race_id, checkpoint_id, (upper(trim(bib))));
+
 create table if not exists public.audit_logs (
   id uuid primary key default gen_random_uuid(),
   type text not null,
@@ -69,3 +75,6 @@ create table if not exists public.top5_notifications (
   created_at timestamptz not null default now(),
   unique (checkpoint_id, bib, position)
 );
+
+create unique index if not exists top5_notifications_checkpoint_bib_position_normalized_unique
+  on public.top5_notifications (checkpoint_id, (upper(trim(bib))), position);

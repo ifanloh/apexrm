@@ -51,6 +51,10 @@ function isValidBib(rawValue: string) {
   return /^[A-Za-z0-9-]{2,32}$/.test(rawValue);
 }
 
+function normalizeBib(rawValue: string) {
+  return rawValue.trim().toUpperCase();
+}
+
 function getApiHost() {
   try {
     return new URL(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").host;
@@ -362,7 +366,7 @@ export default function App() {
       return;
     }
 
-    const normalizedBib = rawValue.trim();
+    const normalizedBib = normalizeBib(rawValue);
 
     if (!checkpointId || !normalizedBib) {
       setStatusMessage("Checkpoint dan payload QR/BIB wajib ada.");
@@ -614,7 +618,7 @@ export default function App() {
                   disabled={!canScan || isBusy}
                   placeholder="contoh: 1024"
                   value={bib}
-                  onChange={(event) => setBib(event.target.value)}
+                  onChange={(event) => setBib(normalizeBib(event.target.value))}
                 />
               </label>
 

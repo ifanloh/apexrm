@@ -44,7 +44,7 @@ export async function removeQueuedScan(clientScanId: string) {
 }
 
 function createSeenId(checkpointId: string, bib: string) {
-  return `${checkpointId}:${bib}`;
+  return `${checkpointId}:${bib.trim().toUpperCase()}`;
 }
 
 export async function hasLocalDuplicate(checkpointId: string, bib: string) {
@@ -55,10 +55,11 @@ export async function hasLocalDuplicate(checkpointId: string, bib: string) {
 
 export async function markLocalScan(checkpointId: string, bib: string) {
   const db = await dbPromise;
+  const normalizedBib = bib.trim().toUpperCase();
   await db.put(SEEN_STORE_NAME, {
-    id: createSeenId(checkpointId, bib),
+    id: createSeenId(checkpointId, normalizedBib),
     checkpointId,
-    bib,
+    bib: normalizedBib,
     createdAt: new Date().toISOString()
   });
 }
