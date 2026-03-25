@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { formatCheckpointLabel, type AuthProfile, type Checkpoint, type IngestScanResponse, type ScanSubmission } from "@arm/contracts";
+import {
+  defaultCheckpoints,
+  formatCheckpointLabel,
+  type AuthProfile,
+  type Checkpoint,
+  type IngestScanResponse,
+  type ScanSubmission
+} from "@arm/contracts";
 import { fetchAuthProfile, fetchCheckpoints, sendScan, syncOffline } from "./api";
 import {
   getQueuedScans,
@@ -50,10 +57,10 @@ export default function App() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [crewId, setCrewId] = useState(() => getStoredValue("arm:crewId", "crew-01"));
   const [deviceId, setDeviceId] = useState(() => getStoredValue("arm:deviceId", crypto.randomUUID()));
-  const [checkpointId, setCheckpointId] = useState("");
+  const [checkpointId, setCheckpointId] = useState("cp-10");
   const [bib, setBib] = useState("");
   const [isOnline, setIsOnline] = useState(window.navigator.onLine);
-  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([...defaultCheckpoints]);
   const [queue, setQueue] = useState<QueuedScan[]>([]);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [statusMessage, setStatusMessage] = useState("Scanner siap. QR dapat dipindai dari kamera atau diisi manual.");
@@ -122,9 +129,16 @@ export default function App() {
         }
       })
       .catch(() => {
-        setStatusMessage("Gagal memuat profil auth dari backend.");
+        setProfile({
+          userId: session.user.id,
+          email: session.user.email ?? null,
+          role: "crew",
+          crewCode: crewId,
+          displayName: session.user.email ?? crewId
+        });
+        setStatusMessage("Profil backend belum terbaca. Scanner lanjut memakai mode crew lokal.");
       });
-  }, [session]);
+  }, [crewId, session]);
 
   useEffect(() => {
     window.localStorage.setItem("arm:crewId", crewId);
@@ -136,17 +150,26 @@ export default function App() {
 
   useEffect(() => {
     async function bootstrap() {
-      const [nextCheckpoints, pendingScans] = await Promise.all([fetchCheckpoints(), getQueuedScans()]);
+      const [remoteCheckpoints, pendingScans] = await Promise.all([fetchCheckpoints(), getQueuedScans()]);
+      const nextCheckpoints = remoteCheckpoints.length > 0 ? remoteCheckpoints : [...defaultCheckpoints];
       setCheckpoints(nextCheckpoints);
       setQueue(pendingScans);
 
       if (nextCheckpoints.length > 0) {
-        setCheckpointId((currentValue) => currentValue || (nextCheckpoints[1]?.id ?? nextCheckpoints[0].id));
+        setCheckpointId((currentValue) => {
+          if (currentValue && nextCheckpoints.some((checkpoint) => checkpoint.id === currentValue)) {
+            return currentValue;
+          }
+
+          return nextCheckpoints[1]?.id ?? nextCheckpoints[0].id;
+        });
       }
     }
 
     bootstrap().catch(() => {
-      setStatusMessage("Gagal mengambil metadata checkpoint. Pastikan API aktif.");
+      setCheckpoints([...defaultCheckpoints]);
+      setCheckpointId("cp-10");
+      setStatusMessage("Metadata checkpoint dari API gagal dimuat. Scanner memakai checkpoint default.");
     });
   }, []);
 
