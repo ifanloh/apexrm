@@ -1,0 +1,9 @@
+services:
+  arm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./data:/app/data

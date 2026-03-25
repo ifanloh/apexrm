@@ -1,0 +1,19 @@
+{
+  "name": "arm",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && npm run build --workspaces --if-present",
+    "check:deploy": "node scripts/check-deploy.mjs",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "start": "node apps/api/dist/server.js",
+    "dev:api": "npm --workspace @arm/api run dev",
+    "dev:scanner": "npm --workspace @arm/scanner run dev",
+    "dev:dashboard": "npm --workspace @arm/dashboard run dev"
+  }
+}

@@ -1,0 +1,467 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+:root {
+  color-scheme: light;
+  font-family: "Inter", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(0, 70, 145, 0.18), transparent 24%),
+    linear-gradient(180deg, #f7f9fb, #eef2f6 62%, #e4eaef);
+  color: #191c1e;
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-strong: rgba(255, 255, 255, 0.96);
+  --stroke: rgba(114, 119, 131, 0.16);
+  --ink-soft: #57657a;
+  --ink-muted: #727783;
+  --primary: #004691;
+  --primary-strong: #265eae;
+  --success: #006d48;
+  --danger: #ba1a1a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.scanner-shell {
+  margin: 0 auto;
+  max-width: 1440px;
+  padding: 24px 18px 42px;
+}
+
+.scanner-topbar,
+.camera-panel,
+.scanner-panel,
+.queue-section,
+.ghost-button,
+.scanner-pill {
+  backdrop-filter: blur(14px);
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(18, 26, 39, 0.08);
+}
+
+.scanner-topbar,
+.scanner-stage,
+.queue-section {
+  margin-bottom: 18px;
+}
+
+.scanner-topbar {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 18px 22px;
+}
+
+.scanner-kicker {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.scanner-topbar h1,
+.panel-copy h2,
+.panel-copy h3 {
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+
+.scanner-topbar h1 {
+  color: var(--primary);
+  font-size: clamp(1.9rem, 2.4vw, 2.6rem);
+}
+
+.scanner-topbar-meta {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.scanner-pill {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 10px;
+  padding: 11px 14px;
+  text-transform: uppercase;
+}
+
+.scanner-pill.online {
+  color: var(--success);
+}
+
+.scanner-pill.offline {
+  color: var(--danger);
+}
+
+.status-dot {
+  background: currentColor;
+  border-radius: 999px;
+  box-shadow: 0 0 0 6px rgba(0, 70, 145, 0.08);
+  height: 10px;
+  width: 10px;
+}
+
+.ghost-button,
+.primary-button,
+.submit-button,
+.tool-group button {
+  cursor: pointer;
+}
+
+.ghost-button {
+  background: rgba(255, 255, 255, 0.66);
+  color: var(--primary);
+  font-weight: 800;
+  padding: 11px 14px;
+}
+
+.scanner-stage {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(360px, 0.92fr);
+}
+
+.camera-panel,
+.scanner-panel,
+.queue-section {
+  padding: 22px;
+}
+
+.camera-panel {
+  background:
+    linear-gradient(180deg, rgba(215, 226, 255, 0.4), rgba(255, 255, 255, 0.92) 28%),
+    var(--surface-strong);
+  display: grid;
+  gap: 18px;
+}
+
+.camera-frame {
+  aspect-ratio: 16 / 10;
+  background:
+    linear-gradient(180deg, rgba(0, 70, 145, 0) 0%, rgba(0, 70, 145, 0.12) 50%, rgba(0, 70, 145, 0) 100%),
+    linear-gradient(135deg, #0f1720, #121c29 42%, #132238);
+  border-radius: 28px;
+  min-height: 340px;
+  overflow: hidden;
+  position: relative;
+}
+
+.camera-video {
+  height: 100%;
+  inset: 0;
+  object-fit: cover;
+  position: absolute;
+  width: 100%;
+}
+
+.scan-target {
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 28px;
+  height: min(52vw, 280px);
+  left: 50%;
+  max-height: 280px;
+  max-width: 280px;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(52vw, 280px);
+}
+
+.scan-target::before,
+.scan-target::after {
+  border-top: 5px solid rgba(171, 199, 255, 0.92);
+  content: "";
+  height: 34px;
+  position: absolute;
+  top: -2px;
+  width: 34px;
+}
+
+.scan-target::before {
+  border-left: 5px solid rgba(171, 199, 255, 0.92);
+  border-top-left-radius: 18px;
+  left: -2px;
+}
+
+.scan-target::after {
+  border-right: 5px solid rgba(171, 199, 255, 0.92);
+  border-top-right-radius: 18px;
+  right: -2px;
+}
+
+.scan-line {
+  animation: sweep 2.1s linear infinite;
+  background: linear-gradient(90deg, transparent, rgba(171, 199, 255, 0.95), transparent);
+  box-shadow: 0 0 18px rgba(171, 199, 255, 0.8);
+  height: 4px;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 50%;
+}
+
+@keyframes sweep {
+  0% {
+    top: 18%;
+  }
+
+  50% {
+    top: 78%;
+  }
+
+  100% {
+    top: 18%;
+  }
+}
+
+.camera-overlay {
+  background: rgba(5, 10, 18, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  color: white;
+  max-width: min(320px, 82%);
+  padding: 12px 14px;
+  position: absolute;
+}
+
+.camera-overlay span {
+  color: rgba(171, 199, 255, 0.9);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.camera-overlay strong {
+  display: block;
+  font-size: 1rem;
+}
+
+.top-left {
+  left: 18px;
+  top: 18px;
+}
+
+.top-right {
+  right: 18px;
+  top: 18px;
+}
+
+.bottom-left {
+  bottom: 18px;
+  left: 18px;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 1fr);
+}
+
+.primary-button,
+.submit-button {
+  background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+  border: 0;
+  border-radius: 18px;
+  color: white;
+  font-weight: 800;
+  min-height: 58px;
+  padding: 12px 18px;
+}
+
+.tool-group {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 10px;
+}
+
+.tool-group button {
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  min-height: 48px;
+}
+
+.tool-group button:hover {
+  background: rgba(0, 70, 145, 0.06);
+  color: var(--primary);
+}
+
+.scanner-rail {
+  display: grid;
+  gap: 18px;
+}
+
+.scanner-panel {
+  background: var(--surface-strong);
+  display: grid;
+  gap: 16px;
+}
+
+.auth-panel {
+  margin: 10vh auto 0;
+  max-width: 520px;
+}
+
+.total-panel {
+  background: linear-gradient(135deg, rgba(0, 70, 145, 0.95), rgba(38, 94, 174, 0.92));
+  border-color: transparent;
+  color: white;
+}
+
+.total-panel span,
+.total-panel p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.total-panel strong {
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  line-height: 1;
+}
+
+.total-panel p,
+.placeholder-card {
+  margin: 0;
+}
+
+.rail-head {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rail-head div {
+  background: rgba(0, 70, 145, 0.05);
+  border-radius: 18px;
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.rail-head span,
+.scanner-form label {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.scanner-form {
+  display: grid;
+  gap: 14px;
+}
+
+.scanner-form label {
+  display: grid;
+  gap: 8px;
+}
+
+input,
+select {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--stroke);
+  border-radius: 16px;
+  color: inherit;
+  min-height: 48px;
+  padding: 12px 14px;
+}
+
+pre,
+.placeholder-card,
+.queue-card {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--stroke);
+  border-radius: 20px;
+}
+
+pre {
+  margin: 0;
+  max-height: 300px;
+  overflow: auto;
+  padding: 14px;
+}
+
+.placeholder-card {
+  color: var(--ink-soft);
+  padding: 16px;
+}
+
+.queue-section {
+  background: var(--surface-strong);
+  display: grid;
+  gap: 16px;
+}
+
+.queue-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.queue-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+}
+
+.queue-card span,
+.queue-card time {
+  color: var(--ink-soft);
+}
+
+@media (max-width: 1120px) {
+  .scanner-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .camera-frame {
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 760px) {
+  .scanner-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .scanner-topbar-meta,
+  .quick-actions,
+  .rail-head {
+    grid-template-columns: 1fr;
+  }
+
+  .scanner-topbar-meta {
+    display: grid;
+    width: 100%;
+  }
+
+  .tool-group {
+    grid-template-columns: 1fr;
+  }
+}

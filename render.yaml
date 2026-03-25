@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: arm-api
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
