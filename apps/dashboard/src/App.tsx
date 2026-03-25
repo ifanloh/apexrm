@@ -56,6 +56,7 @@ export default function App() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const hasDashboardAccess = profile ? ["admin", "panitia", "observer"].includes(profile.role) : false;
 
   useEffect(() => {
     if (!supabase) {
@@ -195,6 +196,39 @@ export default function App() {
             </button>
             {loginError ? <div className="empty-compact">{loginError}</div> : null}
           </form>
+        </section>
+      </main>
+    );
+  }
+
+  if (profile && !hasDashboardAccess) {
+    return (
+      <main className="dashboard-shell">
+        <section className="panel" style={{ margin: "12vh auto 0", maxWidth: 520 }}>
+          <div className="panel-head">
+            <div>
+              <p className="section-label">Unauthorized</p>
+              <h3>Akses Dashboard Ditolak</h3>
+            </div>
+          </div>
+          <div className="empty-state" style={{ minHeight: "auto" }}>
+            <strong>Akun dengan role `{profile.role}` tidak boleh membuka dashboard.</strong>
+            <span>Login memakai akun `admin`, `panitia`, atau `observer` untuk memantau leaderboard live.</span>
+          </div>
+          <div className="feed-list">
+            <button
+              className="checkpoint-chip active"
+              style={{ justifyContent: "center" }}
+              onClick={() => {
+                if (supabase) {
+                  void supabase.auth.signOut();
+                }
+              }}
+              type="button"
+            >
+              <span style={{ color: "white" }}>Logout</span>
+            </button>
+          </div>
         </section>
       </main>
     );
