@@ -466,23 +466,16 @@ export default function App() {
             <h2>{selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Pilih checkpoint"}</h2>
           </div>
 
-          <div className="checkpoint-picker">
-            {checkpoints.map((checkpoint) => {
-              const isActive = checkpoint.id === checkpointId;
-
-              return (
-                <button
-                  className={`checkpoint-chip ${isActive ? "active" : ""}`}
-                  key={checkpoint.id}
-                  onClick={() => setCheckpointId(checkpoint.id)}
-                  type="button"
-                >
-                  <span>{checkpoint.code}</span>
-                  <strong>KM {checkpoint.kmMarker}</strong>
-                </button>
-              );
-            })}
-          </div>
+          <label className="checkpoint-field">
+            <span>Pilih Checkpoint</span>
+            <select value={checkpointId} onChange={(event) => setCheckpointId(event.target.value)}>
+              {checkpoints.map((checkpoint) => (
+                <option key={checkpoint.id} value={checkpoint.id}>
+                  {formatCheckpointLabel(checkpoint)}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <div className="camera-frame">
             <video className="camera-video" muted playsInline ref={videoRef} />

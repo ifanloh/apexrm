@@ -164,41 +164,18 @@ select {
   min-width: 0;
 }
 
-.checkpoint-picker {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-}
-
-.checkpoint-chip {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid var(--stroke);
-  border-radius: 18px;
+.checkpoint-field {
   color: var(--ink-soft);
-  cursor: pointer;
   display: grid;
-  gap: 4px;
-  min-height: 72px;
-  padding: 12px 14px;
-  text-align: left;
+  gap: 8px;
 }
 
-.checkpoint-chip span {
+.checkpoint-field span {
   color: var(--ink-muted);
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-}
-
-.checkpoint-chip strong {
-  color: var(--primary);
-  font-size: 1rem;
-}
-
-.checkpoint-chip.active {
-  background: linear-gradient(135deg, rgba(0, 70, 145, 0.12), rgba(38, 94, 174, 0.12));
-  border-color: rgba(0, 70, 145, 0.24);
 }
 
 .camera-frame {
@@ -546,10 +523,6 @@ select {
 
   .scanner-topbar h1 {
     font-size: 2.15rem;
-  }
-
-  .checkpoint-picker {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .camera-frame {
