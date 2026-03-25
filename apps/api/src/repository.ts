@@ -285,7 +285,7 @@ export async function getOverallLeaderboard(sql: Sql, limit = 20): Promise<Overa
     scanned_at: string | Date;
     crew_code: string;
     device_id: string;
-    rank: number;
+    rank: number | string;
   }[]>`
     with ranked_progress as (
       select
@@ -338,7 +338,7 @@ export async function getOverallLeaderboard(sql: Sql, limit = 20): Promise<Overa
 
   const topEntries: OverallLeaderboardEntry[] = rows.map((row) => ({
     bib: row.bib,
-    rank: row.rank,
+    rank: Number(row.rank),
     checkpointId: row.checkpoint_id,
     checkpointCode: row.checkpoint_code,
     checkpointName: row.checkpoint_name,
