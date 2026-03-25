@@ -5,6 +5,8 @@ import type {
   DuplicateScan,
   LeaderboardEntry,
   NotificationEvent,
+  OverallLeaderboard,
+  OverallLeaderboardEntry,
   ScanSubmission
 } from "./contracts.js";
 import { defaultCheckpoints } from "./contracts.js";
@@ -265,6 +267,92 @@ export async function getLiveLeaderboard(sql: Sql) {
   }
 
   return boards;
+}
+
+export async function getOverallLeaderboard(sql: Sql, limit = 20): Promise<OverallLeaderboard> {
+  const [totals] = await sql<{ total: number }[]>`
+    select count(distinct participant_id)::int as total
+    from public.scans
+  `;
+
+  const rows = await sql<{
+    bib: string;
+    checkpoint_id: string;
+    checkpoint_code: string;
+    checkpoint_name: string;
+    checkpoint_km_marker: number;
+    checkpoint_order: number;
+    scanned_at: string | Date;
+    crew_code: string;
+    device_id: string;
+    rank: number;
+  }[]>`
+    with ranked_progress as (
+      select
+        s.participant_id,
+        s.bib,
+        s.checkpoint_id,
+        c.code as checkpoint_code,
+        c.name as checkpoint_name,
+        c.km_marker as checkpoint_km_marker,
+        c.order_index as checkpoint_order,
+        s.scanned_at,
+        s.crew_code,
+        s.device_id,
+        row_number() over (
+          partition by s.participant_id
+          order by c.order_index desc, s.scanned_at asc, s.position asc, s.server_received_at asc
+        ) as participant_pick
+      from public.scans s
+      inner join public.checkpoints c on c.id = s.checkpoint_id
+      where c.is_active = true
+    ),
+    latest_progress as (
+      select *
+      from ranked_progress
+      where participant_pick = 1
+    ),
+    ordered_progress as (
+      select
+        *,
+        row_number() over (
+          order by checkpoint_order desc, scanned_at asc, bib asc
+        ) as rank
+      from latest_progress
+    )
+    select
+      bib,
+      checkpoint_id,
+      checkpoint_code,
+      checkpoint_name,
+      checkpoint_km_marker,
+      checkpoint_order,
+      scanned_at,
+      crew_code,
+      device_id,
+      rank
+    from ordered_progress
+    where rank <= ${limit}
+    order by rank asc
+  `;
+
+  const topEntries: OverallLeaderboardEntry[] = rows.map((row) => ({
+    bib: row.bib,
+    rank: row.rank,
+    checkpointId: row.checkpoint_id,
+    checkpointCode: row.checkpoint_code,
+    checkpointName: row.checkpoint_name,
+    checkpointKmMarker: Number(row.checkpoint_km_marker),
+    checkpointOrder: row.checkpoint_order,
+    scannedAt: toIsoString(row.scanned_at),
+    crewId: row.crew_code,
+    deviceId: row.device_id
+  }));
+
+  return {
+    totalRankedRunners: totals?.total ?? 0,
+    topEntries
+  };
 }
 
 export async function getDuplicateAuditLog(sql: Sql) {

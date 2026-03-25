@@ -3,6 +3,7 @@ import { sql } from "./db.js";
 import {
   ensureDefaultCheckpoints,
   getDuplicateAuditLog,
+  getOverallLeaderboard,
   getLiveLeaderboard,
   getNotificationFeed
 } from "./repository.js";
@@ -53,10 +54,19 @@ export async function listActiveCheckpoints() {
 export async function createSnapshot() {
   await ensureCheckpointBootstrap();
 
+  const [overallLeaderboard, checkpointLeaderboards, duplicates, notifications] = await Promise.all([
+    getOverallLeaderboard(sql),
+    getLiveLeaderboard(sql),
+    getDuplicateAuditLog(sql),
+    getNotificationFeed(sql)
+  ]);
+
   return liveRaceSnapshotSchema.parse({
     updatedAt: new Date().toISOString(),
-    leaderboards: await getLiveLeaderboard(sql),
-    duplicates: await getDuplicateAuditLog(sql),
-    notifications: await getNotificationFeed(sql)
+    overallLeaderboard,
+    checkpointLeaderboards,
+    leaderboards: checkpointLeaderboards,
+    duplicates,
+    notifications
   });
 }

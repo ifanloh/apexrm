@@ -7,11 +7,17 @@ import {
   type AuthProfile,
   type CheckpointLeaderboard,
   type DuplicateScan,
-  type NotificationEvent
+  type NotificationEvent,
+  type OverallLeaderboard
 } from "@arm/contracts";
 import { fetchLiveSnapshot } from "./api";
 import { supabase } from "./supabase";
 import "./styles.css";
+
+const emptyOverallLeaderboard: OverallLeaderboard = {
+  totalRankedRunners: 0,
+  topEntries: []
+};
 
 function getInitials(value: string) {
   return value
@@ -57,6 +63,7 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [overallLeaderboard, setOverallLeaderboard] = useState<OverallLeaderboard>(emptyOverallLeaderboard);
   const [leaderboards, setLeaderboards] = useState<CheckpointLeaderboard[]>([]);
   const [duplicates, setDuplicates] = useState<DuplicateScan[]>([]);
   const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
@@ -125,12 +132,14 @@ export default function App() {
         }
 
         const snapshot = await fetchLiveSnapshot(token);
+        const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
         if (!isMounted) {
           return;
         }
 
-        setLeaderboards(snapshot.leaderboards);
+        setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
+        setLeaderboards(checkpointLeaderboards);
         setDuplicates(snapshot.duplicates);
         setNotifications(snapshot.notifications);
         setLastUpdatedAt(
@@ -181,7 +190,10 @@ export default function App() {
       debounceId = window.setTimeout(async () => {
         try {
           const snapshot = await fetchLiveSnapshot(accessToken);
-          setLeaderboards(snapshot.leaderboards);
+          const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
+
+          setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
+          setLeaderboards(checkpointLeaderboards);
           setDuplicates(snapshot.duplicates);
           setNotifications(snapshot.notifications);
           setLastUpdatedAt(
@@ -232,9 +244,13 @@ export default function App() {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
   }, [leaderboards, selectedCheckpointId]);
 
+  const overallLeader = overallLeaderboard.topEntries[0] ?? null;
+
   const totalOfficialScans = useMemo(() => {
     return leaderboards.reduce((sum, item) => sum + item.totalOfficialScans, 0);
   }, [leaderboards]);
+
+  const totalRankedRunners = overallLeaderboard.totalRankedRunners;
 
   const activeCheckpointCount = useMemo(() => {
     return leaderboards.filter((item) => item.totalOfficialScans > 0).length;
@@ -364,15 +380,19 @@ export default function App() {
 
       <section className="hero-panel">
         <div>
-          <p className="section-label">Active Leaderboard</p>
-          <h2>Checkpoint ranking yang siap dipantau dari control room, PC, maupun tablet.</h2>
+          <p className="section-label">Overall Race Ranking</p>
+          <h2>Leaderboard utama sekarang membaca progres race secara keseluruhan, bukan hanya per checkpoint.</h2>
           <p className="section-copy">
-            Layout utama ini mengikuti referensi Stitch: fokus ke data operasional, scan resmi, dan event yang layak
-            disiarkan.
+            Pelari diurutkan berdasarkan checkpoint terjauh yang sudah dicapai, lalu waktu scan tercepat pada checkpoint
+            terakhir itu. Panel checkpoint tetap ada, tapi sekarang fungsinya sebagai monitor operasional sekunder.
           </p>
         </div>
         <div className="hero-metrics">
           <article className="metric-card primary">
+            <span>Overall ranked runners</span>
+            <strong>{totalRankedRunners}</strong>
+          </article>
+          <article className="metric-card">
             <span>Total scan resmi</span>
             <strong>{totalOfficialScans}</strong>
           </article>
@@ -381,33 +401,10 @@ export default function App() {
             <strong>{activeCheckpointCount}</strong>
           </article>
           <article className="metric-card">
-            <span>Duplikat audit</span>
-            <strong>{duplicates.length}</strong>
-          </article>
-          <article className="metric-card">
-            <span>Queue notifikasi</span>
-            <strong>{notifications.length}</strong>
+            <span>Leader saat ini</span>
+            <strong>{overallLeader ? `#${overallLeader.bib}` : "--"}</strong>
           </article>
         </div>
-      </section>
-
-      <section className="checkpoint-strip" aria-label="Checkpoint switcher">
-        {leaderboards.map((board) => {
-          const checkpoint = defaultCheckpoints.find((item) => item.id === board.checkpointId);
-          const isActive = board.checkpointId === selectedBoard?.checkpointId;
-
-          return (
-            <button
-              className={`checkpoint-chip ${isActive ? "active" : ""}`}
-              key={board.checkpointId}
-              onClick={() => setSelectedCheckpointId(board.checkpointId)}
-              type="button"
-            >
-              <span>{checkpoint ? checkpoint.code : board.checkpointId}</span>
-              <strong>{board.totalOfficialScans}</strong>
-            </button>
-          );
-        })}
       </section>
 
       {fetchError ? <div className="notice-banner error">{fetchError}</div> : null}
@@ -416,31 +413,32 @@ export default function App() {
         <article className="panel leaderboard-panel">
           <div className="panel-head">
             <div>
-              <p className="section-label">Leaderboard</p>
-              <h3>{selectedCheckpointMeta ? formatCheckpointLabel(selectedCheckpointMeta) : "Checkpoint"}</h3>
+              <p className="section-label">Overall Ranking</p>
+              <h3>Standings resmi seluruh race</h3>
             </div>
             <div className="panel-badge">
-              <span>Official scans</span>
-              <strong>{selectedBoard?.totalOfficialScans ?? 0}</strong>
+              <span>Ranked runners</span>
+              <strong>{overallLeaderboard.totalRankedRunners}</strong>
             </div>
           </div>
 
-          <div className="leaderboard-table" role="table" aria-label="Selected checkpoint leaderboard">
+          <div className="leaderboard-table" role="table" aria-label="Overall leaderboard">
             <div className="leaderboard-head" role="row">
-              <span>Pos</span>
+              <span>Rank</span>
               <span>Pelari</span>
-              <span>Scan time</span>
-              <span>Crew</span>
-              <span>Device</span>
+              <span>Progress</span>
+              <span>Scan terakhir</span>
+              <span>Crew / Device</span>
             </div>
 
-            {selectedBoard?.topEntries.length ? (
-              selectedBoard.topEntries.map((entry) => {
+            {overallLeaderboard.topEntries.length ? (
+              overallLeaderboard.topEntries.map((entry) => {
                 const runnerLabel = `Runner ${entry.bib}`;
+
                 return (
                   <div className="leaderboard-row" key={`${entry.checkpointId}-${entry.bib}`} role="row">
                     <div className="leaderboard-rank">
-                      <strong>#{entry.position}</strong>
+                      <strong>#{entry.rank}</strong>
                     </div>
                     <div className="runner-cell">
                       <div className="runner-avatar">{getInitials(runnerLabel)}</div>
@@ -450,24 +448,26 @@ export default function App() {
                       </div>
                     </div>
                     <div className="detail-cell">
-                      <span className="detail-label">Scan time</span>
+                      <span className="detail-label">Progress</span>
+                      <strong>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</strong>
+                      <span>{entry.checkpointName}</span>
+                    </div>
+                    <div className="detail-cell">
+                      <span className="detail-label">Scan terakhir</span>
                       <strong>{formatScanTime(entry.scannedAt)}</strong>
                     </div>
                     <div className="detail-cell">
-                      <span className="detail-label">Crew</span>
+                      <span className="detail-label">Crew / Device</span>
                       <strong>{entry.crewId}</strong>
-                    </div>
-                    <div className="detail-cell">
-                      <span className="detail-label">Device</span>
-                      <strong>{entry.deviceId}</strong>
+                      <span>{entry.deviceId}</span>
                     </div>
                   </div>
                 );
               })
             ) : (
               <div className="empty-state">
-                <strong>Belum ada scan resmi di checkpoint ini.</strong>
-                <span>Begitu crew mengirim scan pertama, leaderboard akan muncul di sini.</span>
+                <strong>Belum ada pelari yang masuk overall ranking.</strong>
+                <span>Begitu scan resmi pertama masuk, papan overall akan dihitung otomatis dari progres checkpoint.</span>
               </div>
             )}
           </div>
@@ -522,6 +522,86 @@ export default function App() {
             {duplicates.length === 0 ? <div className="empty-compact">Belum ada duplikat yang perlu diaudit.</div> : null}
           </article>
         </aside>
+      </section>
+
+      <section className="panel checkpoint-monitor-panel">
+        <div className="panel-head">
+          <div>
+            <p className="section-label">Checkpoint Monitor</p>
+            <h3>{selectedCheckpointMeta ? formatCheckpointLabel(selectedCheckpointMeta) : "Pilih checkpoint"}</h3>
+          </div>
+          <div className="panel-badge">
+            <span>Official scans</span>
+            <strong>{selectedBoard?.totalOfficialScans ?? 0}</strong>
+          </div>
+        </div>
+
+        <div className="checkpoint-strip" aria-label="Checkpoint switcher">
+          {leaderboards.map((board) => {
+            const checkpoint = defaultCheckpoints.find((item) => item.id === board.checkpointId);
+            const isActive = board.checkpointId === selectedBoard?.checkpointId;
+
+            return (
+              <button
+                className={`checkpoint-chip ${isActive ? "active" : ""}`}
+                key={board.checkpointId}
+                onClick={() => setSelectedCheckpointId(board.checkpointId)}
+                type="button"
+              >
+                <span>{checkpoint ? checkpoint.code : board.checkpointId}</span>
+                <strong>{board.totalOfficialScans}</strong>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="leaderboard-table" role="table" aria-label="Selected checkpoint leaderboard">
+          <div className="leaderboard-head" role="row">
+            <span>Pos</span>
+            <span>Pelari</span>
+            <span>Scan time</span>
+            <span>Crew</span>
+            <span>Device</span>
+          </div>
+
+          {selectedBoard?.topEntries.length ? (
+            selectedBoard.topEntries.map((entry) => {
+              const runnerLabel = `Runner ${entry.bib}`;
+
+              return (
+                <div className="leaderboard-row" key={`${entry.checkpointId}-${entry.bib}`} role="row">
+                  <div className="leaderboard-rank">
+                    <strong>#{entry.position}</strong>
+                  </div>
+                  <div className="runner-cell">
+                    <div className="runner-avatar">{getInitials(runnerLabel)}</div>
+                    <div>
+                      <strong>{runnerLabel}</strong>
+                      <span>BIB #{entry.bib}</span>
+                    </div>
+                  </div>
+                  <div className="detail-cell">
+                    <span className="detail-label">Scan time</span>
+                    <strong>{formatScanTime(entry.scannedAt)}</strong>
+                  </div>
+                  <div className="detail-cell">
+                    <span className="detail-label">Crew</span>
+                    <strong>{entry.crewId}</strong>
+                  </div>
+                  <div className="detail-cell">
+                    <span className="detail-label">Device</span>
+                    <strong>{entry.deviceId}</strong>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="empty-state">
+              <strong>Belum ada scan resmi di checkpoint ini.</strong>
+              <span>Panel ini tetap dipakai untuk audit per titik CP, tapi bukan leaderboard utama lagi.</span>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="checkpoint-grid">

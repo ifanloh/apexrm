@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { authenticateToken, getBearerToken, requireRole } from "../../src/auth.js";
 import { sql } from "../../src/db.js";
-import { getLiveLeaderboard } from "../../src/repository.js";
+import { getLiveLeaderboard, getOverallLeaderboard } from "../../src/repository.js";
 import { ensureCheckpointBootstrap } from "../../src/service.js";
 import { handlePreflight, sendError, sendJson } from "../_shared.js";
 
@@ -21,8 +21,16 @@ export default async function handler(request: IncomingMessage, response: Server
     const actor = await authenticateToken(token);
     requireRole(actor, ["admin", "panitia", "observer"]);
     await ensureCheckpointBootstrap();
+
+    const [overallLeaderboard, checkpointLeaderboards] = await Promise.all([
+      getOverallLeaderboard(sql),
+      getLiveLeaderboard(sql)
+    ]);
+
     sendJson(request, response, 200, {
-      items: await getLiveLeaderboard(sql)
+      overallLeaderboard,
+      checkpointLeaderboards,
+      items: checkpointLeaderboards
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

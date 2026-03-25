@@ -8,6 +8,7 @@ import {
   ensureDefaultCheckpoints,
   getCheckpointLeaderboard,
   getDuplicateAuditLog,
+  getOverallLeaderboard,
   getLiveLeaderboard,
   getNotificationFeed,
   processSingleScan,
@@ -30,11 +31,20 @@ function createHealthPayload() {
 }
 
 async function createSnapshot() {
+  const [overallLeaderboard, checkpointLeaderboards, duplicates, notifications] = await Promise.all([
+    getOverallLeaderboard(sql),
+    getLiveLeaderboard(sql),
+    getDuplicateAuditLog(sql),
+    getNotificationFeed(sql)
+  ]);
+
   return liveRaceSnapshotSchema.parse({
     updatedAt: new Date().toISOString(),
-    leaderboards: await getLiveLeaderboard(sql),
-    duplicates: await getDuplicateAuditLog(sql),
-    notifications: await getNotificationFeed(sql)
+    overallLeaderboard,
+    checkpointLeaderboards,
+    leaderboards: checkpointLeaderboards,
+    duplicates,
+    notifications
   });
 }
 
@@ -94,8 +104,15 @@ export async function createServer() {
     requireRole(actor, ["admin", "panitia", "observer"]);
     await ensureCheckpointBootstrap();
 
+    const [overallLeaderboard, checkpointLeaderboards] = await Promise.all([
+      getOverallLeaderboard(sql),
+      getLiveLeaderboard(sql)
+    ]);
+
     return {
-      items: await getLiveLeaderboard(sql)
+      overallLeaderboard,
+      checkpointLeaderboards,
+      items: checkpointLeaderboards
     };
   });
 
