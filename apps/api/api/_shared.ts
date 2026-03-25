@@ -1,60 +1,60 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { FastifyInstance } from "fastify";
 
-let serverPromise: Promise<FastifyInstance> | null = null;
-
-function getAllowedOrigin(request: IncomingMessage) {
-  const origin = request.headers.origin;
-
-  if (!origin) {
-    return "*";
-  }
-
-  return origin;
+export function getAllowedOrigin(request: IncomingMessage) {
+  return request.headers.origin ?? "*";
 }
 
-function applyCorsHeaders(request: IncomingMessage, response: ServerResponse) {
-  const allowedOrigin = getAllowedOrigin(request);
-
-  response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+export function applyCorsHeaders(request: IncomingMessage, response: ServerResponse) {
+  response.setHeader("Access-Control-Allow-Origin", getAllowedOrigin(request));
   response.setHeader("Vary", "Origin");
   response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-  return true;
 }
 
-async function getServer() {
-  if (!serverPromise) {
-    serverPromise = import("../src/app.js").then(async ({ createServer }) => {
-      const server = await createServer();
-      await server.ready();
-      return server;
-    });
+export function handlePreflight(request: IncomingMessage, response: ServerResponse) {
+  applyCorsHeaders(request, response);
+
+  if (request.method === "OPTIONS") {
+    response.statusCode = 204;
+    response.end();
+    return true;
   }
 
-  return serverPromise;
+  return false;
 }
 
-export async function forwardToFastify(request: IncomingMessage, response: ServerResponse) {
-  try {
-    applyCorsHeaders(request, response);
+export function sendJson(
+  request: IncomingMessage,
+  response: ServerResponse,
+  statusCode: number,
+  payload: unknown
+) {
+  applyCorsHeaders(request, response);
+  response.statusCode = statusCode;
+  response.setHeader("content-type", "application/json");
+  response.end(JSON.stringify(payload));
+}
 
-    if (request.method === "OPTIONS") {
-      response.statusCode = 204;
-      response.end();
-      return;
-    }
+export function sendError(
+  request: IncomingMessage,
+  response: ServerResponse,
+  statusCode: number,
+  message: string,
+  extras?: Record<string, unknown>
+) {
+  sendJson(request, response, statusCode, {
+    message,
+    ...(extras ?? {})
+  });
+}
 
-    const server = await getServer();
-    server.server.emit("request", request, response);
-  } catch (error) {
-    console.error("API handler startup failed", error);
-    response.statusCode = 500;
-    response.setHeader("content-type", "application/json");
-    response.end(
-      JSON.stringify({
-        message: error instanceof Error ? error.message : "Unknown startup error"
-      })
-    );
+export async function readJsonBody<T>(request: IncomingMessage): Promise<T> {
+  const chunks: Buffer[] = [];
+
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
+
+  const body = Buffer.concat(chunks).toString("utf8");
+  return JSON.parse(body || "{}") as T;
 }

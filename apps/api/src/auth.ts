@@ -1,4 +1,5 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import type { IncomingHttpHeaders } from "node:http";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
 import { authRoleSchema, type AuthRole } from "./contracts.js";
@@ -65,6 +66,25 @@ function getRequestToken(request: FastifyRequest) {
   return query.success ? query.data.access_token ?? null : null;
 }
 
+export function getBearerToken(headers: IncomingHttpHeaders, requestUrl?: string | null) {
+  const header = headers.authorization;
+
+  if (header?.startsWith("Bearer ")) {
+    return header.slice("Bearer ".length).trim();
+  }
+
+  if (!requestUrl) {
+    return null;
+  }
+
+  const url = new URL(requestUrl, "https://arm.local");
+  const query = eventQuerySchema.safeParse({
+    access_token: url.searchParams.get("access_token") ?? undefined
+  });
+
+  return query.success ? query.data.access_token ?? null : null;
+}
+
 function toAuthUser(claims: JwtPayload): AuthUser {
   if (!claims.sub) {
     throw new Error("Invalid token payload");
@@ -116,13 +136,7 @@ async function verifyWithAuthServer(token: string): Promise<AuthUser> {
   };
 }
 
-export async function requireAuth(request: FastifyRequest): Promise<AuthUser> {
-  const token = getRequestToken(request);
-
-  if (!token) {
-    throw new Error("Missing bearer token");
-  }
-
+export async function authenticateToken(token: string): Promise<AuthUser> {
   try {
     return await verifyWithJwks(token);
   } catch {
@@ -136,6 +150,16 @@ export async function requireAuth(request: FastifyRequest): Promise<AuthUser> {
 
     return verifyWithAuthServer(token);
   }
+}
+
+export async function requireAuth(request: FastifyRequest): Promise<AuthUser> {
+  const token = getRequestToken(request);
+
+  if (!token) {
+    throw new Error("Missing bearer token");
+  }
+
+  return authenticateToken(token);
 }
 
 export function requireRole(actor: AuthUser, allowedRoles: AuthRole[]) {
