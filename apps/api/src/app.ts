@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { z } from "zod";
-import { liveRaceSnapshotSchema, scanSubmissionSchema } from "./contracts.js";
+import { defaultCheckpoints, liveRaceSnapshotSchema, scanSubmissionSchema } from "./contracts.js";
 import { requireAuth, requireRole } from "./auth.js";
 import { sql } from "./db.js";
 import {
@@ -31,12 +31,10 @@ function createHealthPayload() {
 }
 
 async function createSnapshot() {
-  const [overallLeaderboard, checkpointLeaderboards, duplicates, notifications] = await Promise.all([
-    getOverallLeaderboard(sql),
-    getLiveLeaderboard(sql),
-    getDuplicateAuditLog(sql),
-    getNotificationFeed(sql)
-  ]);
+  const overallLeaderboard = await getOverallLeaderboard(sql);
+  const checkpointLeaderboards = await getLiveLeaderboard(sql);
+  const duplicates = await getDuplicateAuditLog(sql);
+  const notifications = await getNotificationFeed(sql);
 
   return liveRaceSnapshotSchema.parse({
     updatedAt: new Date().toISOString(),
@@ -69,8 +67,6 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/health`, async () => createHealthPayload());
 
   server.get(`${config.apiPrefix}/meta/checkpoints`, async () => {
-    await ensureCheckpointBootstrap();
-
     const rows = await sql<{
       id: string;
       code: string;
@@ -83,6 +79,18 @@ export async function createServer() {
       where is_active = true
       order by order_index asc
     `;
+
+    if (rows.length === 0) {
+      return {
+        items: defaultCheckpoints.map((checkpoint) => ({
+          id: checkpoint.id,
+          code: checkpoint.code,
+          name: checkpoint.name,
+          kmMarker: checkpoint.kmMarker,
+          order: checkpoint.order
+        }))
+      };
+    }
 
     return {
       items: rows.map((row) => ({
@@ -102,12 +110,9 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/leaderboard/live`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia", "observer"]);
-    await ensureCheckpointBootstrap();
 
-    const [overallLeaderboard, checkpointLeaderboards] = await Promise.all([
-      getOverallLeaderboard(sql),
-      getLiveLeaderboard(sql)
-    ]);
+    const overallLeaderboard = await getOverallLeaderboard(sql);
+    const checkpointLeaderboards = await getLiveLeaderboard(sql);
 
     return {
       overallLeaderboard,
@@ -127,7 +132,6 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/audit/duplicates`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia"]);
-    await ensureCheckpointBootstrap();
 
     return {
       items: await getDuplicateAuditLog(sql)
@@ -137,7 +141,6 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/notifications`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia"]);
-    await ensureCheckpointBootstrap();
 
     return {
       items: await getNotificationFeed(sql)
@@ -153,7 +156,6 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/snapshot`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia", "observer"]);
-    await ensureCheckpointBootstrap();
     return createSnapshot();
   });
 

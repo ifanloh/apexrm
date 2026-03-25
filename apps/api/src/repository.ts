@@ -253,20 +253,88 @@ export async function getCheckpointLeaderboard(sql: Sql, checkpointId: string): 
 }
 
 export async function getLiveLeaderboard(sql: Sql) {
-  const checkpoints = await sql<{ id: string }[]>`
-    select id
+  const checkpoints = await sql<{
+    id: string;
+    code: string;
+    name: string;
+    km_marker: number;
+    order_index: number;
+  }[]>`
+    select id, code, name, km_marker, order_index
     from public.checkpoints
     where is_active = true
     order by order_index asc
   `;
 
-  const boards: CheckpointLeaderboard[] = [];
+  const checkpointList = checkpoints.length
+    ? checkpoints
+    : defaultCheckpoints.map((checkpoint) => ({
+        id: checkpoint.id,
+        code: checkpoint.code,
+        name: checkpoint.name,
+        km_marker: checkpoint.kmMarker,
+        order_index: checkpoint.order
+      }));
 
-  for (const checkpoint of checkpoints) {
-    boards.push(await getCheckpointLeaderboard(sql, checkpoint.id));
+  const [totals, rows] = await Promise.all([
+    sql<{
+      checkpoint_id: string;
+      total: number;
+    }[]>`
+      select checkpoint_id, count(*)::int as total
+      from public.scans
+      group by checkpoint_id
+    `,
+    sql<{
+      bib: string;
+      checkpoint_id: string;
+      position: number;
+      scanned_at: string | Date;
+      crew_code: string;
+      device_id: string;
+    }[]>`
+      with ranked_entries as (
+        select
+          bib,
+          checkpoint_id,
+          position,
+          scanned_at,
+          crew_code,
+          device_id,
+          row_number() over (
+            partition by checkpoint_id
+            order by position asc, scanned_at asc, bib asc
+          ) as row_rank
+        from public.scans
+      )
+      select bib, checkpoint_id, position, scanned_at, crew_code, device_id
+      from ranked_entries
+      where row_rank <= 5
+      order by checkpoint_id asc, position asc
+    `
+  ]);
+
+  const totalsByCheckpoint = new Map(totals.map((row) => [row.checkpoint_id, row.total]));
+  const entriesByCheckpoint = new Map<string, LeaderboardEntry[]>();
+
+  for (const row of rows) {
+    const list = entriesByCheckpoint.get(row.checkpoint_id) ?? [];
+    list.push({
+      bib: row.bib,
+      checkpointId: row.checkpoint_id,
+      position: row.position,
+      scannedAt: toIsoString(row.scanned_at),
+      crewId: row.crew_code,
+      deviceId: row.device_id
+    });
+    entriesByCheckpoint.set(row.checkpoint_id, list);
   }
 
-  return boards;
+  return checkpointList.map((checkpoint) => ({
+    checkpointId: checkpoint.id,
+    totalOfficialScans: totalsByCheckpoint.get(checkpoint.id) ?? 0,
+    topEntries: entriesByCheckpoint.get(checkpoint.id) ?? []
+  }));
 }
 
 export async function getOverallLeaderboard(sql: Sql, limit = 20): Promise<OverallLeaderboard> {

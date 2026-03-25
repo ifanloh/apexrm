@@ -1,4 +1,4 @@
-import { liveRaceSnapshotSchema } from "./contracts.js";
+import { defaultCheckpoints, liveRaceSnapshotSchema } from "./contracts.js";
 import { sql } from "./db.js";
 import {
   ensureDefaultCheckpoints,
@@ -27,8 +27,6 @@ export async function ensureCheckpointBootstrap() {
 }
 
 export async function listActiveCheckpoints() {
-  await ensureCheckpointBootstrap();
-
   const rows = await sql<{
     id: string;
     code: string;
@@ -42,6 +40,16 @@ export async function listActiveCheckpoints() {
     order by order_index asc
   `;
 
+  if (rows.length === 0) {
+    return defaultCheckpoints.map((checkpoint) => ({
+      id: checkpoint.id,
+      code: checkpoint.code,
+      name: checkpoint.name,
+      kmMarker: checkpoint.kmMarker,
+      order: checkpoint.order
+    }));
+  }
+
   return rows.map((row) => ({
     id: row.id,
     code: row.code,
@@ -52,14 +60,10 @@ export async function listActiveCheckpoints() {
 }
 
 export async function createSnapshot() {
-  await ensureCheckpointBootstrap();
-
-  const [overallLeaderboard, checkpointLeaderboards, duplicates, notifications] = await Promise.all([
-    getOverallLeaderboard(sql),
-    getLiveLeaderboard(sql),
-    getDuplicateAuditLog(sql),
-    getNotificationFeed(sql)
-  ]);
+  const overallLeaderboard = await getOverallLeaderboard(sql);
+  const checkpointLeaderboards = await getLiveLeaderboard(sql);
+  const duplicates = await getDuplicateAuditLog(sql);
+  const notifications = await getNotificationFeed(sql);
 
   return liveRaceSnapshotSchema.parse({
     updatedAt: new Date().toISOString(),
