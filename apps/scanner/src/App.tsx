@@ -54,12 +54,14 @@ function isValidBib(rawValue: string) {
 function deriveProfileFromSession(session: Session, fallbackCrewCode: string): AuthProfile {
   const appMetadata = session.user.app_metadata ?? {};
   const userMetadata = session.user.user_metadata ?? {};
+  const rawRole = appMetadata.role ?? appMetadata.roles?.[0] ?? "crew";
+  const crewCode = appMetadata.crew_code ?? appMetadata.crewCode ?? fallbackCrewCode;
 
   return authProfileSchema.parse({
     userId: session.user.id,
     email: session.user.email ?? null,
-    role: appMetadata.role ?? "crew",
-    crewCode: appMetadata.crew_code ?? fallbackCrewCode,
+    role: rawRole,
+    crewCode,
     displayName: userMetadata.full_name ?? userMetadata.name ?? session.user.email ?? fallbackCrewCode
   });
 }
@@ -81,6 +83,7 @@ export default function App() {
   const [lastResponse, setLastResponse] = useState<IngestScanResponse | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanLockRef = useRef<string>("");
@@ -119,20 +122,31 @@ export default function App() {
       time: formatDateTime(lastResponse.duplicate.serverReceivedAt)
     };
   }, [lastResponse]);
+  const canScan = Boolean(
+    session?.access_token &&
+      effectiveProfile &&
+      ["crew", "panitia", "admin"].includes(effectiveProfile.role) &&
+      checkpointId &&
+      checkpoints.length > 0 &&
+      !isBootstrapping
+  );
 
   useEffect(() => {
     if (!supabase) {
+      setIsBootstrapping(false);
       return;
     }
 
     void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      setIsBootstrapping(false);
     });
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
+      setIsBootstrapping(false);
     });
 
     return () => {
@@ -178,12 +192,14 @@ export default function App() {
           return nextCheckpoints[1]?.id ?? nextCheckpoints[0].id;
         });
       }
+      setIsBootstrapping(false);
     }
 
     bootstrap().catch(() => {
       setCheckpoints([...defaultCheckpoints]);
       setCheckpointId("cp-10");
       setStatusMessage("Metadata checkpoint dari API gagal dimuat. Scanner memakai checkpoint default.");
+      setIsBootstrapping(false);
     });
   }, []);
 
@@ -308,7 +324,7 @@ export default function App() {
   }
 
   async function processScan(rawValue: string) {
-    if (!session?.access_token) {
+    if (!canScan || !session?.access_token) {
       setStatusMessage("Login crew diperlukan sebelum scan.");
       return;
     }
@@ -469,6 +485,19 @@ export default function App() {
     );
   }
 
+  if (isBootstrapping) {
+    return (
+      <main className="scanner-shell">
+        <section className="scanner-panel auth-panel">
+          <div className="placeholder-card">
+            <strong>Menyiapkan scanner...</strong>
+            <div>Checkpoint, session, dan queue lokal sedang disinkronkan supaya scanner tidak masuk state setengah jadi.</div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="scanner-shell">
       <header className="scanner-topbar">
@@ -507,7 +536,7 @@ export default function App() {
 
           <label className="checkpoint-field">
             <span>Pilih Checkpoint</span>
-            <select value={checkpointId} onChange={(event) => setCheckpointId(event.target.value)}>
+            <select disabled={isBusy || checkpoints.length === 0} value={checkpointId} onChange={(event) => setCheckpointId(event.target.value)}>
               {checkpoints.map((checkpoint) => (
                 <option key={checkpoint.id} value={checkpoint.id}>
                   {formatCheckpointLabel(checkpoint)}
@@ -532,11 +561,11 @@ export default function App() {
           </div>
 
           <div className="quick-actions">
-            <button className="primary-button" onClick={() => setCameraEnabled((value) => !value)} type="button">
+            <button className="primary-button" disabled={!canScan} onClick={() => setCameraEnabled((value) => !value)} type="button">
               {cameraEnabled ? "Matikan Kamera" : "Aktifkan Kamera"}
             </button>
             <div className="tool-group">
-              <button onClick={() => setBib("")} type="button">
+              <button disabled={isBusy} onClick={() => setBib("")} type="button">
                 Clear
               </button>
               <button onClick={() => void syncQueue()} type="button">
@@ -563,10 +592,15 @@ export default function App() {
             </div>
             <form className="scanner-form" onSubmit={handleSubmit}>
               <label>
-                <input placeholder="contoh: 1024" value={bib} onChange={(event) => setBib(event.target.value)} />
+                <input
+                  disabled={!canScan || isBusy}
+                  placeholder="contoh: 1024"
+                  value={bib}
+                  onChange={(event) => setBib(event.target.value)}
+                />
               </label>
 
-              <button className="submit-button" disabled={isBusy} type="submit">
+              <button className="submit-button" disabled={!canScan || isBusy} type="submit">
                 {isBusy ? "Memproses..." : "Submit Scan"}
               </button>
             </form>

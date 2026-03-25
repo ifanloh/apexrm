@@ -1,26 +1,16 @@
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.open("arm-scanner-v1").then((cache) =>
-      cache.addAll(["/", "/index.html", "/manifest.webmanifest"])
-    )
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
-
-      return fetch(event.request).then((response) => {
-        if (event.request.method === "GET") {
-          const cloned = response.clone();
-          void caches.open("arm-scanner-v1").then((cache) => cache.put(event.request, cloned));
-        }
-
-        return response;
-      });
-    })
-  );
+self.addEventListener("fetch", () => {
+  // Disabled on purpose during active testing to avoid stale deployments.
 });

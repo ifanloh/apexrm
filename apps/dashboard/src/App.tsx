@@ -33,12 +33,14 @@ function formatScanTime(value: string) {
 function deriveProfileFromSession(session: Session): AuthProfile {
   const appMetadata = session.user.app_metadata ?? {};
   const userMetadata = session.user.user_metadata ?? {};
+  const rawRole = appMetadata.role ?? appMetadata.roles?.[0] ?? "crew";
+  const crewCode = appMetadata.crew_code ?? appMetadata.crewCode ?? null;
 
   return authProfileSchema.parse({
     userId: session.user.id,
     email: session.user.email ?? null,
-    role: appMetadata.role ?? "crew",
-    crewCode: appMetadata.crew_code ?? null,
+    role: rawRole,
+    crewCode,
     displayName: userMetadata.full_name ?? userMetadata.name ?? session.user.email ?? null
   });
 }
@@ -56,11 +58,14 @@ export default function App() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const hasDashboardAccess = profile ? ["admin", "panitia", "observer"].includes(profile.role) : false;
 
   useEffect(() => {
     if (!supabase) {
       setIsAuthenticated(true);
+      setIsBootstrapping(false);
       return;
     }
 
@@ -68,6 +73,7 @@ export default function App() {
       setIsAuthenticated(Boolean(data.session));
       setAccessToken(data.session?.access_token ?? null);
       setProfile(data.session ? deriveProfileFromSession(data.session) : null);
+      setIsBootstrapping(false);
     });
 
     const {
@@ -76,6 +82,8 @@ export default function App() {
       setIsAuthenticated(Boolean(session));
       setAccessToken(session?.access_token ?? null);
       setProfile(session ? deriveProfileFromSession(session) : null);
+      setFetchError(null);
+      setIsBootstrapping(false);
     });
 
     return () => {
@@ -92,7 +100,15 @@ export default function App() {
     let isMounted = true;
 
     async function refreshSnapshot() {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
       try {
+        if (isMounted) {
+          setIsRefreshing(true);
+        }
+
         if (!profile || !["admin", "panitia", "observer"].includes(profile.role)) {
           throw new Error("Akun ini tidak punya akses dashboard.");
         }
@@ -120,6 +136,10 @@ export default function App() {
         }
 
         setFetchError(error instanceof Error ? error.message : "Dashboard tidak bisa mengambil data terbaru dari server.");
+      } finally {
+        if (isMounted) {
+          setIsRefreshing(false);
+        }
       }
     }
 
@@ -166,6 +186,19 @@ export default function App() {
     }
 
     setLoginError(null);
+  }
+
+  if (isBootstrapping) {
+    return (
+      <main className="dashboard-shell">
+        <section className="panel" style={{ margin: "12vh auto 0", maxWidth: 520 }}>
+          <div className="empty-state" style={{ minHeight: "auto" }}>
+            <strong>Menyiapkan dashboard...</strong>
+            <span>Session, role, dan koneksi data sedang dicek supaya dashboard tidak masuk dalam state setengah jadi.</span>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   if (!isAuthenticated) {
@@ -248,7 +281,7 @@ export default function App() {
           </div>
           <div className="meta-card">
             <span>{profile?.role ?? "role"}</span>
-            <strong>{profile?.crewCode ?? lastUpdatedAt ?? "--:--:--"}</strong>
+            <strong>{isRefreshing ? "sync..." : profile?.crewCode ?? lastUpdatedAt ?? "--:--:--"}</strong>
           </div>
         </div>
       </header>

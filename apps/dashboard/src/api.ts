@@ -7,32 +7,79 @@ import {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
 
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 function createHeaders(accessToken: string) {
   return {
     Authorization: `Bearer ${accessToken}`
   };
 }
 
-export async function fetchDashboardSnapshot(accessToken: string) {
-  const [leaderboardResponse, duplicateResponse, notificationResponse] = await Promise.all([
-    fetch(`${API_BASE_URL}/leaderboard/live`, {
-      headers: createHeaders(accessToken)
-    }),
-    fetch(`${API_BASE_URL}/audit/duplicates`, {
-      headers: createHeaders(accessToken)
-    }),
-    fetch(`${API_BASE_URL}/notifications`, {
-      headers: createHeaders(accessToken)
-    })
-  ]);
+async function toErrorMessage(response: Response) {
+  const contentType = response.headers.get("content-type") ?? "";
 
-  if (!leaderboardResponse.ok || !duplicateResponse.ok || !notificationResponse.ok) {
-    throw new Error("Failed to fetch dashboard data");
+  if (contentType.includes("application/json")) {
+    const payload = (await response.json().catch(() => null)) as { message?: string; detail?: string } | null;
+    return payload?.detail ?? payload?.message ?? `HTTP ${response.status}`;
   }
 
-  const leaderboardPayload = (await leaderboardResponse.json()) as { items: CheckpointLeaderboard[] };
-  const duplicatePayload = (await duplicateResponse.json()) as { items: DuplicateScan[] };
-  const notificationPayload = (await notificationResponse.json()) as { items: NotificationEvent[] };
+  const text = await response.text().catch(() => "");
+  return text || `HTTP ${response.status}`;
+}
+
+async function requestJson<T>(
+  path: string,
+  accessToken: string,
+  options?: {
+    retries?: number;
+    timeoutMs?: number;
+  }
+) {
+  const retries = options?.retries ?? 1;
+  const timeoutMs = options?.timeoutMs ?? 12000;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        cache: "no-store",
+        headers: createHeaders(accessToken),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(await toErrorMessage(response));
+      }
+
+      return (await response.json()) as T;
+    } catch (error) {
+      if (attempt >= retries) {
+        if (error instanceof Error && error.name === "AbortError") {
+          throw new Error("Permintaan ke server timeout. Coba refresh lagi.");
+        }
+
+        throw error instanceof Error ? error : new Error("Permintaan ke server gagal.");
+      }
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
+
+    await sleep(450 * (attempt + 1));
+  }
+
+  throw new Error("Permintaan ke server gagal.");
+}
+
+export async function fetchDashboardSnapshot(accessToken: string) {
+  const [leaderboardPayload, duplicatePayload, notificationPayload] = await Promise.all([
+    requestJson<{ items: CheckpointLeaderboard[] }>("/leaderboard/live", accessToken),
+    requestJson<{ items: DuplicateScan[] }>("/audit/duplicates", accessToken),
+    requestJson<{ items: NotificationEvent[] }>("/notifications", accessToken)
+  ]);
 
   return {
     leaderboards: leaderboardPayload.items,
@@ -42,13 +89,8 @@ export async function fetchDashboardSnapshot(accessToken: string) {
 }
 
 export async function fetchLiveSnapshot(accessToken: string): Promise<LiveRaceSnapshot> {
-  const response = await fetch(`${API_BASE_URL}/snapshot`, {
-    headers: createHeaders(accessToken)
+  return requestJson<LiveRaceSnapshot>("/snapshot", accessToken, {
+    retries: 1,
+    timeoutMs: 12000
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch live snapshot");
-  }
-
-  return (await response.json()) as LiveRaceSnapshot;
 }
