@@ -44,7 +44,7 @@ export async function processSingleScan(
   scan: ScanSubmission,
   actor: AuthUser
 ): Promise<ScanProcessResult> {
-  return sql.begin<ScanProcessResult>(async (txAny): Promise<ScanProcessResult> => {
+  const result = await sql.begin(async (txAny) => {
     const tx = txAny as unknown as Sql;
     const crewCode = actor.crewCode ?? scan.crewId;
     const crewName = actor.displayName ?? actor.email ?? crewCode;
@@ -115,7 +115,7 @@ export async function processSingleScan(
         leaderboard: await getCheckpointLeaderboard(tx, scan.checkpointId)
       };
 
-      return duplicateResult;
+      return duplicateResult as ScanProcessResult;
     }
 
     const [positionRow] = await tx<{ next_position: number }[]>`
@@ -187,8 +187,10 @@ export async function processSingleScan(
       notification
     };
 
-    return acceptedResult;
+    return acceptedResult as ScanProcessResult;
   });
+
+  return result as ScanProcessResult;
 }
 
 export async function syncOfflineScans(sql: Sql, scans: ScanSubmission[], actor: AuthUser) {
