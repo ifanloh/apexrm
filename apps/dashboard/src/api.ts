@@ -1,8 +1,8 @@
 import {
   type CheckpointLeaderboard,
   type DuplicateScan,
-  type LiveRaceSnapshot,
-  type NotificationEvent
+  type NotificationEvent,
+  type OverallLeaderboard
 } from "@arm/contracts";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
@@ -75,22 +75,22 @@ async function requestJson<T>(
 }
 
 export async function fetchDashboardSnapshot(accessToken: string) {
-  const [leaderboardPayload, duplicatePayload, notificationPayload] = await Promise.all([
+  const [overallLeaderboard, leaderboardPayload, duplicatePayload, notificationPayload] = await Promise.all([
+    requestJson<OverallLeaderboard>("/leaderboard/overall", accessToken, {
+      retries: 1,
+      timeoutMs: 15000
+    }),
     requestJson<{ items: CheckpointLeaderboard[] }>("/leaderboard/live", accessToken),
     requestJson<{ items: DuplicateScan[] }>("/audit/duplicates", accessToken),
     requestJson<{ items: NotificationEvent[] }>("/notifications", accessToken)
   ]);
 
   return {
+    updatedAt: new Date().toISOString(),
+    overallLeaderboard,
+    checkpointLeaderboards: leaderboardPayload.items,
     leaderboards: leaderboardPayload.items,
     duplicates: duplicatePayload.items,
     notifications: notificationPayload.items
   };
-}
-
-export async function fetchLiveSnapshot(accessToken: string): Promise<LiveRaceSnapshot> {
-  return requestJson<LiveRaceSnapshot>("/snapshot", accessToken, {
-    retries: 1,
-    timeoutMs: 12000
-  });
 }

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { authenticateToken, getBearerToken, requireRole } from "../../src/auth.js";
 import { sql } from "../../src/db.js";
-import { getLiveLeaderboard } from "../../src/repository.js";
+import { getOverallLeaderboard } from "../../src/repository.js";
 import { handlePreflight, sendError, sendJson } from "../_shared.js";
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
@@ -19,10 +19,7 @@ export default async function handler(request: IncomingMessage, response: Server
 
     const actor = await authenticateToken(token);
     requireRole(actor, ["admin", "panitia", "observer"]);
-
-    sendJson(request, response, 200, {
-      items: await getLiveLeaderboard(sql)
-    });
+    sendJson(request, response, 200, await getOverallLeaderboard(sql));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const statusCode = /token/i.test(message) ? 401 : message === "Forbidden" ? 403 : 500;

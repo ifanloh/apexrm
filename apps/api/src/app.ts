@@ -111,14 +111,16 @@ export async function createServer() {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia", "observer"]);
 
-    const overallLeaderboard = await getOverallLeaderboard(sql);
-    const checkpointLeaderboards = await getLiveLeaderboard(sql);
-
     return {
-      overallLeaderboard,
-      checkpointLeaderboards,
-      items: checkpointLeaderboards
+      items: await getLiveLeaderboard(sql)
     };
+  });
+
+  server.get(`${config.apiPrefix}/leaderboard/overall`, async (request) => {
+    const actor = await requireAuth(request);
+    requireRole(actor, ["admin", "panitia", "observer"]);
+
+    return getOverallLeaderboard(sql);
   });
 
   server.get(`${config.apiPrefix}/leaderboard/live/:checkpointId`, async (request) => {

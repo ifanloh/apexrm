@@ -10,7 +10,7 @@ import {
   type NotificationEvent,
   type OverallLeaderboard
 } from "@arm/contracts";
-import { fetchLiveSnapshot } from "./api";
+import { fetchDashboardSnapshot } from "./api";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -131,7 +131,7 @@ export default function App() {
           throw new Error("Akun ini tidak punya akses dashboard.");
         }
 
-        const snapshot = await fetchLiveSnapshot(token);
+        const snapshot = await fetchDashboardSnapshot(token);
         const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
         if (!isMounted) {
@@ -189,7 +189,7 @@ export default function App() {
 
       debounceId = window.setTimeout(async () => {
         try {
-          const snapshot = await fetchLiveSnapshot(accessToken);
+          const snapshot = await fetchDashboardSnapshot(accessToken);
           const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
           setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
