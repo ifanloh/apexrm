@@ -79,7 +79,7 @@ export async function createServer() {
         id: row.id,
         code: row.code,
         name: row.name,
-        kmMarker: row.km_marker,
+        kmMarker: Number(row.km_marker),
         order: row.order_index
       }))
     };

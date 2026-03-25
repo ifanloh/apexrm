@@ -137,7 +137,7 @@ select {
 .scanner-stage {
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1.6fr) minmax(360px, 0.92fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.9fr);
 }
 
 .camera-panel,
@@ -152,6 +152,50 @@ select {
     var(--surface-strong);
   display: grid;
   gap: 18px;
+  min-width: 0;
+}
+
+.scanner-rail,
+.scanner-panel,
+.queue-section {
+  min-width: 0;
+}
+
+.checkpoint-picker {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.checkpoint-chip {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.checkpoint-chip span {
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.checkpoint-chip strong {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.checkpoint-chip.active {
+  background: linear-gradient(135deg, rgba(0, 70, 145, 0.12), rgba(38, 94, 174, 0.12));
+  border-color: rgba(0, 70, 145, 0.24);
 }
 
 .camera-frame {
@@ -239,6 +283,7 @@ select {
   border-radius: 18px;
   color: white;
   max-width: min(320px, 82%);
+  overflow-wrap: anywhere;
   padding: 12px 14px;
   position: absolute;
 }
@@ -391,24 +436,42 @@ select {
   padding: 12px 14px;
 }
 
-pre,
 .placeholder-card,
-.queue-card {
+.queue-card,
+.result-card {
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--stroke);
   border-radius: 20px;
 }
 
-pre {
-  margin: 0;
-  max-height: 300px;
-  overflow: auto;
-  padding: 14px;
-}
-
 .placeholder-card {
   color: var(--ink-soft);
   padding: 16px;
+}
+
+.result-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.result-card strong {
+  font-size: 1.05rem;
+}
+
+.result-card span,
+.result-card time {
+  color: var(--ink-soft);
+}
+
+.result-card.success {
+  background: rgba(0, 109, 72, 0.08);
+  border-color: rgba(0, 109, 72, 0.18);
+}
+
+.result-card.duplicate {
+  background: rgba(186, 26, 26, 0.06);
+  border-color: rgba(186, 26, 26, 0.14);
 }
 
 .queue-section {

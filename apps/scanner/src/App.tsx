@@ -68,6 +68,25 @@ export default function App() {
     () => checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ?? null,
     [checkpointId, checkpoints]
   );
+  const lastResultSummary = useMemo(() => {
+    if (!lastResponse) {
+      return null;
+    }
+
+    if (lastResponse.status === "accepted") {
+      return {
+        title: `BIB ${lastResponse.officialScan.bib} diterima`,
+        meta: `Posisi #${lastResponse.officialScan.position} di ${lastResponse.officialScan.checkpointId}`,
+        time: formatDateTime(lastResponse.officialScan.serverReceivedAt)
+      };
+    }
+
+    return {
+      title: `BIB ${lastResponse.duplicate.bib} duplikat`,
+      meta: `Scan pertama ${lastResponse.duplicate.firstAcceptedClientScanId}`,
+      time: formatDateTime(lastResponse.duplicate.serverReceivedAt)
+    };
+  }, [lastResponse]);
 
   useEffect(() => {
     if (!supabase) {
@@ -447,6 +466,24 @@ export default function App() {
             <h2>{selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Pilih checkpoint"}</h2>
           </div>
 
+          <div className="checkpoint-picker">
+            {checkpoints.map((checkpoint) => {
+              const isActive = checkpoint.id === checkpointId;
+
+              return (
+                <button
+                  className={`checkpoint-chip ${isActive ? "active" : ""}`}
+                  key={checkpoint.id}
+                  onClick={() => setCheckpointId(checkpoint.id)}
+                  type="button"
+                >
+                  <span>{checkpoint.code}</span>
+                  <strong>KM {checkpoint.kmMarker}</strong>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="camera-frame">
             <video className="camera-video" muted playsInline ref={videoRef} />
             <div className="scan-target">
@@ -494,39 +531,14 @@ export default function App() {
                 <strong>{profile?.crewCode ?? crewId}</strong>
               </div>
               <div>
-                <span>Device</span>
-                <strong>{deviceId.slice(0, 8)}</strong>
+                <span>Checkpoint</span>
+                <strong>{selectedCheckpoint?.code ?? "Pilih"}</strong>
               </div>
             </div>
             <form className="scanner-form" onSubmit={handleSubmit}>
               <label>
-                Crew ID
-                <input value={crewId} onChange={(event) => setCrewId(event.target.value)} />
-              </label>
-
-              <label>
-                Device ID
-                <input value={deviceId} onChange={(event) => setDeviceId(event.target.value)} />
-              </label>
-
-              <label>
-                Checkpoint
-                <select value={checkpointId} onChange={(event) => setCheckpointId(event.target.value)}>
-                  {checkpoints.map((checkpoint) => (
-                    <option key={checkpoint.id} value={checkpoint.id}>
-                      {formatCheckpointLabel(checkpoint)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                BIB / QR Payload
-                <input
-                  placeholder="contoh: 1024"
-                  value={bib}
-                  onChange={(event) => setBib(event.target.value)}
-                />
+                Input BIB Manual
+                <input placeholder="contoh: 1024" value={bib} onChange={(event) => setBib(event.target.value)} />
               </label>
 
               <button className="submit-button" disabled={isBusy} type="submit">
@@ -540,8 +552,12 @@ export default function App() {
               <p className="scanner-kicker">Last Response</p>
               <h3>Scan Result</h3>
             </div>
-            {lastResponse ? (
-              <pre>{JSON.stringify(lastResponse, null, 2)}</pre>
+            {lastResultSummary ? (
+              <div className={`result-card ${lastResponse?.status === "accepted" ? "success" : "duplicate"}`}>
+                <strong>{lastResultSummary.title}</strong>
+                <span>{lastResultSummary.meta}</span>
+                <time>{lastResultSummary.time}</time>
+              </div>
             ) : (
               <div className="placeholder-card">Belum ada respons server. Hasil scan terbaru akan tampil di sini.</div>
             )}
