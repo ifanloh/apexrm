@@ -15,7 +15,7 @@ async function getServer() {
   return serverPromise;
 }
 
-export default async function handler(request: IncomingMessage, response: ServerResponse) {
+export async function forwardToFastify(request: IncomingMessage, response: ServerResponse) {
   try {
     const server = await getServer();
     server.server.emit("request", request, response);
