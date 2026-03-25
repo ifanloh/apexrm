@@ -182,8 +182,14 @@ export async function createServer() {
     }
 
     server.log.error(error);
+    const diagnostics = {
+      detail: error instanceof Error ? error.message : "Unknown error",
+      name: error instanceof Error ? error.name : "Error"
+    };
+
     reply.code(500).send({
-      message: "Internal server error"
+      message: "Internal server error",
+      ...diagnostics
     });
   });
 

@@ -11,6 +11,9 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "noEmit": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@arm/contracts": ["packages/contracts/src/index.ts"]
+    }
   }
 }
