@@ -19,6 +19,8 @@ const syncOfflineSchema = z.object({
   scans: z.array(scanSubmissionSchema).min(1)
 });
 
+let checkpointBootstrapPromise: Promise<void> | null = null;
+
 function createHealthPayload() {
   return {
     status: "ok",
@@ -36,6 +38,14 @@ async function createSnapshot() {
   });
 }
 
+async function ensureCheckpointBootstrap() {
+  if (!checkpointBootstrapPromise) {
+    checkpointBootstrapPromise = ensureDefaultCheckpoints(sql);
+  }
+
+  await checkpointBootstrapPromise;
+}
+
 export async function createServer() {
   const server = Fastify({
     logger: true
@@ -45,12 +55,12 @@ export async function createServer() {
     origin: config.corsOrigins.length > 0 ? config.corsOrigins : true
   });
 
-  await ensureDefaultCheckpoints(sql);
-
   server.get("/health", async () => createHealthPayload());
   server.get(`${config.apiPrefix}/health`, async () => createHealthPayload());
 
   server.get(`${config.apiPrefix}/meta/checkpoints`, async () => {
+    await ensureCheckpointBootstrap();
+
     const rows = await sql<{
       id: string;
       code: string;
@@ -82,6 +92,7 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/leaderboard/live`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia", "observer"]);
+    await ensureCheckpointBootstrap();
 
     return {
       items: await getLiveLeaderboard(sql)
@@ -91,6 +102,7 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/leaderboard/live/:checkpointId`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia", "observer"]);
+    await ensureCheckpointBootstrap();
     const params = z.object({ checkpointId: z.string().min(1) }).parse(request.params);
     return getCheckpointLeaderboard(sql, params.checkpointId);
   });
@@ -98,6 +110,7 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/audit/duplicates`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia"]);
+    await ensureCheckpointBootstrap();
 
     return {
       items: await getDuplicateAuditLog(sql)
@@ -107,6 +120,7 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/notifications`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia"]);
+    await ensureCheckpointBootstrap();
 
     return {
       items: await getNotificationFeed(sql)
@@ -122,12 +136,14 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/snapshot`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["admin", "panitia", "observer"]);
+    await ensureCheckpointBootstrap();
     return createSnapshot();
   });
 
   server.post(`${config.apiPrefix}/scan`, async (request, reply) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["crew", "panitia", "admin"]);
+    await ensureCheckpointBootstrap();
     const payload = scanSubmissionSchema.parse(request.body);
     const response = await processSingleScan(sql, payload, actor);
 
@@ -137,6 +153,7 @@ export async function createServer() {
   server.post(`${config.apiPrefix}/sync-offline`, async (request) => {
     const actor = await requireAuth(request);
     requireRole(actor, ["crew", "panitia", "admin"]);
+    await ensureCheckpointBootstrap();
     const payload = syncOfflineSchema.parse(request.body);
     return syncOfflineScans(sql, payload.scans, actor);
   });

@@ -16,6 +16,17 @@ async function getServer() {
 }
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
-  const server = await getServer();
-  server.server.emit("request", request, response);
+  try {
+    const server = await getServer();
+    server.server.emit("request", request, response);
+  } catch (error) {
+    console.error("API handler startup failed", error);
+    response.statusCode = 500;
+    response.setHeader("content-type", "application/json");
+    response.end(
+      JSON.stringify({
+        message: error instanceof Error ? error.message : "Unknown startup error"
+      })
+    );
+  }
 }

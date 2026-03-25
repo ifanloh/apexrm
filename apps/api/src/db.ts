@@ -3,7 +3,8 @@ import { config } from "./config.js";
 
 export const sql = postgres(config.databaseUrl, {
   idle_timeout: 20,
-  max: 5,
+  max: 1,
+  prepare: false,
   ssl: config.nodeEnv === "development" ? "prefer" : "require"
 });
 
