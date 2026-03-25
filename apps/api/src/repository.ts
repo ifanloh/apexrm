@@ -1,5 +1,12 @@
 import type { Sql } from "postgres";
-import type { CheckpointLeaderboard, DuplicateScan, LeaderboardEntry, NotificationEvent, ScanSubmission } from "@arm/contracts";
+import type {
+  AcceptedScan,
+  CheckpointLeaderboard,
+  DuplicateScan,
+  LeaderboardEntry,
+  NotificationEvent,
+  ScanSubmission
+} from "@arm/contracts";
 import { defaultCheckpoints } from "@arm/contracts";
 import type { AuthUser } from "./auth.js";
 import { sendTelegramTop5Message } from "./telegram.js";
@@ -84,6 +91,20 @@ export async function processSingleScan(
     `;
 
     if (existing.length > 0) {
+      const duplicate: DuplicateScan = {
+        clientScanId: scan.clientScanId,
+        raceId: scan.raceId,
+        checkpointId: scan.checkpointId,
+        bib: scan.bib,
+        crewId: scan.crewId,
+        deviceId: scan.deviceId,
+        scannedAt: scan.scannedAt,
+        capturedOffline: scan.capturedOffline,
+        serverReceivedAt: new Date().toISOString(),
+        firstAcceptedClientScanId: existing[0].client_scan_id,
+        reason: "duplicate_bib_checkpoint"
+      };
+
       await tx`
         insert into public.audit_logs (type, race_id, checkpoint_id, bib, payload)
         values (
@@ -101,12 +122,7 @@ export async function processSingleScan(
 
       return {
         status: "duplicate",
-        duplicate: {
-          ...scan,
-          serverReceivedAt: new Date().toISOString(),
-          firstAcceptedClientScanId: existing[0].client_scan_id,
-          reason: "duplicate_bib_checkpoint"
-        },
+        duplicate,
         leaderboard: await getCheckpointLeaderboard(tx, scan.checkpointId)
       };
     }
@@ -160,14 +176,22 @@ export async function processSingleScan(
       scannedAt: scan.scannedAt
     });
 
+    const officialScan: AcceptedScan = {
+      clientScanId: scan.clientScanId,
+      raceId: scan.raceId,
+      checkpointId: scan.checkpointId,
+      bib: scan.bib,
+      crewId: crewCode,
+      deviceId: scan.deviceId,
+      scannedAt: scan.scannedAt,
+      capturedOffline: scan.capturedOffline,
+      serverReceivedAt: insertedScan.server_received_at,
+      position: insertedScan.position
+    };
+
     return {
       status: "accepted",
-      officialScan: {
-        ...scan,
-        crewId: crewCode,
-        serverReceivedAt: insertedScan.server_received_at,
-        position: insertedScan.position
-      },
+      officialScan,
       leaderboard,
       notification
     };
