@@ -4,7 +4,7 @@ Implementasi ini sekarang diarahkan mengikuti arsitektur target:
 
 - `PWA Scanner` deploy terpisah di Vercel
 - `Admin Dashboard` deploy terpisah di Vercel
-- `Backend API` deploy di Render
+- `Backend API` deploy terpisah di Vercel Functions
 - database dan auth memakai `Supabase`
 - notifikasi Top 5 dikirim ke `Telegram Bot API`
 - monitoring memakai endpoint `/health`
@@ -14,7 +14,7 @@ Implementasi ini sekarang diarahkan mengikuti arsitektur target:
 
 ```text
 apps/
-  api/        Fastify API untuk Render
+  api/        Fastify API untuk Vercel Functions + local dev
   scanner/    React + Vite PWA untuk Vercel
   dashboard/  React + Vite Admin Dashboard untuk Vercel
 packages/
@@ -29,7 +29,6 @@ docs/
   workflows/
     ci.yml      Test + build workflow
     deploy.yml  Deploy scanner, dashboard, dan API
-render.yaml   Blueprint deploy backend ke Render
 ```
 
 ## Alur Yang Sudah Diwiring
@@ -42,6 +41,7 @@ render.yaml   Blueprint deploy backend ke Render
 - Top 5 per checkpoint dihitung dari data scan resmi
 - Event Top 5 memicu kirim pesan ke Telegram bila env tersedia
 - Dashboard membaca leaderboard, duplikat, dan notifikasi
+- Dashboard live memakai polling snapshot supaya stabil di serverless
 - Scanner tetap menyimpan scan offline ke `IndexedDB`
 - Saat koneksi kembali, scanner kirim batch ke `/api/sync-offline`
 
@@ -53,7 +53,7 @@ render.yaml   Blueprint deploy backend ke Render
 - `GET /api/leaderboard/live/:checkpointId`
 - `GET /api/audit/duplicates`
 - `GET /api/notifications`
-- `GET /api/events`
+- `GET /api/snapshot`
 - `POST /api/scan`
 - `POST /api/sync-offline`
 
@@ -71,7 +71,7 @@ SUPABASE_ANON_KEY=replace-with-supabase-anon-key
 SUPABASE_JWT_SECRET=optional-legacy-shared-secret
 TELEGRAM_BOT_TOKEN=replace-with-bot-token
 TELEGRAM_CHAT_ID=@raceupdate
-VITE_API_BASE_URL=http://localhost:4000/api
+VITE_API_BASE_URL=https://api-your-app.vercel.app/api
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=replace-with-supabase-anon-key
 ```
@@ -115,8 +115,8 @@ Scanner dan dashboard:
 
 Backend:
 
-- deploy root repo ke Render memakai [render.yaml](/C:/ARM/render.yaml)
-- isi env `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+- deploy `apps/api` ke Vercel
+- isi env `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `CORS_ORIGIN`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
 
 Panduan rinci ada di [DEPLOYMENT.md](/C:/ARM/docs/DEPLOYMENT.md).
 
@@ -126,19 +126,17 @@ Jika ingin deploy otomatis dari GitHub Actions, isi secret berikut:
 
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
+- `VERCEL_API_PROJECT_ID`
 - `VERCEL_SCANNER_PROJECT_ID`
 - `VERCEL_DASHBOARD_PROJECT_ID`
-- `RENDER_DEPLOY_HOOK_URL`
 
 Workflow deploy ada di [deploy.yml](/C:/ARM/.github/workflows/deploy.yml).
 
 ## Catatan Status
 
-- Arsitektur utama sekarang sudah diarahkan ke `Vercel + Render + Supabase + Telegram`
+- Arsitektur utama sekarang diarahkan ke `Vercel + Supabase + Telegram`
 - Scanner sudah punya login, queue offline, duplicate check lokal, dan endpoint bulk sync
-- Dashboard sudah dipisahkan sebagai frontend standalone
+- Dashboard sudah dipisahkan sebagai frontend standalone dengan polling snapshot
 - Health endpoint dan CI workflow sudah ada
 - Integrasi Telegram bergantung pada env bot yang valid
 - Validasi penuh end-to-end ke Supabase/Telegram belum bisa saya jalankan tanpa kredensial real
-"# apexrm" 
-"# apexrm" 

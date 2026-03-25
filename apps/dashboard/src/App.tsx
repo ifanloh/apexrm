@@ -6,10 +6,9 @@ import {
   type AuthProfile,
   type CheckpointLeaderboard,
   type DuplicateScan,
-  type LiveRaceSnapshot,
   type NotificationEvent
 } from "@arm/contracts";
-import { createEventsUrl, fetchAuthProfile, fetchDashboardSnapshot } from "./api";
+import { fetchAuthProfile, fetchLiveSnapshot } from "./api";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -74,9 +73,8 @@ export default function App() {
 
     const token = accessToken;
     let isMounted = true;
-    let eventSource: EventSource | null = null;
 
-    async function refreshFallback() {
+    async function refreshSnapshot() {
       try {
         const nextProfile = await fetchAuthProfile(token);
 
@@ -84,7 +82,7 @@ export default function App() {
           throw new Error("Akun ini tidak punya akses dashboard.");
         }
 
-        const snapshot = await fetchDashboardSnapshot(token);
+        const snapshot = await fetchLiveSnapshot(token);
 
         if (!isMounted) {
           return;
@@ -95,7 +93,7 @@ export default function App() {
         setDuplicates(snapshot.duplicates);
         setNotifications(snapshot.notifications);
         setLastUpdatedAt(
-          new Date().toLocaleTimeString([], {
+          new Date(snapshot.updatedAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit"
@@ -111,42 +109,11 @@ export default function App() {
       }
     }
 
-    function applySnapshot(snapshot: LiveRaceSnapshot) {
-      if (!isMounted) {
-        return;
-      }
-
-      setLeaderboards(snapshot.leaderboards);
-      setDuplicates(snapshot.duplicates);
-      setNotifications(snapshot.notifications);
-      setLastUpdatedAt(
-        new Date(snapshot.updatedAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit"
-        })
-      );
-      setFetchError(null);
-    }
-
-    if ("EventSource" in window) {
-      eventSource = new EventSource(createEventsUrl(token));
-      eventSource.addEventListener("snapshot", (event) => {
-        applySnapshot(JSON.parse(event.data) as LiveRaceSnapshot);
-      });
-      eventSource.onerror = () => {
-        setFetchError("Live stream terputus. Dashboard beralih ke refresh berkala.");
-        void refreshFallback();
-      };
-    } else {
-      void refreshFallback();
-    }
-
-    const intervalId = window.setInterval(() => void refreshFallback(), 15000);
+    void refreshSnapshot();
+    const intervalId = window.setInterval(() => void refreshSnapshot(), 15000);
 
     return () => {
       isMounted = false;
-      eventSource?.close();
       window.clearInterval(intervalId);
     };
   }, [accessToken, isAuthenticated]);

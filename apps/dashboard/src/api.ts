@@ -3,6 +3,7 @@ import {
   type AuthProfile,
   type CheckpointLeaderboard,
   type DuplicateScan,
+  type LiveRaceSnapshot,
   type NotificationEvent
 } from "@arm/contracts";
 
@@ -54,8 +55,14 @@ export async function fetchDashboardSnapshot(accessToken: string) {
   };
 }
 
-export function createEventsUrl(accessToken: string) {
-  const url = new URL(`${API_BASE_URL}/events`, window.location.origin);
-  url.searchParams.set("access_token", accessToken);
-  return url.toString();
+export async function fetchLiveSnapshot(accessToken: string): Promise<LiveRaceSnapshot> {
+  const response = await fetch(`${API_BASE_URL}/snapshot`, {
+    headers: createHeaders(accessToken)
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch live snapshot");
+  }
+
+  return (await response.json()) as LiveRaceSnapshot;
 }

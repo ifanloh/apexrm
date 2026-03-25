@@ -29,10 +29,10 @@ Role yang dipakai aplikasi:
 - `admin`
 - `observer`
 
-## 2. Render API
+## 2. Vercel API
 
-1. Hubungkan repo ini ke Render.
-2. Gunakan blueprint [render.yaml](/C:/ARM/render.yaml) atau buat web service manual.
+1. Buat project Vercel baru dengan root directory `apps/api`.
+2. Vercel akan menjalankan API lewat Node Functions.
 3. Isi environment variables:
    - `DATABASE_URL`
    - `SUPABASE_URL`
@@ -41,10 +41,10 @@ Role yang dipakai aplikasi:
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_CHAT_ID`
 4. Deploy backend.
-5. Pastikan health check `/health` mengembalikan `ok`.
+5. Pastikan endpoint `/health` mengembalikan `ok`.
 6. Gunakan template [apps/api/.env.example](/C:/ARM/apps/api/.env.example) sebagai daftar rahasia yang wajib terisi.
-7. Jika deploy via GitHub Actions, buat `Deploy Hook` di Render lalu simpan URL-nya sebagai secret `RENDER_DEPLOY_HOOK_URL`.
-8. Isi `SUPABASE_JWT_SECRET` hanya jika project masih memakai konfigurasi JWT legacy berbasis shared secret.
+7. Isi `SUPABASE_JWT_SECRET` hanya jika project masih memakai konfigurasi JWT legacy berbasis shared secret.
+8. Simpan `Project ID` API sebagai secret `VERCEL_API_PROJECT_ID` jika deploy otomatis via GitHub Actions.
 
 ## 3. Vercel Scanner
 
@@ -80,16 +80,16 @@ Tambahkan secret ini di repository GitHub:
 
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
+- `VERCEL_API_PROJECT_ID`
 - `VERCEL_SCANNER_PROJECT_ID`
 - `VERCEL_DASHBOARD_PROJECT_ID`
-- `RENDER_DEPLOY_HOOK_URL`
 
 Workflow [deploy.yml](/C:/ARM/.github/workflows/deploy.yml) akan:
 
 - menjalankan `typecheck` dan `build`
+- deploy `apps/api` ke Vercel
 - deploy `apps/scanner` ke Vercel
 - deploy `apps/dashboard` ke Vercel
-- memicu deploy backend di Render lewat deploy hook
 
 ## 5. Telegram
 
@@ -101,7 +101,7 @@ Workflow [deploy.yml](/C:/ARM/.github/workflows/deploy.yml) akan:
 ## 6. Monitoring
 
 1. Tambah monitor di Uptime Robot ke endpoint:
-   `https://your-render-api-domain/health`
+   `https://your-api-domain.vercel.app/health`
 2. Interval:
    `5 minutes`
 3. Aktifkan email alert.
@@ -120,5 +120,5 @@ npm run check:deploy
 4. Matikan koneksi lalu submit scan offline.
 5. Aktifkan koneksi dan pastikan batch `sync-offline` sukses.
 6. Login dashboard dengan akun `panitia/admin`.
-7. Pastikan leaderboard, audit duplikat, dan notifikasi tampil.
+7. Pastikan leaderboard, audit duplikat, dan notifikasi tampil lewat refresh snapshot berkala.
 8. Pastikan pesan Top 5 masuk ke Telegram.
