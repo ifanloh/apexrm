@@ -14,18 +14,7 @@ import { sendTelegramTop5Message } from "./telegram.js";
 export type ScanProcessResult =
   | {
       status: "accepted";
-      officialScan: {
-        clientScanId: string;
-        raceId: string;
-        checkpointId: string;
-        bib: string;
-        crewId: string;
-        deviceId: string;
-        scannedAt: string;
-        capturedOffline: boolean;
-        serverReceivedAt: string;
-        position: number;
-      };
+      officialScan: AcceptedScan;
       leaderboard: CheckpointLeaderboard;
       notification: NotificationEvent | null;
     }
@@ -55,7 +44,7 @@ export async function processSingleScan(
   scan: ScanSubmission,
   actor: AuthUser
 ): Promise<ScanProcessResult> {
-  return sql.begin(async (txAny) => {
+  return sql.begin<ScanProcessResult>(async (txAny): Promise<ScanProcessResult> => {
     const tx = txAny as unknown as Sql;
     const crewCode = actor.crewCode ?? scan.crewId;
     const crewName = actor.displayName ?? actor.email ?? crewCode;
@@ -120,11 +109,13 @@ export async function processSingleScan(
         )
       `;
 
-      return {
+      const duplicateResult: ScanProcessResult = {
         status: "duplicate",
         duplicate,
         leaderboard: await getCheckpointLeaderboard(tx, scan.checkpointId)
       };
+
+      return duplicateResult;
     }
 
     const [positionRow] = await tx<{ next_position: number }[]>`
@@ -189,12 +180,14 @@ export async function processSingleScan(
       position: insertedScan.position
     };
 
-    return {
+    const acceptedResult: ScanProcessResult = {
       status: "accepted",
       officialScan,
       leaderboard,
       notification
     };
+
+    return acceptedResult;
   });
 }
 
