@@ -1,12 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FastifyInstance } from "fastify";
-import { createServer } from "../src/app.js";
 
 let serverPromise: Promise<FastifyInstance> | null = null;
 
 async function getServer() {
   if (!serverPromise) {
-    serverPromise = createServer().then(async (server) => {
+    serverPromise = import("../src/app.js").then(async ({ createServer }) => {
+      const server = await createServer();
       await server.ready();
       return server;
     });
