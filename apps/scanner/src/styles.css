@@ -25,6 +25,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 button,
@@ -36,6 +37,7 @@ select {
 .scanner-shell {
   margin: 0 auto;
   max-width: 1440px;
+  overflow-x: clip;
   padding: 24px 18px 42px;
 }
 
@@ -138,6 +140,7 @@ select {
   display: grid;
   gap: 18px;
   grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.9fr);
+  min-width: 0;
 }
 
 .camera-panel,
@@ -205,8 +208,10 @@ select {
     linear-gradient(135deg, #0f1720, #121c29 42%, #132238);
   border-radius: 28px;
   min-height: 340px;
+  min-width: 0;
   overflow: hidden;
   position: relative;
+  width: 100%;
 }
 
 .camera-video {
@@ -410,6 +415,10 @@ select {
   padding: 14px;
 }
 
+.rail-head.compact {
+  grid-template-columns: 1fr;
+}
+
 .rail-head span,
 .scanner-form label {
   color: var(--ink-soft);
@@ -508,9 +517,14 @@ select {
 }
 
 @media (max-width: 760px) {
+  .scanner-shell {
+    padding: 14px 12px 28px;
+  }
+
   .scanner-topbar {
     align-items: flex-start;
     flex-direction: column;
+    padding: 18px 16px;
   }
 
   .scanner-topbar-meta,
@@ -522,6 +536,59 @@ select {
   .scanner-topbar-meta {
     display: grid;
     width: 100%;
+  }
+
+  .camera-panel,
+  .scanner-panel,
+  .queue-section {
+    padding: 16px;
+  }
+
+  .scanner-topbar h1 {
+    font-size: 2.15rem;
+  }
+
+  .checkpoint-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .camera-frame {
+    aspect-ratio: auto;
+    min-height: 260px;
+  }
+
+  .camera-overlay {
+    max-width: calc(100% - 24px);
+    padding: 10px 12px;
+  }
+
+  .camera-overlay strong {
+    font-size: 0.92rem;
+  }
+
+  .top-left,
+  .top-right {
+    top: 12px;
+  }
+
+  .top-left,
+  .bottom-left {
+    left: 12px;
+  }
+
+  .top-right {
+    right: 12px;
+  }
+
+  .bottom-left {
+    bottom: 12px;
+  }
+
+  .scan-target {
+    height: min(56vw, 210px);
+    max-height: 210px;
+    max-width: 210px;
+    width: min(56vw, 210px);
   }
 
   .tool-group {

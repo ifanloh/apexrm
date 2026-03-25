@@ -525,14 +525,10 @@ export default function App() {
           </section>
 
           <section className="scanner-panel">
-            <div className="rail-head">
+            <div className="rail-head compact">
               <div>
                 <span>Session</span>
                 <strong>{profile?.crewCode ?? crewId}</strong>
-              </div>
-              <div>
-                <span>Checkpoint</span>
-                <strong>{selectedCheckpoint?.code ?? "Pilih"}</strong>
               </div>
             </div>
             <form className="scanner-form" onSubmit={handleSubmit}>
