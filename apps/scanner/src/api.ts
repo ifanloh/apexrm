@@ -1,8 +1,6 @@
 import {
-  authProfileSchema,
   checkpointSchema,
   ingestScanResponseSchema,
-  type AuthProfile,
   type Checkpoint,
   type ScanSubmission
 } from "@arm/contracts";
@@ -40,18 +38,6 @@ export async function fetchCheckpoints(): Promise<Checkpoint[]> {
       order: Number(item.order)
     })
   );
-}
-
-export async function fetchAuthProfile(accessToken: string): Promise<AuthProfile> {
-  const response = await fetch(`${API_BASE_URL}/me`, {
-    headers: createHeaders(accessToken)
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch auth profile");
-  }
-
-  return authProfileSchema.parse(await response.json());
 }
 
 export async function sendScan(scan: ScanSubmission, accessToken: string) {

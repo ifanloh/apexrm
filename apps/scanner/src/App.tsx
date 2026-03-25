@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
+  authProfileSchema,
   defaultCheckpoints,
   formatCheckpointLabel,
   type AuthProfile,
@@ -8,7 +9,7 @@ import {
   type IngestScanResponse,
   type ScanSubmission
 } from "@arm/contracts";
-import { fetchAuthProfile, fetchCheckpoints, sendScan, syncOffline } from "./api";
+import { fetchCheckpoints, sendScan, syncOffline } from "./api";
 import {
   getQueuedScans,
   hasLocalDuplicate,
@@ -48,6 +49,19 @@ function formatDateTime(value: string) {
 
 function isValidBib(rawValue: string) {
   return /^[A-Za-z0-9-]{2,32}$/.test(rawValue);
+}
+
+function deriveProfileFromSession(session: Session, fallbackCrewCode: string): AuthProfile {
+  const appMetadata = session.user.app_metadata ?? {};
+  const userMetadata = session.user.user_metadata ?? {};
+
+  return authProfileSchema.parse({
+    userId: session.user.id,
+    email: session.user.email ?? null,
+    role: appMetadata.role ?? "crew",
+    crewCode: appMetadata.crew_code ?? fallbackCrewCode,
+    displayName: userMetadata.full_name ?? userMetadata.name ?? session.user.email ?? fallbackCrewCode
+  });
 }
 
 export default function App() {
@@ -121,23 +135,12 @@ export default function App() {
       return;
     }
 
-    void fetchAuthProfile(session.access_token)
-      .then((nextProfile) => {
-        setProfile(nextProfile);
-        if (!["crew", "panitia", "admin"].includes(nextProfile.role)) {
-          setStatusMessage("Akun ini tidak punya izin untuk mode scanner.");
-        }
-      })
-      .catch(() => {
-        setProfile({
-          userId: session.user.id,
-          email: session.user.email ?? null,
-          role: "crew",
-          crewCode: crewId,
-          displayName: session.user.email ?? crewId
-        });
-        setStatusMessage("Profil backend belum terbaca. Scanner lanjut memakai mode crew lokal.");
-      });
+    const nextProfile = deriveProfileFromSession(session, crewId);
+    setProfile(nextProfile);
+
+    if (!["crew", "panitia", "admin"].includes(nextProfile.role)) {
+      setStatusMessage("Akun ini tidak punya izin untuk mode scanner.");
+    }
   }, [crewId, session]);
 
   useEffect(() => {

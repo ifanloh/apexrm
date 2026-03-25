@@ -1,6 +1,4 @@
 import {
-  authProfileSchema,
-  type AuthProfile,
   type CheckpointLeaderboard,
   type DuplicateScan,
   type LiveRaceSnapshot,
@@ -13,18 +11,6 @@ function createHeaders(accessToken: string) {
   return {
     Authorization: `Bearer ${accessToken}`
   };
-}
-
-export async function fetchAuthProfile(accessToken: string): Promise<AuthProfile> {
-  const response = await fetch(`${API_BASE_URL}/me`, {
-    headers: createHeaders(accessToken)
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch auth profile");
-  }
-
-  return authProfileSchema.parse(await response.json());
 }
 
 export async function fetchDashboardSnapshot(accessToken: string) {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import {
   authProfileSchema,
   defaultCheckpoints,
@@ -8,7 +9,7 @@ import {
   type DuplicateScan,
   type NotificationEvent
 } from "@arm/contracts";
-import { fetchAuthProfile, fetchLiveSnapshot } from "./api";
+import { fetchLiveSnapshot } from "./api";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -26,6 +27,19 @@ function formatScanTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit"
+  });
+}
+
+function deriveProfileFromSession(session: Session): AuthProfile {
+  const appMetadata = session.user.app_metadata ?? {};
+  const userMetadata = session.user.user_metadata ?? {};
+
+  return authProfileSchema.parse({
+    userId: session.user.id,
+    email: session.user.email ?? null,
+    role: appMetadata.role ?? "crew",
+    crewCode: appMetadata.crew_code ?? null,
+    displayName: userMetadata.full_name ?? userMetadata.name ?? session.user.email ?? null
   });
 }
 
@@ -52,6 +66,7 @@ export default function App() {
     void supabase.auth.getSession().then(({ data }) => {
       setIsAuthenticated(Boolean(data.session));
       setAccessToken(data.session?.access_token ?? null);
+      setProfile(data.session ? deriveProfileFromSession(data.session) : null);
     });
 
     const {
@@ -59,6 +74,7 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(Boolean(session));
       setAccessToken(session?.access_token ?? null);
+      setProfile(session ? deriveProfileFromSession(session) : null);
     });
 
     return () => {
@@ -76,9 +92,7 @@ export default function App() {
 
     async function refreshSnapshot() {
       try {
-        const nextProfile = await fetchAuthProfile(token);
-
-        if (!["admin", "panitia", "observer"].includes(nextProfile.role)) {
+        if (!profile || !["admin", "panitia", "observer"].includes(profile.role)) {
           throw new Error("Akun ini tidak punya akses dashboard.");
         }
 
@@ -88,7 +102,6 @@ export default function App() {
           return;
         }
 
-        setProfile(authProfileSchema.parse(nextProfile));
         setLeaderboards(snapshot.leaderboards);
         setDuplicates(snapshot.duplicates);
         setNotifications(snapshot.notifications);
@@ -116,7 +129,7 @@ export default function App() {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [accessToken, isAuthenticated]);
+  }, [accessToken, isAuthenticated, profile]);
 
   const selectedBoard = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
