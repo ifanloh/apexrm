@@ -472,6 +472,16 @@ select {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.runtime-footer {
+  color: var(--ink-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 4px 4px 0;
+  font-size: 0.78rem;
+}
+
 .queue-card {
   display: grid;
   gap: 6px;

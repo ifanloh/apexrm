@@ -30,6 +30,14 @@ function formatScanTime(value: string) {
   });
 }
 
+function getApiHost() {
+  try {
+    return new URL(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").host;
+  } catch {
+    return import.meta.env.VITE_API_BASE_URL ?? "unknown-api";
+  }
+}
+
 function deriveProfileFromSession(session: Session): AuthProfile {
   const appMetadata = session.user.app_metadata ?? {};
   const userMetadata = session.user.user_metadata ?? {};
@@ -61,6 +69,7 @@ export default function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const hasDashboardAccess = profile ? ["admin", "panitia", "observer"].includes(profile.role) : false;
+  const apiHost = getApiHost();
 
   useEffect(() => {
     if (!supabase) {
@@ -477,6 +486,12 @@ export default function App() {
           );
         })}
       </section>
+
+      <footer className="runtime-footer">
+        <span>Build {__APP_BUILD__}</span>
+        <span>Built {new Date(__APP_BUILT_AT__).toLocaleString()}</span>
+        <span>API {apiHost}</span>
+      </footer>
     </main>
   );
 }

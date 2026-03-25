@@ -51,6 +51,14 @@ function isValidBib(rawValue: string) {
   return /^[A-Za-z0-9-]{2,32}$/.test(rawValue);
 }
 
+function getApiHost() {
+  try {
+    return new URL(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").host;
+  } catch {
+    return import.meta.env.VITE_API_BASE_URL ?? "unknown-api";
+  }
+}
+
 function deriveProfileFromSession(session: Session, fallbackCrewCode: string): AuthProfile {
   const appMetadata = session.user.app_metadata ?? {};
   const userMetadata = session.user.user_metadata ?? {};
@@ -130,6 +138,7 @@ export default function App() {
       checkpoints.length > 0 &&
       !isBootstrapping
   );
+  const apiHost = getApiHost();
 
   useEffect(() => {
     if (!supabase) {
@@ -643,6 +652,12 @@ export default function App() {
           )}
         </div>
       </section>
+
+      <footer className="runtime-footer">
+        <span>Build {__APP_BUILD__}</span>
+        <span>Built {new Date(__APP_BUILT_AT__).toLocaleString()}</span>
+        <span>API {apiHost}</span>
+      </footer>
     </main>
   );
 }
