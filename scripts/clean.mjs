@@ -4,7 +4,8 @@ const targets = [
   "apps/api/dist",
   "apps/dashboard/dist",
   "apps/scanner/dist",
-  "packages/contracts/dist"
+  "packages/contracts/dist",
+  "packages/contracts/tsconfig.tsbuildinfo"
 ];
 
 for (const target of targets) {

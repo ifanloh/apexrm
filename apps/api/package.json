@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch --enable-source-maps src/server.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p ../../packages/contracts/tsconfig.json && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
