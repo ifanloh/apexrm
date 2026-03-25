@@ -6,8 +6,8 @@ import type {
   LeaderboardEntry,
   NotificationEvent,
   ScanSubmission
-} from "@arm/contracts";
-import { defaultCheckpoints } from "@arm/contracts";
+} from "./contracts.js";
+import { defaultCheckpoints } from "./contracts.js";
 import type { AuthUser } from "./auth.js";
 import { sendTelegramTop5Message } from "./telegram.js";
 

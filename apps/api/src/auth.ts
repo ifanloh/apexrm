@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
-import { authRoleSchema, type AuthRole } from "@arm/contracts";
+import { authRoleSchema, type AuthRole } from "./contracts.js";
 import { config } from "./config.js";
 
 const issuer = `${config.supabaseUrl}/auth/v1`;

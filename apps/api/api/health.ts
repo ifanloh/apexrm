@@ -14,18 +14,10 @@ function getHealthPayload() {
 
 export default function handler(_request: IncomingMessage, response: ServerResponse) {
   const origin = _request.headers.origin;
-  const allowedOrigins = (process.env.CORS_ORIGIN ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (origin && allowedOrigins.includes(origin)) {
-    response.setHeader("Access-Control-Allow-Origin", origin);
-    response.setHeader("Vary", "Origin");
-    response.setHeader("Access-Control-Allow-Credentials", "true");
-    response.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
-    response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
-  }
+  response.setHeader("Access-Control-Allow-Origin", origin ?? "*");
+  response.setHeader("Vary", "Origin");
+  response.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
 
   if (_request.method === "OPTIONS") {
     response.statusCode = 204;

@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { z } from "zod";
-import { liveRaceSnapshotSchema, scanSubmissionSchema } from "@arm/contracts";
+import { liveRaceSnapshotSchema, scanSubmissionSchema } from "./contracts.js";
 import { requireAuth, requireRole } from "./auth.js";
 import { sql } from "./db.js";
 import {

@@ -7,27 +7,17 @@ function getAllowedOrigin(request: IncomingMessage) {
   const origin = request.headers.origin;
 
   if (!origin) {
-    return null;
+    return "*";
   }
 
-  const allowedOrigins = (process.env.CORS_ORIGIN ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  return allowedOrigins.includes(origin) ? origin : null;
+  return origin;
 }
 
 function applyCorsHeaders(request: IncomingMessage, response: ServerResponse) {
   const allowedOrigin = getAllowedOrigin(request);
 
-  if (!allowedOrigin) {
-    return false;
-  }
-
   response.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   response.setHeader("Vary", "Origin");
-  response.setHeader("Access-Control-Allow-Credentials", "true");
   response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
   return true;
