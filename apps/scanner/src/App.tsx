@@ -89,6 +89,17 @@ export default function App() {
     () => checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ?? null,
     [checkpointId, checkpoints]
   );
+  const effectiveProfile = useMemo(() => {
+    if (profile) {
+      return profile;
+    }
+
+    if (session) {
+      return deriveProfileFromSession(session, crewId);
+    }
+
+    return null;
+  }, [crewId, profile, session]);
   const lastResultSummary = useMemo(() => {
     if (!lastResponse) {
       return null;
@@ -302,7 +313,9 @@ export default function App() {
       return;
     }
 
-    if (!profile || !["crew", "panitia", "admin"].includes(profile.role)) {
+    const actorProfile = effectiveProfile;
+
+    if (!actorProfile || !["crew", "panitia", "admin"].includes(actorProfile.role)) {
       setStatusMessage("Akun ini tidak diizinkan melakukan scan.");
       return;
     }
@@ -440,7 +453,7 @@ export default function App() {
     );
   }
 
-  if (profile && !["crew", "panitia", "admin"].includes(profile.role)) {
+  if (effectiveProfile && !["crew", "panitia", "admin"].includes(effectiveProfile.role)) {
     return (
       <main className="scanner-shell">
         <section className="scanner-panel auth-panel">
@@ -449,7 +462,7 @@ export default function App() {
             <h1>Akses scanner ditolak</h1>
           </div>
           <div className="placeholder-card">
-            Akun dengan role <strong>{profile.role}</strong> tidak boleh melakukan scan lapangan.
+            Akun dengan role <strong>{effectiveProfile.role}</strong> tidak boleh melakukan scan lapangan.
           </div>
         </section>
       </main>
@@ -544,15 +557,12 @@ export default function App() {
           </section>
 
           <section className="scanner-panel">
-            <div className="rail-head compact">
-              <div>
-                <span>Session</span>
-                <strong>{profile?.crewCode ?? crewId}</strong>
-              </div>
+            <div className="panel-copy">
+              <p className="scanner-kicker">Manual Entry</p>
+              <h3>Input BIB Manual</h3>
             </div>
             <form className="scanner-form" onSubmit={handleSubmit}>
               <label>
-                Input BIB Manual
                 <input placeholder="contoh: 1024" value={bib} onChange={(event) => setBib(event.target.value)} />
               </label>
 
