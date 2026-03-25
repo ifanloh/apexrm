@@ -1,5 +1,6 @@
 import {
   authProfileSchema,
+  checkpointSchema,
   ingestScanResponseSchema,
   type AuthProfile,
   type Checkpoint,
@@ -22,8 +23,23 @@ export async function fetchCheckpoints(): Promise<Checkpoint[]> {
     throw new Error("Failed to fetch checkpoints");
   }
 
-  const payload = (await response.json()) as { items: Checkpoint[] };
-  return payload.items;
+  const payload = (await response.json()) as {
+    items: Array<{
+      id: string;
+      code: string;
+      name: string;
+      kmMarker: number | string;
+      order: number | string;
+    }>;
+  };
+
+  return payload.items.map((item) =>
+    checkpointSchema.parse({
+      ...item,
+      kmMarker: Number(item.kmMarker),
+      order: Number(item.order)
+    })
+  );
 }
 
 export async function fetchAuthProfile(accessToken: string): Promise<AuthProfile> {
