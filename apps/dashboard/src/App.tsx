@@ -68,6 +68,8 @@ export default function App() {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [liveStatus, setLiveStatus] = useState<"idle" | "live" | "fallback">("idle");
+  const [lastLiveEventAt, setLastLiveEventAt] = useState<string | null>(null);
   const hasDashboardAccess = profile ? ["admin", "panitia", "observer"].includes(profile.role) : false;
   const apiHost = getApiHost();
 
@@ -153,13 +155,78 @@ export default function App() {
     }
 
     void refreshSnapshot();
-    const intervalId = window.setInterval(() => void refreshSnapshot(), 15000);
+    const intervalId = window.setInterval(() => void refreshSnapshot(), 30000);
 
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
     };
   }, [accessToken, isAuthenticated, profile]);
+
+  useEffect(() => {
+    if (!supabase || !accessToken || !hasDashboardAccess) {
+      setLiveStatus("fallback");
+      return;
+    }
+
+    const supabaseClient = supabase;
+    let debounceId: number | null = null;
+    void supabaseClient.realtime.setAuth(accessToken);
+
+    const triggerRefresh = () => {
+      if (debounceId) {
+        window.clearTimeout(debounceId);
+      }
+
+      debounceId = window.setTimeout(async () => {
+        try {
+          const snapshot = await fetchLiveSnapshot(accessToken);
+          setLeaderboards(snapshot.leaderboards);
+          setDuplicates(snapshot.duplicates);
+          setNotifications(snapshot.notifications);
+          setLastUpdatedAt(
+            new Date(snapshot.updatedAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit"
+            })
+          );
+          setFetchError(null);
+          setLastLiveEventAt(new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+          }));
+        } catch (error) {
+          setFetchError(error instanceof Error ? error.message : "Realtime refresh gagal.");
+        }
+      }, 180);
+    };
+
+    const channel = supabaseClient
+      .channel(`dashboard-live-${profile?.role ?? "observer"}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "scans" }, triggerRefresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "audit_logs" }, triggerRefresh)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "top5_notifications" }, triggerRefresh)
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          setLiveStatus("live");
+          return;
+        }
+
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          setLiveStatus("fallback");
+        }
+      });
+
+    return () => {
+      if (debounceId) {
+        window.clearTimeout(debounceId);
+      }
+
+      void supabaseClient.removeChannel(channel);
+    };
+  }, [accessToken, hasDashboardAccess, profile?.role]);
 
   const selectedBoard = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
@@ -286,7 +353,7 @@ export default function App() {
         <div className="topbar-meta">
           <div className="meta-pill">
             <span className="meta-dot" />
-            Observer Mode
+            {liveStatus === "live" ? "Live Realtime" : "Polling Fallback"}
           </div>
           <div className="meta-card">
             <span>{profile?.role ?? "role"}</span>
@@ -491,6 +558,8 @@ export default function App() {
         <span>Build {__APP_BUILD__}</span>
         <span>Built {new Date(__APP_BUILT_AT__).toLocaleString()}</span>
         <span>API {apiHost}</span>
+        <span>Live {liveStatus}</span>
+        {lastLiveEventAt ? <span>Last event {lastLiveEventAt}</span> : null}
       </footer>
     </main>
   );
