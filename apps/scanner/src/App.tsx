@@ -90,11 +90,13 @@ export default function App() {
   const [statusMessage, setStatusMessage] = useState("Scanner siap. QR dapat dipindai dari kamera atau diisi manual.");
   const [lastResponse, setLastResponse] = useState<IngestScanResponse | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanLockRef = useRef<string>("");
+  const syncLockRef = useRef(false);
 
   const selectedCheckpoint = useMemo(
     () => checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ?? null,
@@ -304,13 +306,17 @@ export default function App() {
   }
 
   async function syncQueue() {
-    if (!session?.access_token) {
+    if (!session?.access_token || syncLockRef.current) {
       return;
     }
 
+    syncLockRef.current = true;
+    setIsSyncing(true);
     const pendingScans = await getQueuedScans();
 
     if (pendingScans.length === 0) {
+      syncLockRef.current = false;
+      setIsSyncing(false);
       return;
     }
 
@@ -329,6 +335,17 @@ export default function App() {
     } catch {
       setStatusMessage("Sync offline gagal. Queue lokal tetap disimpan.");
       await refreshQueue();
+    } finally {
+      syncLockRef.current = false;
+      setIsSyncing(false);
+
+      if (window.navigator.onLine) {
+        const nextPending = await getQueuedScans();
+
+        if (nextPending.length > 0) {
+          void syncQueue();
+        }
+      }
     }
   }
 
@@ -376,34 +393,26 @@ export default function App() {
     };
 
     setIsBusy(true);
-    setBib(normalizedBib);
 
     try {
+      await queueScan(payload);
+      await markLocalScan(checkpointId, normalizedBib);
+      setBib("");
+      await refreshQueue();
+
       if (!isOnline) {
-        await queueScan(payload);
-        await markLocalScan(checkpointId, normalizedBib);
         navigator.vibrate?.(160);
-        setStatusMessage(`BIB ${normalizedBib} disimpan offline.`);
-        setBib("");
-        await refreshQueue();
+        setStatusMessage(`BIB ${normalizedBib} disimpan offline. Antrean lokal siap disinkronkan nanti.`);
         return;
       }
 
-      const response = await sendScan(payload, session.access_token);
-      await markLocalScan(checkpointId, normalizedBib);
-      navigator.vibrate?.(120);
-      setLastResponse(response);
+      navigator.vibrate?.(70);
       setStatusMessage(
-        response.status === "accepted"
-          ? `Sukses. BIB ${normalizedBib} tercatat resmi di ${selectedCheckpoint?.code ?? checkpointId}.`
-          : `BIB ${normalizedBib} sudah pernah discan dan tercatat sebagai duplikat.`
+        `BIB ${normalizedBib} diterima device di ${selectedCheckpoint?.code ?? checkpointId}. Sinkronisasi ke server berjalan di background.`
       );
-      setBib("");
-      await syncQueue();
+      void syncQueue();
     } catch {
-      await queueScan(payload);
-      await markLocalScan(checkpointId, normalizedBib);
-      setStatusMessage(`Server tidak terjangkau. BIB ${normalizedBib} masuk antrean lokal.`);
+      setStatusMessage(`BIB ${normalizedBib} gagal diproses di device. Coba ulangi sekali lagi.`);
       await refreshQueue();
     } finally {
       setIsBusy(false);
@@ -520,7 +529,7 @@ export default function App() {
             {isOnline ? "Live Connectivity" : "Offline Queue Mode"}
           </div>
           <button className="ghost-button" onClick={() => void syncQueue()} type="button">
-            Sync Queue
+            {isSyncing ? "Syncing..." : "Sync Queue"}
           </button>
           <button
             className="ghost-button"
@@ -577,9 +586,9 @@ export default function App() {
               <button disabled={isBusy} onClick={() => setBib("")} type="button">
                 Clear
               </button>
-              <button onClick={() => void syncQueue()} type="button">
-                Sync
-              </button>
+                <button disabled={isSyncing} onClick={() => void syncQueue()} type="button">
+                  {isSyncing ? "Syncing" : "Sync"}
+                </button>
               <button onClick={() => navigator.vibrate?.(120)} type="button">
                 Haptic
               </button>

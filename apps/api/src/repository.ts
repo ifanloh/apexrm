@@ -11,6 +11,10 @@ import { defaultCheckpoints } from "./contracts.js";
 import type { AuthUser } from "./auth.js";
 import { sendTelegramTop5Message } from "./telegram.js";
 
+function toIsoString(value: string | Date) {
+  return value instanceof Date ? value.toISOString() : value;
+}
+
 export type ScanProcessResult =
   | {
       status: "accepted";
@@ -176,7 +180,7 @@ export async function processSingleScan(
       deviceId: scan.deviceId,
       scannedAt: scan.scannedAt,
       capturedOffline: scan.capturedOffline,
-      serverReceivedAt: insertedScan.server_received_at,
+      serverReceivedAt: toIsoString(insertedScan.server_received_at),
       position: insertedScan.position
     };
 
@@ -234,7 +238,7 @@ export async function getCheckpointLeaderboard(sql: Sql, checkpointId: string): 
     bib: row.bib,
     checkpointId: row.checkpoint_id,
     position: row.position,
-    scannedAt: row.scanned_at,
+    scannedAt: toIsoString(row.scanned_at),
     crewId: row.crew_code,
     deviceId: row.device_id
   }));
@@ -289,9 +293,9 @@ export async function getDuplicateAuditLog(sql: Sql) {
     bib: row.bib,
     crewId: "server-audit",
     deviceId: row.payload.deviceId,
-    scannedAt: row.created_at,
+    scannedAt: toIsoString(row.created_at),
     capturedOffline: false,
-    serverReceivedAt: row.created_at,
+    serverReceivedAt: toIsoString(row.created_at),
     firstAcceptedClientScanId: row.payload.firstAcceptedClientScanId,
     reason: "duplicate_bib_checkpoint" as const
   }));
@@ -318,7 +322,7 @@ export async function getNotificationFeed(sql: Sql): Promise<NotificationEvent[]
     checkpointId: row.checkpoint_id,
     bib: row.bib,
     position: row.position,
-    createdAt: row.created_at,
+    createdAt: toIsoString(row.created_at),
     delivered: row.delivered
   }));
 }
@@ -392,7 +396,7 @@ async function maybeNotifyTop5(
     checkpointId: input.checkpointId,
     bib: input.bib,
     position: input.position,
-    createdAt: row.created_at,
+    createdAt: toIsoString(row.created_at),
     delivered: row.delivered
   };
 }
