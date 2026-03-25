@@ -94,3 +94,10 @@ export async function fetchDashboardSnapshot(accessToken: string) {
     notifications: notificationPayload.items
   };
 }
+
+export async function fetchCheckpointLeaderboard(checkpointId: string, accessToken: string) {
+  return requestJson<CheckpointLeaderboard>(`/leaderboard/live/${checkpointId}`, accessToken, {
+    retries: 0,
+    timeoutMs: 18000
+  });
+}

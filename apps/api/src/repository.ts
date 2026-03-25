@@ -276,64 +276,21 @@ export async function getLiveLeaderboard(sql: Sql) {
         order_index: checkpoint.order
       }));
 
-  const [totals, rows] = await Promise.all([
-    sql<{
-      checkpoint_id: string;
-      total: number;
-    }[]>`
-      select checkpoint_id, count(*)::int as total
-      from public.scans
-      group by checkpoint_id
-    `,
-    sql<{
-      bib: string;
-      checkpoint_id: string;
-      position: number;
-      scanned_at: string | Date;
-      crew_code: string;
-      device_id: string;
-    }[]>`
-      with ranked_entries as (
-        select
-          bib,
-          checkpoint_id,
-          position,
-          scanned_at,
-          crew_code,
-          device_id,
-          row_number() over (
-            partition by checkpoint_id
-            order by position asc, scanned_at asc, bib asc
-          ) as row_rank
-        from public.scans
-      )
-      select bib, checkpoint_id, position, scanned_at, crew_code, device_id
-      from ranked_entries
-      where row_rank <= 5
-      order by checkpoint_id asc, position asc
-    `
-  ]);
+  const totals = await sql<{
+    checkpoint_id: string;
+    total: number;
+  }[]>`
+    select checkpoint_id, count(*)::int as total
+    from public.scans
+    group by checkpoint_id
+  `;
 
   const totalsByCheckpoint = new Map(totals.map((row) => [row.checkpoint_id, row.total]));
-  const entriesByCheckpoint = new Map<string, LeaderboardEntry[]>();
-
-  for (const row of rows) {
-    const list = entriesByCheckpoint.get(row.checkpoint_id) ?? [];
-    list.push({
-      bib: row.bib,
-      checkpointId: row.checkpoint_id,
-      position: row.position,
-      scannedAt: toIsoString(row.scanned_at),
-      crewId: row.crew_code,
-      deviceId: row.device_id
-    });
-    entriesByCheckpoint.set(row.checkpoint_id, list);
-  }
 
   return checkpointList.map((checkpoint) => ({
     checkpointId: checkpoint.id,
     totalOfficialScans: totalsByCheckpoint.get(checkpoint.id) ?? 0,
-    topEntries: entriesByCheckpoint.get(checkpoint.id) ?? []
+    topEntries: []
   }));
 }
 

@@ -10,7 +10,7 @@ import {
   type NotificationEvent,
   type OverallLeaderboard
 } from "@arm/contracts";
-import { fetchDashboardSnapshot } from "./api";
+import { fetchCheckpointLeaderboard, fetchDashboardSnapshot } from "./api";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -56,6 +56,19 @@ function deriveProfileFromSession(session: Session): AuthProfile {
     role: rawRole,
     crewCode,
     displayName: userMetadata.full_name ?? userMetadata.name ?? session.user.email ?? null
+  });
+}
+
+function mergeCheckpointBoards(existing: CheckpointLeaderboard[], incoming: CheckpointLeaderboard[]) {
+  const existingById = new Map(existing.map((board) => [board.checkpointId, board]));
+
+  return incoming.map((board) => {
+    const previous = existingById.get(board.checkpointId);
+
+    return {
+      ...board,
+      topEntries: board.topEntries.length > 0 ? board.topEntries : previous?.topEntries ?? []
+    };
   });
 }
 
@@ -139,7 +152,7 @@ export default function App() {
         }
 
         setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
-        setLeaderboards(checkpointLeaderboards);
+        setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
         setDuplicates(snapshot.duplicates);
         setNotifications(snapshot.notifications);
         setLastUpdatedAt(
@@ -193,7 +206,7 @@ export default function App() {
           const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
           setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
-          setLeaderboards(checkpointLeaderboards);
+          setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
           setDuplicates(snapshot.duplicates);
           setNotifications(snapshot.notifications);
           setLastUpdatedAt(
@@ -239,6 +252,33 @@ export default function App() {
       void supabaseClient.removeChannel(channel);
     };
   }, [accessToken, hasDashboardAccess, profile?.role]);
+
+  useEffect(() => {
+    if (!accessToken || !hasDashboardAccess || !selectedCheckpointId) {
+      return;
+    }
+
+    let isMounted = true;
+
+    void fetchCheckpointLeaderboard(selectedCheckpointId, accessToken)
+      .then((board) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setLeaderboards((current) => {
+          const next = current.map((item) => (item.checkpointId === board.checkpointId ? board : item));
+          return next.some((item) => item.checkpointId === board.checkpointId) ? next : [...current, board];
+        });
+      })
+      .catch(() => {
+        // Keep the summary board on screen; detail fetch should never blank the dashboard.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, hasDashboardAccess, lastUpdatedAt, selectedCheckpointId]);
 
   const selectedBoard = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
