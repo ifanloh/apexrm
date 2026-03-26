@@ -357,10 +357,7 @@ export default function App() {
   const [favoriteBibs, setFavoriteBibs] = useState<string[]>(() => loadFavoriteBibs());
   const [theme, setTheme] = useState<DashboardTheme>(() => getInitialTheme());
   const [fullRankingPage, setFullRankingPage] = useState(1);
-  const [openSidebarGroups, setOpenSidebarGroups] = useState<Record<string, boolean>>({
-    runners: true,
-    race: true
-  });
+  const [fullRankingView, setFullRankingView] = useState<"overall" | "women">("overall");
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
@@ -697,10 +694,16 @@ export default function App() {
     window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteBibs));
   }, [favoriteBibs]);
 
+  const fullRankingSource = fullRankingView === "women" ? womenLeaderboard : overallLeaderboard;
+
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(overallLeaderboard.topEntries.length / FULL_RANKING_PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(fullRankingSource.topEntries.length / FULL_RANKING_PAGE_SIZE));
     setFullRankingPage((current) => Math.min(current, totalPages));
-  }, [overallLeaderboard.topEntries.length]);
+  }, [fullRankingSource.topEntries.length]);
+
+  useEffect(() => {
+    setFullRankingPage(1);
+  }, [fullRankingView]);
 
   useEffect(() => {
     if (!runnerResults.length) {
@@ -808,8 +811,8 @@ export default function App() {
     });
   }, [leaderboards, overallLeader]);
 
-  const featuredOverallRows = overallLeaderboard.topEntries.slice(0, 3);
-  const featuredWomenRows = womenLeaderboard.topEntries.slice(0, 3);
+  const sidebarOverallRows = overallLeaderboard.topEntries.slice(0, 5);
+  const sidebarWomenRows = womenLeaderboard.topEntries.slice(0, 5);
 
   const lastBroadcast = notifications[0] ?? null;
   const latestPassing = recentPassings[0] ?? null;
@@ -833,18 +836,17 @@ export default function App() {
     return `${recentPassings.length} passing terbaru`;
   }, [recentPassings.length]);
   const totalDistanceKm = demoCourse.distanceKm;
-  const fullRankingPageCount = Math.max(1, Math.ceil(overallLeaderboard.topEntries.length / FULL_RANKING_PAGE_SIZE));
-  const fullRankingRows = overallLeaderboard.topEntries.slice(
+  const fullRankingPageCount = Math.max(1, Math.ceil(fullRankingSource.topEntries.length / FULL_RANKING_PAGE_SIZE));
+  const fullRankingRows = fullRankingSource.topEntries.slice(
     (fullRankingPage - 1) * FULL_RANKING_PAGE_SIZE,
     fullRankingPage * FULL_RANKING_PAGE_SIZE
   );
-  const fullRankingRangeLabel = overallLeaderboard.topEntries.length
+  const fullRankingRangeLabel = fullRankingSource.topEntries.length
     ? `${(fullRankingPage - 1) * FULL_RANKING_PAGE_SIZE + 1}-${Math.min(
         fullRankingPage * FULL_RANKING_PAGE_SIZE,
-        overallLeaderboard.topEntries.length
-      )} dari ${overallLeaderboard.topEntries.length}`
+        fullRankingSource.topEntries.length
+      )} dari ${fullRankingSource.topEntries.length}`
     : "0 runner";
-  const selectedCheckpointEntries = selectedBoard?.topEntries.slice(0, 3) ?? [];
   const eventTitle = demoCourse.title;
   const eventSubtitleText = `${demoCourse.location} | ${demoCourse.subtitle}`;
   const accessLabel = organizerSessionActive ? "Organizer tools" : "Spectator view";
@@ -886,35 +888,6 @@ export default function App() {
       note: "Runner yang sudah mencapai finish."
     }
   ];
-  const sidebarGroups = [
-    {
-      id: "runners",
-      title: "RUNNERS",
-      items: [
-        { label: "Search", href: "#runner-finder" },
-        { label: "Runner List", href: "#full-ranking" },
-        { label: "Favorites", href: "#favorites" },
-        { label: "My Runner", href: "#my-runner" }
-      ]
-    },
-    {
-      id: "race",
-      title: "THE RACE",
-      items: [
-        { label: "Ranking", href: "#full-ranking" },
-        { label: "Race Leaders", href: "#race-leaders" },
-        { label: "Statistics", href: "#race-statistics" }
-      ]
-    }
-  ];
-
-  function toggleSidebarGroup(groupId: string) {
-    setOpenSidebarGroups((current) => ({
-      ...current,
-      [groupId]: !current[groupId]
-    }));
-  }
-
   function toggleFavoriteBib(bib: string) {
     setFavoriteBibs((current) =>
       current.includes(bib) ? current.filter((item) => item !== bib) : [...current, bib].sort((left, right) => left.localeCompare(right))
@@ -952,6 +925,14 @@ export default function App() {
     setLoginError(null);
   }
 
+  function focusRanking(view: "overall" | "women") {
+    setFullRankingView(view);
+    document.getElementById("full-ranking")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
   return (
     <main className="dashboard-shell dashboard-hub-shell">
       <aside className="dashboard-sidebar">
@@ -962,99 +943,58 @@ export default function App() {
           <small>{eventSubtitleText}</small>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Dashboard navigation">
-          {sidebarGroups.map((group) => {
-            const isOpen = openSidebarGroups[group.id] ?? true;
-
-            return (
-            <section className={`nav-group ${isOpen ? "open" : ""}`} key={group.id}>
-              <button
-                aria-expanded={isOpen}
-                className="nav-toggle"
-                onClick={() => toggleSidebarGroup(group.id)}
-                type="button"
-              >
-                <span>{group.title}</span>
-                <span className={`nav-chevron ${isOpen ? "open" : ""}`}>⌄</span>
-              </button>
-              <div className="nav-links" hidden={!isOpen}>
-                {group.items.map((item) => (
-                  <a className="nav-link" href={item.href} key={item.href}>
-                    {item.label}
-                  </a>
-                ))}
-              </div>
-            </section>
-          )})}
-        </nav>
-
-        <article className="sidebar-card" id="favorites">
+        <article className="sidebar-card sidebar-ranking-card" id="race-leaders">
           <div className="panel-head compact">
             <div>
-              <p className="section-label">My Runner</p>
-              <h3>Favorites List</h3>
+              <p className="section-label">Ranking</p>
+              <h3>Overall</h3>
             </div>
           </div>
-          <div className="sidebar-chip-list">
-            {favoriteRunnerResults.length ? (
-              favoriteRunnerResults.map((entry) => (
-                <button
-                  className={`sidebar-chip ${selectedRunnerBib === entry.bib ? "active" : ""}`}
-                  key={`sidebar-favorite-${entry.bib}`}
-                  onClick={() => setSelectedRunnerBib(entry.bib)}
-                  type="button"
-                >
-                  <strong>{entry.bib}</strong>
-                  <span>#{entry.rank}</span>
-                </button>
-              ))
-            ) : (
-              <div className="empty-compact">Belum ada favorit. Tandai runner dari hasil search untuk pantau cepat.</div>
-            )}
-          </div>
-        </article>
-
-        <article className="sidebar-card">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Checkpoint Focus</p>
-              <h3>{selectedCheckpointMeta ? formatCheckpointLabel(selectedCheckpointMeta) : "Checkpoint"}</h3>
-            </div>
-          </div>
-          <div className="checkpoint-strip" aria-label="Checkpoint switcher">
-            {leaderboards.map((board) => {
-              const checkpoint = defaultCheckpoints.find((item) => item.id === board.checkpointId);
-              const isActive = board.checkpointId === selectedBoard?.checkpointId;
-
-              return (
-                <button
-                  className={`checkpoint-chip ${isActive ? "active" : ""}`}
-                  key={`sidebar-${board.checkpointId}`}
-                  onClick={() => setSelectedCheckpointId(board.checkpointId)}
-                  type="button"
-                >
-                  <span>{checkpoint ? checkpoint.code : board.checkpointId}</span>
-                  <strong>{board.totalOfficialScans}</strong>
-                </button>
-              );
-            })}
-          </div>
-          <div className="sidebar-mini-list">
-            {selectedCheckpointEntries.length ? (
-              selectedCheckpointEntries.map((entry) => (
-                <div className="sidebar-mini-row" key={`checkpoint-focus-${entry.bib}-${entry.position}`}>
-                  <strong>#{entry.position}</strong>
+          <div className="mini-leaderboard">
+            {sidebarOverallRows.length ? (
+              sidebarOverallRows.map((entry) => (
+                <div className="mini-leaderboard-row" key={`sidebar-overall-${entry.bib}`}>
+                  <strong>{entry.rank}</strong>
                   <div>
-                    <span>{nameByBib.get(entry.bib.toUpperCase()) ?? `Runner ${entry.bib}`}</span>
-                    <small>BIB {entry.bib}</small>
-                    <small>{formatScanTime(entry.scannedAt)}</small>
+                    <span>{entry.name}</span>
+                    <small>{entry.bib}</small>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="empty-compact">Belum ada scan resmi di checkpoint ini.</div>
+              <div className="empty-compact">Belum ada pelari di ranking overall.</div>
             )}
           </div>
+          <button className="sidebar-more" onClick={() => focusRanking("overall")} type="button">
+            See More
+          </button>
+        </article>
+
+        <article className="sidebar-card sidebar-ranking-card">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Ranking</p>
+              <h3>Woman</h3>
+            </div>
+          </div>
+          <div className="mini-leaderboard">
+            {sidebarWomenRows.length ? (
+              sidebarWomenRows.map((entry) => (
+                <div className="mini-leaderboard-row" key={`sidebar-women-${entry.bib}`}>
+                  <strong>{entry.rank}</strong>
+                  <div>
+                    <span>{entry.name}</span>
+                    <small>{entry.bib}</small>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="empty-compact">Belum ada runner woman di data event ini.</div>
+            )}
+          </div>
+          <button className="sidebar-more" onClick={() => focusRanking("women")} type="button">
+            See More
+          </button>
         </article>
 
         {organizerSessionActive ? (
@@ -1215,12 +1155,32 @@ export default function App() {
           <div className="panel-head">
             <div>
               <p className="section-label">Full Ranking</p>
-              <h3>Standings resmi seluruh race</h3>
+              <h3>{fullRankingView === "women" ? "Standings kategori women" : "Standings resmi seluruh race"}</h3>
             </div>
             <div className="panel-badge">
-              <span>Ranked runners</span>
-              <strong>{overallLeaderboard.totalRankedRunners}</strong>
+              <span>{fullRankingView === "women" ? "Women ranked" : "Ranked runners"}</span>
+              <strong>{fullRankingSource.totalRankedRunners}</strong>
             </div>
+          </div>
+          <div className="ranking-mode-switch" role="tablist" aria-label="Full ranking view switch">
+            <button
+              aria-selected={fullRankingView === "overall"}
+              className={`route-tab ${fullRankingView === "overall" ? "active" : ""}`}
+              onClick={() => setFullRankingView("overall")}
+              role="tab"
+              type="button"
+            >
+              Overall
+            </button>
+            <button
+              aria-selected={fullRankingView === "women"}
+              className={`route-tab ${fullRankingView === "women" ? "active" : ""}`}
+              onClick={() => setFullRankingView("women")}
+              role="tab"
+              type="button"
+            >
+              Woman
+            </button>
           </div>
 
           <div className="full-ranking-list" role="list" aria-label="Overall leaderboard rows">
@@ -1298,66 +1258,6 @@ export default function App() {
         </article>
 
         <aside className="rail">
-          <section className="leaders-stack" id="race-leaders">
-          <article className="panel rail-panel rail-ranking-panel">
-            <div className="panel-head compact">
-              <div>
-                <p className="section-label">Ranking</p>
-                <h3>Overall</h3>
-              </div>
-            </div>
-            <div className="mini-leaderboard">
-              {featuredOverallRows.length ? (
-                featuredOverallRows.map((entry) => (
-                  <div className="mini-leaderboard-row" key={`overall-rail-${entry.bib}`}>
-                    <strong>#{entry.rank}</strong>
-                    <div>
-                      <span>{entry.name}</span>
-                      <small>
-                        {formatCheckpointLabel({
-                          code: entry.checkpointCode,
-                          kmMarker: entry.checkpointKmMarker
-                        })}
-                      </small>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="empty-compact">Belum ada pelari di overall ranking.</div>
-              )}
-            </div>
-          </article>
-
-          <article className="panel rail-panel rail-ranking-panel">
-            <div className="panel-head compact">
-              <div>
-                <p className="section-label">Ranking</p>
-                <h3>Women</h3>
-              </div>
-            </div>
-            <div className="mini-leaderboard">
-              {featuredWomenRows.length ? (
-                featuredWomenRows.map((entry) => (
-                  <div className="mini-leaderboard-row" key={`women-rail-${entry.bib}`}>
-                    <strong>#{entry.rank}</strong>
-                    <div>
-                      <span>{entry.name}</span>
-                      <small>
-                        {formatCheckpointLabel({
-                          code: entry.checkpointCode,
-                          kmMarker: entry.checkpointKmMarker
-                        })}
-                      </small>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="empty-compact">Belum ada runner kategori women di data event ini.</div>
-              )}
-            </div>
-          </article>
-          </section>
-
           <article className="panel rail-panel" id="recent-passings">
             <div className="panel-head">
               <div>

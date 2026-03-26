@@ -290,6 +290,10 @@ a {
   padding: 14px;
 }
 
+.sidebar-ranking-card {
+  gap: 14px;
+}
+
 .sidebar-chip-list {
   display: flex;
   flex-wrap: wrap;
@@ -335,6 +339,41 @@ a {
   cursor: not-allowed;
   opacity: 0.48;
   transform: none;
+}
+
+.route-tab,
+.sidebar-more {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.route-tab:hover,
+.sidebar-more:hover {
+  border-color: var(--stroke-strong);
+  transform: translateY(-1px);
+}
+
+.route-tab.active {
+  background: linear-gradient(135deg, rgba(255, 191, 110, 0.98), rgba(255, 165, 80, 0.92));
+  border-color: transparent;
+  color: #19120c;
+}
+
+.sidebar-more {
+  width: 100%;
 }
 
 .auth-trigger {
@@ -739,6 +778,13 @@ a {
   gap: 2px;
   min-width: 116px;
   padding: 10px 12px;
+}
+
+.ranking-mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .compact-badge {
