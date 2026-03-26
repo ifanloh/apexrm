@@ -27,6 +27,7 @@ import { CourseProfilePanel } from "./CourseProfilePanel";
 import { demoCourse } from "./demoCourse";
 import { demoRaceFestival } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
+import { SpectatorPromoPanel } from "./SpectatorPromoPanel";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -40,6 +41,19 @@ const THEME_STORAGE_KEY = "arm:dashboard-theme";
 const FULL_RANKING_PAGE_SIZE = 12;
 const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
 const EDITION_HOME_VALUE = "__edition-home";
+const COUNTRY_CODES = ["FR", "FI", "ES", "IT", "GB", "BE", "CH", "PT", "US", "DE", "SE", "NO"] as const;
+const TEAM_NAMES = [
+  "Team Hoka",
+  "Salomon International",
+  "Wise Ultra Running",
+  "Apex Trail Crew",
+  "Millau Running Lab",
+  "Grand Causses Trail",
+  "Team Ascent",
+  "North Ridge Collective",
+  "Altitude Motion",
+  "Ultra Nomads"
+] as const;
 
 type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
@@ -47,7 +61,7 @@ type RankingView = "overall" | "women" | "men";
 
 function getInitialTheme() {
   if (typeof window === "undefined") {
-    return "dark" as DashboardTheme;
+    return "light" as DashboardTheme;
   }
 
   const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -56,7 +70,7 @@ function getInitialTheme() {
     return stored;
   }
 
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return "light" as DashboardTheme;
 }
 
 function getNextTheme(theme: DashboardTheme): DashboardTheme {
@@ -97,6 +111,50 @@ function getApiHost() {
   } catch {
     return import.meta.env.VITE_API_BASE_URL ?? "unknown-api";
   }
+}
+
+function getStableIndex(value: string, size: number) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash % size;
+}
+
+function getNationalityCode(bib: string) {
+  return COUNTRY_CODES[getStableIndex(bib, COUNTRY_CODES.length)];
+}
+
+function getRunnerTeamName(bib: string) {
+  return TEAM_NAMES[getStableIndex(bib, TEAM_NAMES.length)];
+}
+
+function getDivisionCode(category: string) {
+  return category === "women" ? "S-WOH" : "S-MOH";
+}
+
+function getRunnerStatusLabel(checkpointId: string) {
+  return checkpointId === "finish" ? "Finisher" : "In race";
+}
+
+function formatGapFromLeader(scannedAt: string, leaderScannedAt: string | null, rank: number) {
+  if (!leaderScannedAt || rank === 1) {
+    return formatScanTime(scannedAt);
+  }
+
+  const diffMs = Math.max(0, new Date(scannedAt).getTime() - new Date(leaderScannedAt).getTime());
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `+${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `+${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function formatRelativeTime(value: string) {
@@ -380,7 +438,6 @@ export default function App() {
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
-  const themeLabel = theme === "dark" ? "Dark" : "Light";
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
 
   useEffect(() => {
@@ -897,8 +954,8 @@ export default function App() {
     ? `${(fullRankingPage - 1) * rankingRowsPerPage + 1}-${Math.min(
         fullRankingPage * rankingRowsPerPage,
         fullRankingEntries.length
-      )} dari ${fullRankingEntries.length}`
-    : "0 runner";
+      )} of ${fullRankingEntries.length}`
+    : "0-0 of 0";
   const raceHomeCards = useMemo(() => {
     return demoRaceFestival.races.map((race) => {
       if (race.slug !== demoCourse.slug) {
@@ -929,7 +986,6 @@ export default function App() {
   const eventSubtitleText = isEditionHome
     ? `${demoCourse.location} | ${demoRaceFestival.editionLabel}`
     : `${selectedRaceCard.startTown} | ${demoCourse.subtitle}`;
-  const accessLabel = organizerSessionActive ? "Organizer tools" : "Spectator view";
   const liveStatusLabel =
     liveStatus === "live"
       ? "Live Realtime"
@@ -945,12 +1001,7 @@ export default function App() {
       : profile
         ? `Akun role ${profile.role} tetap berada di spectator view. Login dengan admin, panitia, atau observer untuk tools organizer.`
         : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
-  const heroRaceFacts = [
-    { label: "Distance", value: `${totalDistanceKm.toFixed(1)} KM` },
-    { label: "Ascent", value: `${activeAscentM} M+` },
-    { label: "Finishers", value: `${activeFinisherCount}` },
-    { label: "Live mode", value: liveStatusLabel }
-  ];
+  const showAccessNotice = organizerSessionActive || Boolean(profile && !hasDashboardAccess);
   const raceStatistics = [
     {
       label: "Starters",
@@ -977,7 +1028,11 @@ export default function App() {
     { label: "Finishers", value: `${activeFinisherCount}` },
     { label: "DNF / DNS", value: `${activeDnfCount}` }
   ];
-  const courseActionSummary = `${favoriteBibs.length} followed runners`;
+  const courseActionSummary = "My followed runners";
+  const topbarSearchPlaceholder = "Search a runner ...";
+  const overallLeaderTime = fullRankingEntries[0]?.scannedAt ?? null;
+  const sidebarOverallLeaderTime = sidebarOverallRows[0]?.scannedAt ?? null;
+  const sidebarWomenLeaderTime = sidebarWomenRows[0]?.scannedAt ?? null;
   function toggleFavoriteBib(bib: string) {
     setFavoriteBibs((current) =>
       current.includes(bib) ? current.filter((item) => item !== bib) : [...current, bib].sort((left, right) => left.localeCompare(right))
@@ -1098,7 +1153,7 @@ export default function App() {
 
   function focusPassingsTable() {
     if (organizerSessionActive) {
-      jumpToSection("signals-sidebar");
+      jumpToSection("signals");
       return;
     }
 
@@ -1115,18 +1170,25 @@ export default function App() {
   }
 
   return (
-    <main className="dashboard-shell dashboard-hub-shell">
-      <aside className="dashboard-sidebar">
-        <div className="sidebar-brand">
-          <span className="brand-kicker">ApexRM Live</span>
-          <h1>{demoRaceFestival.brandStack[0]}</h1>
-          <p>{demoRaceFestival.brandStack[1]}</p>
-          <small>{isEditionHome ? demoRaceFestival.editionLabel : selectedRaceCard.title}</small>
+    <main className="dashboard-shell dashboard-hub-shell live-trail-shell">
+      <aside className="dashboard-sidebar live-sidebar">
+        <div className="livetrail-wordmark" aria-label="LiveTrail style wordmark">
+          <span className="word-live">LIVE</span>
+          <span className="word-trail">TRAIL</span>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Race navigation">
-          <button className="nav-link nav-link-primary" onClick={focusHome} type="button">
-            Home
+        <div className="sidebar-event-lockup">
+          <h1>
+            {demoRaceFestival.brandStack.map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </h1>
+        </div>
+
+        <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
+          <button className="nav-link nav-link-primary nav-link-icon" onClick={focusHome} type="button">
+            <span className="nav-icon home" aria-hidden="true" />
+            <span>Home</span>
           </button>
 
           <div className={`nav-group ${runnerNavOpen ? "open" : ""}`}>
@@ -1135,20 +1197,25 @@ export default function App() {
               <span className={`nav-chevron ${runnerNavOpen ? "open" : ""}`}>⌄</span>
             </button>
             <div className="nav-links">
-              <button className="nav-link" onClick={focusRunnerSearch} type="button">
-                Search for a runner
+              <button className="nav-link nav-link-icon" onClick={focusRunnerSearch} type="button">
+                <span className="nav-icon search" aria-hidden="true" />
+                <span>Search for a runner</span>
               </button>
-              <button className="nav-link" onClick={() => focusRanking("overall")} type="button">
-                Runners list
+              <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
+                <span className="nav-icon runners" aria-hidden="true" />
+                <span>Runners list</span>
               </button>
-              <button className="nav-link" onClick={focusMyRunners} type="button">
-                Favorites list
+              <button className="nav-link nav-link-icon" onClick={focusMyRunners} type="button">
+                <span className="nav-icon favorite" aria-hidden="true" />
+                <span>Favorites list</span>
               </button>
-              <button className="nav-link" onClick={focusMyRunners} type="button">
-                My runners
+              <button className="nav-link nav-link-icon" onClick={focusMyRunners} type="button">
+                <span className="nav-icon heart" aria-hidden="true" />
+                <span>My runners</span>
               </button>
-              <button className="nav-link" onClick={focusRunnerSearch} type="button">
-                Comparison
+              <button className="nav-link nav-link-icon" onClick={focusRunnerSearch} type="button">
+                <span className="nav-icon compare" aria-hidden="true" />
+                <span>Comparison</span>
               </button>
             </div>
           </div>
@@ -1159,50 +1226,38 @@ export default function App() {
               <span className={`nav-chevron ${raceNavOpen ? "open" : ""}`}>⌄</span>
             </button>
             <div className="nav-links">
-              <button className="nav-link" onClick={() => focusRanking("overall")} type="button">
-                Ranking
+              <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
+                <span className="nav-icon podium" aria-hidden="true" />
+                <span>Ranking</span>
               </button>
-              <button className="nav-link" onClick={focusPassingsTable} type="button">
-                Passings table
+              <button className="nav-link nav-link-icon" onClick={focusPassingsTable} type="button">
+                <span className="nav-icon passings" aria-hidden="true" />
+                <span>Passings table</span>
               </button>
-              <button className="nav-link" onClick={() => focusRanking("overall")} type="button">
-                Race leaders
+              <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
+                <span className="nav-icon leaders" aria-hidden="true" />
+                <span>Race leaders</span>
               </button>
-              <button className="nav-link" onClick={focusStatistics} type="button">
-                Statistics
+              <button className="nav-link nav-link-icon" onClick={focusStatistics} type="button">
+                <span className="nav-icon stats" aria-hidden="true" />
+                <span>Statistics</span>
               </button>
             </div>
           </div>
 
-          <button className="nav-link" onClick={() => jumpToSection("runtime-footer")} type="button">
-            Contact
+          <button className="nav-link nav-link-icon nav-link-footer" onClick={() => jumpToSection("runtime-footer")} type="button">
+            <span className="nav-icon contact" aria-hidden="true" />
+            <span>Contact</span>
           </button>
         </nav>
-
-        {organizerSessionActive ? (
-          <button className="sidebar-logout" onClick={handleLogout} type="button">
-            Logout Organizer
-          </button>
-        ) : (
-          <button
-            className="sidebar-logout"
-            onClick={() => {
-              setLoginError(null);
-              setIsLoginModalOpen(true);
-            }}
-            type="button"
-          >
-            Organizer Login
-          </button>
-        )}
       </aside>
 
-      <div className="dashboard-main">
+      <div className="dashboard-main dashboard-main-scroll live-main">
         <header className="topbar topbar-hub">
-          <div className="topbar-title-block">
-            <span className="brand-kicker">Live Race View</span>
-            <h1>{demoRaceFestival.brandName}</h1>
-            <small>{isEditionHome ? demoRaceFestival.dateRibbon : selectedRaceCard.title}</small>
+          <div className="topbar-race-lockup">
+            {demoRaceFestival.brandStack.map((line) => (
+              <strong key={line}>{line}</strong>
+            ))}
           </div>
 
           <div className="topbar-center">
@@ -1219,26 +1274,27 @@ export default function App() {
             </label>
 
             <label className="topbar-search topbar-search-shell">
+              <span className="topbar-runner-icon" aria-hidden="true" />
               <span className="sr-only">Search a runner</span>
               <input
-                placeholder="Search a runner..."
+                placeholder={topbarSearchPlaceholder}
                 value={runnerQuery}
                 onChange={(event) => setRunnerQuery(event.target.value)}
               />
-              <button className="topbar-search-button" onClick={focusRunnerSearch} type="button">
-                Go
+              <button className="topbar-search-button" onClick={focusRunnerSearch} type="button" aria-label="Search runner">
+                <span className="search-button-lens" aria-hidden="true" />
               </button>
             </label>
           </div>
 
-          <div className="topbar-actions">
+          <div className="topbar-actions live-topbar-actions">
             {organizerSessionActive ? (
-              <button className="topbar-link-button topbar-link-button-active" onClick={handleLogout} type="button">
+              <button className="topbar-login-link topbar-login-link-active" onClick={handleLogout} type="button">
                 Logout
               </button>
             ) : (
               <button
-                className="topbar-link-button"
+                className="topbar-login-link"
                 onClick={() => {
                   setLoginError(null);
                   setIsLoginModalOpen(true);
@@ -1249,26 +1305,40 @@ export default function App() {
               </button>
             )}
 
-            <button className="compact-theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
-              {themeLabel}
+            <button
+              aria-label={`Switch to ${getNextTheme(theme)} mode`}
+              className="topbar-icon-button theme-switch-button"
+              onClick={() => setTheme((current) => getNextTheme(current))}
+              type="button"
+            >
+              <span className={`theme-switch-track ${theme}`}>
+                <span className="theme-switch-thumb" />
+              </span>
+            </button>
+
+            <button className="topbar-locale-pill" type="button">
+              EN <span aria-hidden="true">v</span>
             </button>
           </div>
         </header>
 
-        <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div>
+        {showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
 
         {isEditionHome ? (
-          <RaceEditionHome
-            bannerTagline={demoRaceFestival.bannerTagline}
-            brandStack={demoRaceFestival.brandStack}
-            cards={raceHomeCards}
-            dateRibbon={demoRaceFestival.dateRibbon}
-            editionLabel={demoRaceFestival.editionLabel}
-            homeSubtitle={demoRaceFestival.homeSubtitle}
-            homeTitle={demoRaceFestival.homeTitle}
-            locationRibbon={demoRaceFestival.locationRibbon}
-            onOpenRace={(slug) => openRaceView(slug, "race-hub")}
-          />
+          <>
+            <RaceEditionHome
+              bannerTagline={demoRaceFestival.bannerTagline}
+              brandStack={demoRaceFestival.brandStack}
+              cards={raceHomeCards}
+              dateRibbon={demoRaceFestival.dateRibbon}
+              editionLabel={demoRaceFestival.editionLabel}
+              homeSubtitle={demoRaceFestival.homeSubtitle}
+              homeTitle={demoRaceFestival.homeTitle}
+              locationRibbon={demoRaceFestival.locationRibbon}
+              onOpenRace={(slug) => openRaceView(slug, "race-hub")}
+            />
+            <SpectatorPromoPanel />
+          </>
         ) : (
           <>
         <div className="detail-topline">
@@ -1277,38 +1347,47 @@ export default function App() {
           </button>
         </div>
 
-        <section className="hero-panel hero-race-panel" id="race-hub">
-          <div className="hero-copy">
-            <div className="hero-badges">
-              <span className="status-chip active">Live</span>
-              <span className="status-chip">{liveStatusLabel}</span>
-              <span className="status-chip">Updated {lastUpdatedAt ?? "--:--:--"}</span>
-            </div>
-            <p className="section-label">Race Hub</p>
+        <section className="panel race-detail-hero" id="race-hub">
+          <div className="race-detail-hero-head">
+            <span className={`race-status-pill ${selectedRaceCard.editionLabel.toLowerCase() === "finished" ? "live" : ""}`}>
+              {selectedRaceCard.editionLabel}
+            </span>
             <h2>{eventTitle}</h2>
-            <p className="section-copy">{eventSubtitleText}</p>
-            <div className="hero-inline-stats">
-              {heroRaceFacts.map((fact) => (
-                <div className="inline-stat" key={fact.label}>
-                  <span>{fact.label}</span>
-                  <strong>{fact.value}</strong>
-                </div>
-              ))}
-            </div>
           </div>
-          <div className="hero-callout">
-            <article className="metric-card primary">
-              <span>Overall ranked runners</span>
-              <strong>{totalRankedRunners}</strong>
+
+          <div className="race-stat-strip" id="race-statistics">
+            <article className="race-stat-strip-item">
+              <span>Distance</span>
+              <strong>{totalDistanceKm.toFixed(1)} KM</strong>
             </article>
-            <article className="metric-card">
-              <span>Total scan resmi</span>
-              <strong>{totalOfficialScans}</strong>
+            <article className="race-stat-strip-item">
+              <span>Ascent</span>
+              <strong>{activeAscentM} M+</strong>
+            </article>
+            <article className="race-stat-strip-item">
+              <span>Start</span>
+              <strong>{demoCourse.location} 7C</strong>
+            </article>
+            <article className="race-stat-strip-item">
+              <span>Finish</span>
+              <strong>{demoCourse.location} 7C</strong>
+            </article>
+            <article className="race-stat-strip-item">
+              <span>Start Date</span>
+              <strong>{formatEventDateLabel("2025-10-19T05:12:00+02:00")}</strong>
+            </article>
+            <article className="race-stat-strip-item">
+              <span>Finishers</span>
+              <strong>{activeFinisherCount}</strong>
+            </article>
+            <article className="race-stat-strip-item">
+              <span>DNF</span>
+              <strong>{activeDnfCount}</strong>
             </article>
           </div>
         </section>
 
-      <section className="panel race-overview-panel" id="race-statistics">
+      <section className="panel race-overview-panel compact-race-overview">
         <div className="race-overview-grid">
           {raceOverviewStats.map((stat) => (
             <article className="race-overview-stat" key={stat.label}>
@@ -1319,15 +1398,15 @@ export default function App() {
         </div>
       </section>
 
-      <section className="panel course-command-panel">
+      <section className="panel course-command-panel livetrail-course-toolbar">
         <div className="course-command-meta">
           <div className="course-legend">
             <span className="legend-item women">Woman</span>
             <span className="legend-item men">Man</span>
           </div>
           <div className="course-beacon">
-            <strong>equipped with scan control</strong>
-            <span>Realtime checkpoint validations via ApexRM</span>
+            <strong>equipped with a GPS beacon</strong>
+            <span>Realtime timing, checkpoint passings, and spectator visibility.</span>
           </div>
         </div>
 
@@ -1343,7 +1422,7 @@ export default function App() {
           <button className="route-tab" onClick={() => focusRanking("overall")} type="button">
             Leaders
           </button>
-          <button className="route-tab" onClick={() => focusRunnerSearch()} type="button">
+          <button className="route-tab" onClick={focusMyRunners} type="button">
             {courseActionSummary}
           </button>
         </div>
@@ -1355,7 +1434,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="spotlight-grid">
+      <section className="spotlight-grid" id="course-profile">
         <CourseProfilePanel
           courseStops={courseProfileStops}
           selectedCheckpointId={selectedCheckpointId}
@@ -1368,25 +1447,41 @@ export default function App() {
       {fetchError ? <div className="notice-banner error">{fetchError}</div> : null}
 
       <section className="control-grid">
-        <article className="panel leaderboard-panel full-ranking-panel" id="full-ranking">
+        <article className="panel leaderboard-panel full-ranking-panel livetrail-ranking-panel" id="full-ranking">
           <div className="panel-head">
             <div>
               <p className="section-label">Ranking</p>
-              <h3>{fullRankingView === "women" ? "Women leaderboard" : fullRankingView === "men" ? "Men leaderboard" : "Official full ranking"}</h3>
+              <h3>{fullRankingView === "women" ? "Woman ranking" : "Official full ranking"}</h3>
             </div>
             <div className="panel-badge">
-              <span>{fullRankingView === "women" ? "Women ranked" : fullRankingView === "men" ? "Men ranked" : "Ranked runners"}</span>
+              <span>{fullRankingView === "women" ? "Women ranked" : "Ranked runners"}</span>
               <strong>{fullRankingEntries.length}</strong>
+            </div>
+          </div>
+          <div className="ranking-toolbar livetrail-ranking-topline">
+            <div className="ranking-mode-switch">
+              <span className="detail-label">See</span>
+              <button className={`route-tab ${fullRankingView === "overall" ? "active" : ""}`} onClick={() => setFullRankingView("overall")} type="button">
+                Ranking
+              </button>
+              <button className={`route-tab ${fullRankingView === "women" ? "active" : ""}`} onClick={() => setFullRankingView("women")} type="button">
+                Woman
+              </button>
+              <button className="route-tab ghost" type="button">
+                Terrain
+              </button>
+              <button className="route-tab ghost" type="button">
+                Points
+              </button>
             </div>
           </div>
           <div className="ranking-toolbar">
             <div className="ranking-filters">
               <label className="ranking-toolbar-label">
-                Of which gender?
+                Of which gender ?
                 <select value={fullRankingView} onChange={(event) => setFullRankingView(event.target.value as RankingView)}>
                   <option value="overall">All genders</option>
                   <option value="women">Women</option>
-                  <option value="men">Men</option>
                 </select>
               </label>
               <button className="toolbar-link" onClick={() => setShowRankingFilters((current) => !current)} type="button">
@@ -1462,12 +1557,12 @@ export default function App() {
             </div>
           ) : null}
 
-          <div className="ranking-column-head">
+          <div className="ranking-column-head livetrail-column-head">
             <span>Ranking</span>
             <span>Runner / Team</span>
             <span>Categ.</span>
-            <span>Progress</span>
-            <span>Time / Device</span>
+            <span>Nationality</span>
+            <span>Race Time</span>
           </div>
 
           <div className="full-ranking-list full-ranking-table" role="list" aria-label="Overall leaderboard rows">
@@ -1478,7 +1573,8 @@ export default function App() {
                     <div className="ranking-block">
                       <strong>{entry.rank}</strong>
                       <div className="ranking-submeta">
-                        <span>{fullRankingView === "women" ? "Woman" : fullRankingView === "men" ? "Man" : "Overall"}</span>
+                        <span>{fullRankingView === "women" ? "Woman" : "Overall"}</span>
+                        <small>Sex {entry.rank}</small>
                         <small>Age Category {entry.rank}</small>
                       </div>
                     </div>
@@ -1488,30 +1584,44 @@ export default function App() {
                         <div className="runner-avatar runner-avatar-live">{getInitials(entry.name)}</div>
                         <div>
                           <strong>{entry.name}</strong>
-                          <span>{entry.crewId === "seed-system" ? "Demo seeded runner" : `Crew ${entry.crewId}`}</span>
-                          <div className="runner-status-pill">Finisher</div>
+                          <span>{getRunnerTeamName(entry.bib)}</span>
+                          <div className={`runner-status-pill ${entry.checkpointId === "finish" ? "finished" : ""}`}>
+                            {getRunnerStatusLabel(entry.checkpointId)}
+                          </div>
                         </div>
                       </div>
                     </div>
                     <div className="race-inline-cell">
-                      <strong>{formatCategoryLabel(entry.category)}</strong>
-                      <span>{entry.category === "women" ? "F division" : "Open division"}</span>
+                      <strong>{getDivisionCode(entry.category)}</strong>
+                      <span>{formatCategoryLabel(entry.category)}</span>
                     </div>
-                    <div className="race-inline-cell">
-                      <strong>{entry.checkpointName}</strong>
-                      <span>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</span>
+                    <div className="race-inline-cell nationality-cell">
+                      <strong>{getNationalityCode(entry.bib)}</strong>
+                      <span>{entry.checkpointName}</span>
                     </div>
-                    <div className="race-inline-cell">
-                      <strong>{formatScanTime(entry.scannedAt)}</strong>
-                      <span>{entry.deviceId}</span>
+                    <div className="race-inline-cell race-time-cell">
+                      <strong>
+                        {formatGapFromLeader(
+                          entry.scannedAt,
+                          fullRankingView === "women" ? womenLeaderboard.topEntries[0]?.scannedAt ?? null : overallLeaderTime,
+                          entry.rank
+                        )}
+                      </strong>
+                      <span>
+                        {formatCheckpointLabel({
+                          code: entry.checkpointCode,
+                          kmMarker: entry.checkpointKmMarker
+                        })}{" "}
+                        - {entry.checkpointName}
+                      </span>
                     </div>
                   </div>
                 );
               })
             ) : (
               <div className="empty-state">
-                <strong>Belum ada pelari yang masuk overall ranking.</strong>
-                <span>Begitu scan resmi pertama masuk, papan overall akan dihitung otomatis dari progres checkpoint.</span>
+                <strong>No runner available in this ranking yet.</strong>
+                <span>The overall board will appear automatically as soon as official scan data is available.</span>
               </div>
             )}
           </div>
@@ -1557,6 +1667,8 @@ export default function App() {
             </div>
           </div>
         </article>
+
+        <SpectatorPromoPanel />
 
         <aside className="dashboard-rail-marker">
           <article className="panel rail-panel" id="recent-passings">
@@ -1863,7 +1975,13 @@ export default function App() {
                         <div className="runner-search-meta">
                           <div className="detail-cell">
                             <span className="detail-label">Progress</span>
-                            <strong>{formatCheckpointProgress(entry)}</strong>
+                            <strong>
+                              {formatCheckpointLabel({
+                                code: entry.checkpointCode,
+                                kmMarker: entry.checkpointKmMarker
+                              })}{" "}
+                              - {entry.checkpointName}
+                            </strong>
                           </div>
                           <div className="detail-cell">
                             <span className="detail-label">Scan terakhir</span>
@@ -1987,12 +2105,17 @@ export default function App() {
           </>
         )}
 
-      <footer className="runtime-footer" id="runtime-footer">
-        <span>Build {__APP_BUILD__}</span>
-        <span>Built {new Date(__APP_BUILT_AT__).toLocaleString()}</span>
-        <span>API {apiHost}</span>
-        <span>Live {liveStatus}</span>
-        {lastLiveEventAt ? <span>Last event {lastLiveEventAt}</span> : null}
+      <footer className="spectator-footer" id="runtime-footer">
+        <div className="spectator-footer-brand">
+          <span className="word-live">LIVE</span>
+          <span className="word-trail">TRAIL</span>
+        </div>
+        <p>Powered by ApexRM race intelligence.</p>
+        {organizerSessionActive ? (
+          <small>
+            Build {__APP_BUILD__} | API {apiHost} | Live {liveStatus}
+          </small>
+        ) : null}
       </footer>
 
       {isLoginModalOpen ? (
@@ -2014,7 +2137,7 @@ export default function App() {
                 <h3 id="organizer-login-title">Login</h3>
               </div>
               <button
-                aria-label="Tutup modal login"
+                aria-label="Close login modal"
                 className="auth-modal-close"
                 onClick={() => setIsLoginModalOpen(false)}
                 type="button"
@@ -2024,13 +2147,13 @@ export default function App() {
             </div>
 
             <div className="auth-modal-copy">
-              <strong>Organizer, silakan identifikasi diri untuk membuka tools dashboard.</strong>
-              <span>Penonton tetap bisa mengikuti race secara gratis tanpa registrasi. Login ini hanya untuk tools operasional organizer.</span>
+              <strong>Dear Organiser, please identify yourself to access the dashboard tools.</strong>
+              <span>Spectators can follow the race for free without registering. Login is only required for organizer tools.</span>
             </div>
 
             <form className="auth-modal-form" onSubmit={handleLogin}>
               <label>
-                Email
+                Username
                 <input
                   autoComplete="username"
                   placeholder="admin1@arm.local"
@@ -2042,7 +2165,7 @@ export default function App() {
                 Password
                 <input
                   autoComplete="current-password"
-                  placeholder="Password organizer"
+                  placeholder="Password"
                   type="password"
                   value={loginPassword}
                   onChange={(event) => setLoginPassword(event.target.value)}
@@ -2055,9 +2178,6 @@ export default function App() {
                 <button className="auth-trigger" type="submit">
                   Login
                 </button>
-                <button className="theme-toggle auth-secondary" onClick={() => setIsLoginModalOpen(false)} type="button">
-                  Lanjut sebagai penonton
-                </button>
               </div>
             </form>
           </section>
@@ -2065,16 +2185,14 @@ export default function App() {
       ) : null}
       </div>
 
-      <aside className="dashboard-rail">
+      <aside className="dashboard-rail live-ranking-rail">
         <div className="rail">
           <article className="panel rail-panel rail-ranking-panel" id="race-leaders">
-            <div className="panel-head compact">
-              <div>
-                <p className="section-label">Ranking</p>
-                <h3>Overall</h3>
-              </div>
+            <div className="rail-panel-head">
+              <span>Ranking</span>
+              <h3>Overall</h3>
             </div>
-            <div className="mini-leaderboard">
+            <div className="mini-leaderboard livetrail-mini-leaderboard">
               {sidebarOverallRows.length ? (
                 sidebarOverallRows.map((entry) => (
                   <div className="mini-leaderboard-row live" key={`rail-overall-${entry.bib}`}>
@@ -2083,7 +2201,10 @@ export default function App() {
                       <span>{entry.name}</span>
                       <small>{entry.checkpointName}</small>
                     </div>
-                    <time>{formatScanTime(entry.scannedAt)}</time>
+                    <div className="rail-rank-time">
+                      <small>{getNationalityCode(entry.bib)}</small>
+                      <time>{formatGapFromLeader(entry.scannedAt, sidebarOverallLeaderTime, entry.rank)}</time>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -2096,13 +2217,11 @@ export default function App() {
           </article>
 
           <article className="panel rail-panel rail-ranking-panel">
-            <div className="panel-head compact">
-              <div>
-                <p className="section-label">Ranking</p>
-                <h3>Woman</h3>
-              </div>
+            <div className="rail-panel-head">
+              <span>Ranking</span>
+              <h3>Woman</h3>
             </div>
-            <div className="mini-leaderboard">
+            <div className="mini-leaderboard livetrail-mini-leaderboard">
               {sidebarWomenRows.length ? (
                 sidebarWomenRows.map((entry) => (
                   <div className="mini-leaderboard-row live" key={`rail-women-${entry.bib}`}>
@@ -2111,7 +2230,10 @@ export default function App() {
                       <span>{entry.name}</span>
                       <small>{entry.checkpointName}</small>
                     </div>
-                    <time>{formatScanTime(entry.scannedAt)}</time>
+                    <div className="rail-rank-time">
+                      <small>{getNationalityCode(entry.bib)}</small>
+                      <time>{formatGapFromLeader(entry.scannedAt, sidebarWomenLeaderTime, entry.rank)}</time>
+                    </div>
                   </div>
                 ))
               ) : (
