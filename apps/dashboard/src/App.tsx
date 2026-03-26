@@ -1020,54 +1020,6 @@ export default function App() {
         </section>
 
       <section className="spotlight-grid">
-        <article className="panel spotlight-panel">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Overall</p>
-              <h3>Top Overall</h3>
-            </div>
-          </div>
-          <div className="mini-leaderboard">
-            {featuredOverallRows.length ? (
-              featuredOverallRows.map((entry) => (
-                <div className="mini-leaderboard-row" key={`overall-${entry.bib}`}>
-                  <strong>#{entry.rank}</strong>
-                  <div>
-                    <span>BIB {entry.bib}</span>
-                    <small>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</small>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="empty-compact">Belum ada pelari di overall ranking.</div>
-            )}
-          </div>
-        </article>
-
-        <article className="panel spotlight-panel">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Women</p>
-              <h3>Top Women</h3>
-            </div>
-          </div>
-          <div className="mini-leaderboard">
-            {featuredWomenRows.length ? (
-              featuredWomenRows.map((entry) => (
-                <div className="mini-leaderboard-row" key={`women-${entry.bib}`}>
-                  <strong>#{entry.rank}</strong>
-                  <div>
-                    <span>BIB {entry.bib}</span>
-                    <small>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</small>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="empty-compact">Belum ada runner kategori women di data event ini.</div>
-            )}
-          </div>
-        </article>
-
         <article className="panel spotlight-panel course-profile-card">
           <div className="panel-head compact">
             <div>
@@ -1147,6 +1099,64 @@ export default function App() {
         </article>
 
         <aside className="rail">
+          <article className="panel rail-panel rail-ranking-panel">
+            <div className="panel-head compact">
+              <div>
+                <p className="section-label">Ranking</p>
+                <h3>Overall</h3>
+              </div>
+            </div>
+            <div className="mini-leaderboard">
+              {featuredOverallRows.length ? (
+                featuredOverallRows.map((entry) => (
+                  <div className="mini-leaderboard-row" key={`overall-rail-${entry.bib}`}>
+                    <strong>#{entry.rank}</strong>
+                    <div>
+                      <span>BIB {entry.bib}</span>
+                      <small>
+                        {formatCheckpointLabel({
+                          code: entry.checkpointCode,
+                          kmMarker: entry.checkpointKmMarker
+                        })}
+                      </small>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-compact">Belum ada pelari di overall ranking.</div>
+              )}
+            </div>
+          </article>
+
+          <article className="panel rail-panel rail-ranking-panel">
+            <div className="panel-head compact">
+              <div>
+                <p className="section-label">Ranking</p>
+                <h3>Women</h3>
+              </div>
+            </div>
+            <div className="mini-leaderboard">
+              {featuredWomenRows.length ? (
+                featuredWomenRows.map((entry) => (
+                  <div className="mini-leaderboard-row" key={`women-rail-${entry.bib}`}>
+                    <strong>#{entry.rank}</strong>
+                    <div>
+                      <span>BIB {entry.bib}</span>
+                      <small>
+                        {formatCheckpointLabel({
+                          code: entry.checkpointCode,
+                          kmMarker: entry.checkpointKmMarker
+                        })}
+                      </small>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-compact">Belum ada runner kategori women di data event ini.</div>
+              )}
+            </div>
+          </article>
+
           <article className="panel rail-panel">
             <div className="panel-head">
               <div>
