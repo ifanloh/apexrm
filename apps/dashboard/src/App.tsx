@@ -25,6 +25,8 @@ import {
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
 import { demoCourse } from "./demoCourse";
+import { demoRaceFestival } from "./demoRaceFestival";
+import { RaceEditionHome } from "./RaceEditionHome";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -37,6 +39,7 @@ const FAVORITES_STORAGE_KEY = "arm:dashboard-favorites";
 const THEME_STORAGE_KEY = "arm:dashboard-theme";
 const FULL_RANKING_PAGE_SIZE = 12;
 const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
+const EDITION_HOME_VALUE = "__edition-home";
 
 type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
@@ -371,6 +374,7 @@ export default function App() {
   const [fullRankingView, setFullRankingView] = useState<RankingView>("overall");
   const [showRankingFilters, setShowRankingFilters] = useState(false);
   const [rankingRowsPerPage, setRankingRowsPerPage] = useState(FULL_RANKING_PAGE_SIZE);
+  const [selectedRaceSlug, setSelectedRaceSlug] = useState<string>(EDITION_HOME_VALUE);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
@@ -861,7 +865,16 @@ export default function App() {
 
     return `${recentPassings.length} passing terbaru`;
   }, [recentPassings.length]);
-  const totalDistanceKm = demoCourse.distanceKm;
+  const selectedRaceCard =
+    demoRaceFestival.races.find((race) => race.slug === selectedRaceSlug) ??
+    demoRaceFestival.races.find((race) => race.slug === demoCourse.slug) ??
+    demoRaceFestival.races[0];
+  const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
+  const isFeaturedRace = selectedRaceCard.slug === demoCourse.slug;
+  const totalDistanceKm = selectedRaceCard.distanceKm;
+  const activeAscentM = selectedRaceCard.ascentM;
+  const activeFinisherCount = isFeaturedRace ? finisherCount : selectedRaceCard.finishers;
+  const activeDnfCount = isFeaturedRace ? dnfDnsCount : selectedRaceCard.dnf;
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
   const fullRankingEntries = useMemo(() => {
     return fullRankingSource.topEntries.filter((entry) => {
@@ -884,8 +897,36 @@ export default function App() {
         fullRankingEntries.length
       )} dari ${fullRankingEntries.length}`
     : "0 runner";
-  const eventTitle = demoCourse.title;
-  const eventSubtitleText = `${demoCourse.location} | ${demoCourse.subtitle}`;
+  const raceHomeCards = useMemo(() => {
+    return demoRaceFestival.races.map((race) => {
+      if (race.slug !== demoCourse.slug) {
+        return {
+          ...race,
+          isLive: false,
+          isSelected: race.slug === selectedRaceCard.slug
+        };
+      }
+
+      return {
+        ...race,
+        finishers: finisherCount,
+        dnf: dnfDnsCount,
+        rankingPreview: sidebarOverallRows.slice(0, 3).map((entry) => ({
+          rank: entry.rank,
+          name: entry.name,
+          bib: entry.bib,
+          gap: entry.rank === 1 ? formatScanTime(entry.scannedAt) : `+${entry.rank - 1}:${String(entry.rank * 7).padStart(2, "0")}`,
+          status: "Finisher" as const
+        })),
+        isLive: true,
+        isSelected: race.slug === selectedRaceCard.slug
+      };
+    });
+  }, [dnfDnsCount, finisherCount, selectedRaceCard.slug, sidebarOverallRows]);
+  const eventTitle = isEditionHome ? demoRaceFestival.brandName : selectedRaceCard.title;
+  const eventSubtitleText = isEditionHome
+    ? `${demoCourse.location} | ${demoRaceFestival.editionLabel}`
+    : `${selectedRaceCard.startTown} | ${demoCourse.subtitle}`;
   const accessLabel = organizerSessionActive ? "Organizer tools" : "Spectator view";
   const liveStatusLabel =
     liveStatus === "live"
@@ -904,8 +945,8 @@ export default function App() {
         : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
   const heroRaceFacts = [
     { label: "Distance", value: `${totalDistanceKm.toFixed(1)} KM` },
-    { label: "Ascent", value: `${demoCourse.ascentM} M+` },
-    { label: "Finishers", value: `${finisherCount}` },
+    { label: "Ascent", value: `${activeAscentM} M+` },
+    { label: "Finishers", value: `${activeFinisherCount}` },
     { label: "Live mode", value: liveStatusLabel }
   ];
   const raceStatistics = [
@@ -927,12 +968,12 @@ export default function App() {
   ];
   const raceOverviewStats = [
     { label: "Distance", value: `${totalDistanceKm.toFixed(1)} KM` },
-    { label: "Ascent", value: `${demoCourse.ascentM} M+` },
+    { label: "Ascent", value: `${activeAscentM} M+` },
     { label: "Start", value: `${demoCourse.location} 7°C` },
     { label: "Finish", value: `${demoCourse.location} 7°C` },
     { label: "Start Date", value: formatEventDateLabel("2025-10-19T05:12:00+02:00") },
-    { label: "Finishers", value: `${finisherCount}` },
-    { label: "DNF / DNS", value: `${dnfDnsCount}` }
+    { label: "Finishers", value: `${activeFinisherCount}` },
+    { label: "DNF / DNS", value: `${activeDnfCount}` }
   ];
   const courseActionSummary = `${favoriteBibs.length} followed runners`;
   function toggleFavoriteBib(bib: string) {
@@ -972,19 +1013,51 @@ export default function App() {
     setLoginError(null);
   }
 
+  function jumpToSection(sectionId?: string) {
+    if (!sectionId) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      document.getElementById(sectionId)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 80);
+  }
+
+  function openRaceView(slug: string, sectionId?: string) {
+    setSelectedRaceSlug(slug);
+    jumpToSection(sectionId);
+  }
+
   function focusRanking(view: "overall" | "women") {
     setFullRankingView(view);
-    document.getElementById("full-ranking")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
+    if (isEditionHome) {
+      openRaceView(demoCourse.slug, "full-ranking");
+      return;
+    }
+
+    jumpToSection("full-ranking");
   }
 
   function focusRunnerSearch() {
-    document.getElementById("runner-finder")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
+    if (isEditionHome) {
+      openRaceView(demoCourse.slug, "runner-finder");
+      return;
+    }
+
+    jumpToSection("runner-finder");
+  }
+
+  function handleRaceSelection(nextValue: string) {
+    setSelectedRaceSlug(nextValue);
+    if (nextValue === EDITION_HOME_VALUE) {
+      jumpToSection("edition-home");
+      return;
+    }
+
+    jumpToSection("race-hub");
   }
 
   return (
@@ -992,9 +1065,9 @@ export default function App() {
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
           <span className="brand-kicker">ApexRM Live</span>
-          <h1>Race Hub</h1>
-          <p>{eventTitle}</p>
-          <small>{eventSubtitleText}</small>
+          <h1>{demoRaceFestival.brandStack[0]}</h1>
+          <p>{demoRaceFestival.brandStack[1]}</p>
+          <small>{isEditionHome ? demoRaceFestival.editionLabel : selectedRaceCard.title}</small>
         </div>
 
         <article className="sidebar-card sidebar-ranking-card" id="race-leaders">
@@ -1073,14 +1146,20 @@ export default function App() {
         <header className="topbar topbar-hub">
           <div className="topbar-title-block">
             <span className="brand-kicker">Live Race View</span>
-            <h1>{eventTitle}</h1>
+            <h1>{demoRaceFestival.brandName}</h1>
+            <small>{isEditionHome ? demoRaceFestival.dateRibbon : selectedRaceCard.title}</small>
           </div>
 
           <div className="topbar-center">
             <label className="topbar-select topbar-select-shell">
               <span className="sr-only">Race selector</span>
-              <select defaultValue="grand-trail-des-templiers">
-                <option value="grand-trail-des-templiers">{eventTitle}</option>
+              <select onChange={(event) => handleRaceSelection(event.target.value)} value={selectedRaceSlug}>
+                <option value={EDITION_HOME_VALUE}>{demoRaceFestival.editionLabel}</option>
+                {demoRaceFestival.races.map((race) => (
+                  <option key={race.slug} value={race.slug}>
+                    {race.title}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -1121,6 +1200,28 @@ export default function App() {
           </div>
         </header>
 
+        <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div>
+
+        {isEditionHome ? (
+          <RaceEditionHome
+            bannerTagline={demoRaceFestival.bannerTagline}
+            brandStack={demoRaceFestival.brandStack}
+            cards={raceHomeCards}
+            dateRibbon={demoRaceFestival.dateRibbon}
+            editionLabel={demoRaceFestival.editionLabel}
+            homeSubtitle={demoRaceFestival.homeSubtitle}
+            homeTitle={demoRaceFestival.homeTitle}
+            locationRibbon={demoRaceFestival.locationRibbon}
+            onOpenRace={(slug) => openRaceView(slug, "race-hub")}
+          />
+        ) : (
+          <>
+        <div className="detail-topline">
+          <button className="back-home-link" onClick={() => handleRaceSelection(EDITION_HOME_VALUE)} type="button">
+            Back to Home
+          </button>
+        </div>
+
         <section className="hero-panel hero-race-panel" id="race-hub">
           <div className="hero-copy">
             <div className="hero-badges">
@@ -1151,8 +1252,6 @@ export default function App() {
             </article>
           </div>
         </section>
-
-        <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div>
 
       <section className="panel race-overview-panel" id="race-statistics">
         <div className="race-overview-grid">
@@ -1826,6 +1925,8 @@ export default function App() {
           </aside>
         </div>
       </section>
+          </>
+        )}
 
       <footer className="runtime-footer">
         <span>Build {__APP_BUILD__}</span>
