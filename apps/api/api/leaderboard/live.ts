@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { authenticateToken, getBearerToken, requireRole } from "../../src/auth.js";
 import { sql } from "../../src/db.js";
 import { getLiveLeaderboard } from "../../src/repository.js";
 import { handlePreflight, sendError, sendJson } from "../_shared.js";
@@ -10,16 +9,6 @@ export default async function handler(request: IncomingMessage, response: Server
   }
 
   try {
-    const token = getBearerToken(request.headers, request.url);
-
-    if (!token) {
-      sendError(request, response, 401, "Missing bearer token");
-      return;
-    }
-
-    const actor = await authenticateToken(token);
-    requireRole(actor, ["admin", "panitia", "observer"]);
-
     sendJson(request, response, 200, {
       items: await getLiveLeaderboard(sql)
     });

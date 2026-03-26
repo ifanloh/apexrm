@@ -8,9 +8,12 @@ import {
   ensureDefaultCheckpoints,
   getCheckpointLeaderboard,
   getDuplicateAuditLog,
-  getOverallLeaderboard,
   getLiveLeaderboard,
   getNotificationFeed,
+  getOverallLeaderboard,
+  getRecentPassings,
+  getRunnerDetail,
+  searchRunners,
   processSingleScan,
   syncOfflineScans
 } from "./repository.js";
@@ -108,24 +111,23 @@ export async function createServer() {
   });
 
   server.get(`${config.apiPrefix}/leaderboard/live`, async (request) => {
-    const actor = await requireAuth(request);
-    requireRole(actor, ["admin", "panitia", "observer"]);
-
     return {
       items: await getLiveLeaderboard(sql)
     };
   });
 
   server.get(`${config.apiPrefix}/leaderboard/overall`, async (request) => {
-    const actor = await requireAuth(request);
-    requireRole(actor, ["admin", "panitia", "observer"]);
+    const query = z
+      .object({
+        category: z.string().trim().optional(),
+        limit: z.coerce.number().int().min(5).max(200).optional()
+      })
+      .parse(request.query);
 
-    return getOverallLeaderboard(sql);
+    return getOverallLeaderboard(sql, query.limit ?? 50, query.category ?? null);
   });
 
   server.get(`${config.apiPrefix}/leaderboard/live/:checkpointId`, async (request) => {
-    const actor = await requireAuth(request);
-    requireRole(actor, ["admin", "panitia", "observer"]);
     await ensureCheckpointBootstrap();
     const params = z.object({ checkpointId: z.string().min(1) }).parse(request.params);
     return getCheckpointLeaderboard(sql, params.checkpointId);
@@ -147,6 +149,46 @@ export async function createServer() {
     return {
       items: await getNotificationFeed(sql)
     };
+  });
+
+  server.get(`${config.apiPrefix}/passings/recent`, async (request) => {
+    const query = z
+      .object({
+        limit: z.coerce.number().int().min(1).max(30).optional()
+      })
+      .parse(request.query);
+
+    return {
+      items: await getRecentPassings(sql, query.limit ?? 12)
+    };
+  });
+
+  server.get(`${config.apiPrefix}/runners/search`, async (request) => {
+    const query = z
+      .object({
+        q: z.string().trim().optional(),
+        checkpointId: z.string().trim().optional(),
+        limit: z.coerce.number().int().min(1).max(50).optional()
+      })
+      .parse(request.query);
+
+    return {
+      items: await searchRunners(sql, {
+        query: query.q ?? "",
+        checkpointId: query.checkpointId ?? null,
+        limit: query.limit ?? 20
+      })
+    };
+  });
+
+  server.get(`${config.apiPrefix}/runners/detail`, async (request) => {
+    const query = z
+      .object({
+        bib: z.string().trim().min(1)
+      })
+      .parse(request.query);
+
+    return getRunnerDetail(sql, query.bib);
   });
 
   server.get(`${config.apiPrefix}/events`, async (_request, reply) => {

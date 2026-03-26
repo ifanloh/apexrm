@@ -17,7 +17,11 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-function createHeaders(accessToken: string) {
+function createHeaders(accessToken?: string | null) {
+  if (!accessToken) {
+    return undefined;
+  }
+
   return {
     Authorization: `Bearer ${accessToken}`
   };
@@ -37,7 +41,7 @@ async function toErrorMessage(response: Response) {
 
 async function requestJson<T>(
   path: string,
-  accessToken: string,
+  accessToken?: string | null,
   options?: {
     retries?: number;
     timeoutMs?: number;
@@ -82,8 +86,8 @@ async function requestJson<T>(
 
 export async function fetchDashboardSnapshot(accessToken: string) {
   const [overallLeaderboard, leaderboardPayload, duplicatePayload, notificationPayload] = await Promise.all([
-    fetchOverallLeaderboard(accessToken),
-    requestJson<{ items: CheckpointLeaderboard[] }>("/leaderboard/live", accessToken),
+    fetchOverallLeaderboard(accessToken, undefined, 120),
+    fetchCheckpointLeaderboards(accessToken),
     requestJson<{ items: DuplicateScan[] }>("/audit/duplicates", accessToken),
     requestJson<{ items: NotificationEvent[] }>("/notifications", accessToken)
   ]);
@@ -91,26 +95,55 @@ export async function fetchDashboardSnapshot(accessToken: string) {
   return {
     updatedAt: new Date().toISOString(),
     overallLeaderboard,
-    checkpointLeaderboards: leaderboardPayload.items,
-    leaderboards: leaderboardPayload.items,
+    checkpointLeaderboards: leaderboardPayload,
+    leaderboards: leaderboardPayload,
     duplicates: duplicatePayload.items,
     notifications: notificationPayload.items
   };
 }
 
-export async function fetchCheckpointLeaderboard(checkpointId: string, accessToken: string) {
+export async function fetchCheckpointLeaderboards(accessToken?: string | null) {
+  const payload = await requestJson<{ items: CheckpointLeaderboard[] }>("/leaderboard/live", accessToken, {
+    retries: 1,
+    timeoutMs: 15000
+  });
+
+  return payload.items;
+}
+
+export async function fetchOrganizerSignals(accessToken: string) {
+  const [duplicates, notifications] = await Promise.all([
+    requestJson<{ items: DuplicateScan[] }>("/audit/duplicates", accessToken, {
+      retries: 0,
+      timeoutMs: 12000
+    }),
+    requestJson<{ items: NotificationEvent[] }>("/notifications", accessToken, {
+      retries: 0,
+      timeoutMs: 12000
+    })
+  ]);
+
+  return {
+    duplicates: duplicates.items,
+    notifications: notifications.items
+  };
+}
+
+export async function fetchCheckpointLeaderboard(checkpointId: string, accessToken?: string | null) {
   return requestJson<CheckpointLeaderboard>(`/leaderboard/live/${checkpointId}`, accessToken, {
     retries: 0,
     timeoutMs: 18000
   });
 }
 
-export async function fetchOverallLeaderboard(accessToken: string, category?: string) {
+export async function fetchOverallLeaderboard(accessToken?: string | null, category?: string, limit = 50) {
   const query = new URLSearchParams();
 
   if (category) {
     query.set("category", category);
   }
+
+  query.set("limit", String(limit));
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
   return requestJson<OverallLeaderboard>(`/leaderboard/overall${suffix}`, accessToken, {
@@ -124,7 +157,7 @@ export async function fetchRunnerSearch(
     query: string;
     checkpointId: string;
   },
-  accessToken: string
+  accessToken?: string | null
 ): Promise<RunnerSearchEntry[]> {
   const query = new URLSearchParams();
 
@@ -144,7 +177,7 @@ export async function fetchRunnerSearch(
   return runnerSearchResponseSchema.parse(payload).items;
 }
 
-export async function fetchRunnerDetail(bib: string, accessToken: string): Promise<RunnerDetail> {
+export async function fetchRunnerDetail(bib: string, accessToken?: string | null): Promise<RunnerDetail> {
   const query = new URLSearchParams({
     bib
   });
@@ -157,7 +190,7 @@ export async function fetchRunnerDetail(bib: string, accessToken: string): Promi
   return runnerDetailSchema.parse(payload);
 }
 
-export async function fetchRecentPassings(accessToken: string): Promise<RecentPassing[]> {
+export async function fetchRecentPassings(accessToken?: string | null): Promise<RecentPassing[]> {
   const payload = await requestJson<unknown>("/passings/recent", accessToken, {
     retries: 1,
     timeoutMs: 12000

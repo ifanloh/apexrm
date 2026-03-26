@@ -16,7 +16,8 @@ import {
 } from "@arm/contracts";
 import {
   fetchCheckpointLeaderboard,
-  fetchDashboardSnapshot,
+  fetchCheckpointLeaderboards,
+  fetchOrganizerSignals,
   fetchOverallLeaderboard,
   fetchRecentPassings,
   fetchRunnerDetail,
@@ -33,6 +34,30 @@ const emptyOverallLeaderboard: OverallLeaderboard = {
 };
 
 const FAVORITES_STORAGE_KEY = "arm:dashboard-favorites";
+const THEME_STORAGE_KEY = "arm:dashboard-theme";
+const FULL_RANKING_PAGE_SIZE = 12;
+const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
+
+type DashboardTheme = "dark" | "light";
+type LiveStatus = "idle" | "live" | "polling" | "fallback";
+
+function getInitialTheme() {
+  if (typeof window === "undefined") {
+    return "dark" as DashboardTheme;
+  }
+
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+
+  if (stored === "dark" || stored === "light") {
+    return stored;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+}
+
+function getNextTheme(theme: DashboardTheme): DashboardTheme {
+  return theme === "dark" ? "light" : "dark";
+}
 
 function getInitials(value: string) {
   return value
@@ -228,7 +253,7 @@ function buildRecentPassingsFallback(leaderboards: CheckpointLeaderboard[]): Rec
 
 async function buildRunnerDetailFromCheckpointBoards(
   bib: string,
-  accessToken: string,
+  accessToken: string | null,
   overallEntries: OverallLeaderboard["topEntries"]
 ): Promise<RunnerDetail | null> {
   const normalizedBib = bib.trim().toUpperCase();
@@ -314,8 +339,9 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [liveStatus, setLiveStatus] = useState<"idle" | "live" | "fallback">("idle");
+  const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
   const [lastLiveEventAt, setLastLiveEventAt] = useState<string | null>(null);
   const [runnerQuery, setRunnerQuery] = useState("");
   const [runnerCheckpointFilter, setRunnerCheckpointFilter] = useState("all");
@@ -329,13 +355,19 @@ export default function App() {
   const [runnerDetailError, setRunnerDetailError] = useState<string | null>(null);
   const [isLoadingRunnerDetail, setIsLoadingRunnerDetail] = useState(false);
   const [favoriteBibs, setFavoriteBibs] = useState<string[]>(() => loadFavoriteBibs());
-  const hasDashboardAccess = profile ? ["admin", "panitia", "observer"].includes(profile.role) : false;
+  const [theme, setTheme] = useState<DashboardTheme>(() => getInitialTheme());
+  const [fullRankingPage, setFullRankingPage] = useState(1);
+  const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
+  const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
+  const themeLabel = theme === "dark" ? "Dark" : "Light";
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
 
   useEffect(() => {
     if (!supabase) {
-      setIsAuthenticated(true);
+      setIsAuthenticated(false);
+      setAccessToken(null);
+      setProfile(null);
       setIsBootstrapping(false);
       return;
     }
@@ -363,14 +395,59 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) {
+    if (typeof window === "undefined") {
       return;
     }
 
-    const token = accessToken;
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    document.documentElement.dataset.theme = theme;
+
+    return () => {
+      delete document.documentElement.dataset.theme;
+    };
+  }, [theme]);
+
+  useEffect(() => {
+    if (!isLoginModalOpen) {
+      return;
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsLoginModalOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeydown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeydown);
+    };
+  }, [isLoginModalOpen]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !profile) {
+      return;
+    }
+
+    if (hasDashboardAccess) {
+      setIsLoginModalOpen(false);
+      setLoginError(null);
+      return;
+    }
+
+    setLoginError("Akun ini masuk sebagai spectator. Login dengan admin, panitia, atau observer untuk membuka tools organizer.");
+  }, [hasDashboardAccess, isAuthenticated, profile]);
+
+  useEffect(() => {
+    if (isBootstrapping) {
+      return;
+    }
+
+    const token = organizerSessionActive ? accessToken : null;
     let isMounted = true;
 
-    async function refreshSnapshot() {
+    async function refreshRaceHub() {
       if (document.visibilityState === "hidden") {
         return;
       }
@@ -380,43 +457,50 @@ export default function App() {
           setIsRefreshing(true);
         }
 
-        if (!profile || !["admin", "panitia", "observer"].includes(profile.role)) {
-          throw new Error("Akun ini tidak punya akses dashboard.");
-        }
-
-        const [snapshot, nextWomenLeaderboard, nextRecentPassings] = await Promise.all([
-          fetchDashboardSnapshot(token),
-          fetchOverallLeaderboard(token, "women").catch(() => emptyOverallLeaderboard),
-          fetchRecentPassings(token).catch(() => null)
-        ]);
-        const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
+        const [nextOverallLeaderboard, nextWomenLeaderboard, checkpointLeaderboards, nextRecentPassings, organizerSignals] =
+          await Promise.all([
+            fetchOverallLeaderboard(token, undefined, 120),
+            fetchOverallLeaderboard(token, "women", 12).catch(() => emptyOverallLeaderboard),
+            fetchCheckpointLeaderboards(token),
+            fetchRecentPassings(token).catch(() => null),
+            token ? fetchOrganizerSignals(token).catch(() => null) : Promise.resolve(null)
+          ]);
 
         if (!isMounted) {
           return;
         }
 
-        const nextOverallLeaderboard = snapshot.overallLeaderboard ?? emptyOverallLeaderboard;
-        setOverallLeaderboard(nextOverallLeaderboard);
-        setWomenLeaderboard(normalizeWomenLeaderboard(nextOverallLeaderboard, nextWomenLeaderboard ?? emptyOverallLeaderboard));
+        setOverallLeaderboard(nextOverallLeaderboard ?? emptyOverallLeaderboard);
+        setWomenLeaderboard(
+          normalizeWomenLeaderboard(nextOverallLeaderboard ?? emptyOverallLeaderboard, nextWomenLeaderboard ?? emptyOverallLeaderboard)
+        );
         setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
-        setDuplicates(snapshot.duplicates);
-        setNotifications(snapshot.notifications);
+        setDuplicates(organizerSignals?.duplicates ?? []);
+        setNotifications(organizerSignals?.notifications ?? []);
         setRecentPassings(nextRecentPassings ?? buildRecentPassingsFallback(checkpointLeaderboards));
         setRecentPassingsMode(nextRecentPassings ? "server" : "fallback");
         setLastUpdatedAt(
-          new Date(snapshot.updatedAt).toLocaleTimeString([], {
+          new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit"
           })
         );
         setFetchError(null);
+
+        if (!token) {
+          setLiveStatus("polling");
+        }
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
         setFetchError(error instanceof Error ? error.message : "Dashboard tidak bisa mengambil data terbaru dari server.");
+
+        if (!token) {
+          setLiveStatus("fallback");
+        }
       } finally {
         if (isMounted) {
           setIsRefreshing(false);
@@ -424,24 +508,36 @@ export default function App() {
       }
     }
 
-    void refreshSnapshot();
-    const intervalId = window.setInterval(() => void refreshSnapshot(), 30000);
+    void refreshRaceHub();
+    const intervalId = window.setInterval(() => void refreshRaceHub(), token ? 25000 : 12000);
 
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [accessToken, isAuthenticated, profile]);
+  }, [accessToken, isBootstrapping, organizerSessionActive]);
 
   useEffect(() => {
-    if (!supabase || !accessToken || !hasDashboardAccess) {
-      setLiveStatus("fallback");
+    if (organizerSessionActive) {
       return;
     }
 
+    setLiveStatus("polling");
+    setLastLiveEventAt(null);
+  }, [organizerSessionActive]);
+
+  useEffect(() => {
+    if (!supabase || !organizerSessionActive || !accessToken) {
+      if (!organizerSessionActive) {
+        setLiveStatus("polling");
+      }
+      return;
+    }
+
+    const token = accessToken;
     const supabaseClient = supabase;
     let debounceId: number | null = null;
-    void supabaseClient.realtime.setAuth(accessToken);
+    void supabaseClient.realtime.setAuth(token);
 
     const triggerRefresh = () => {
       if (debounceId) {
@@ -450,36 +546,39 @@ export default function App() {
 
       debounceId = window.setTimeout(async () => {
         try {
-          const [snapshot, nextWomenLeaderboard, nextRecentPassings] = await Promise.all([
-            fetchDashboardSnapshot(accessToken),
-            fetchOverallLeaderboard(accessToken, "women").catch(() => emptyOverallLeaderboard),
-            fetchRecentPassings(accessToken).catch(() => null)
-          ]);
-          const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
+          const [nextOverallLeaderboard, nextWomenLeaderboard, checkpointLeaderboards, nextRecentPassings, organizerSignals] =
+            await Promise.all([
+              fetchOverallLeaderboard(token, undefined, 120),
+              fetchOverallLeaderboard(token, "women", 12).catch(() => emptyOverallLeaderboard),
+              fetchCheckpointLeaderboards(token),
+              fetchRecentPassings(token).catch(() => null),
+              fetchOrganizerSignals(token).catch(() => null)
+            ]);
 
-          const nextOverallLeaderboard = snapshot.overallLeaderboard ?? emptyOverallLeaderboard;
-          setOverallLeaderboard(nextOverallLeaderboard);
+          setOverallLeaderboard(nextOverallLeaderboard ?? emptyOverallLeaderboard);
           setWomenLeaderboard(
-            normalizeWomenLeaderboard(nextOverallLeaderboard, nextWomenLeaderboard ?? emptyOverallLeaderboard)
+            normalizeWomenLeaderboard(nextOverallLeaderboard ?? emptyOverallLeaderboard, nextWomenLeaderboard ?? emptyOverallLeaderboard)
           );
           setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
-          setDuplicates(snapshot.duplicates);
-          setNotifications(snapshot.notifications);
+          setDuplicates(organizerSignals?.duplicates ?? []);
+          setNotifications(organizerSignals?.notifications ?? []);
           setRecentPassings(nextRecentPassings ?? buildRecentPassingsFallback(checkpointLeaderboards));
           setRecentPassingsMode(nextRecentPassings ? "server" : "fallback");
           setLastUpdatedAt(
-            new Date(snapshot.updatedAt).toLocaleTimeString([], {
+            new Date().toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
               second: "2-digit"
             })
           );
           setFetchError(null);
-          setLastLiveEventAt(new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
-          }));
+          setLastLiveEventAt(
+            new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit"
+            })
+          );
         } catch (error) {
           setFetchError(error instanceof Error ? error.message : "Realtime refresh gagal.");
         }
@@ -509,16 +608,17 @@ export default function App() {
 
       void supabaseClient.removeChannel(channel);
     };
-  }, [accessToken, hasDashboardAccess, profile?.role]);
+  }, [accessToken, organizerSessionActive, profile?.role]);
 
   useEffect(() => {
-    if (!accessToken || !hasDashboardAccess || !selectedCheckpointId) {
+    if (isBootstrapping || !selectedCheckpointId) {
       return;
     }
 
+    const token = organizerSessionActive ? accessToken : null;
     let isMounted = true;
 
-    void fetchCheckpointLeaderboard(selectedCheckpointId, accessToken)
+    void fetchCheckpointLeaderboard(selectedCheckpointId, token)
       .then((board) => {
         if (!isMounted) {
           return;
@@ -536,15 +636,14 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [accessToken, hasDashboardAccess, lastUpdatedAt, selectedCheckpointId]);
+  }, [accessToken, isBootstrapping, lastUpdatedAt, organizerSessionActive, selectedCheckpointId]);
 
   useEffect(() => {
-    if (!accessToken || !hasDashboardAccess) {
-      setRunnerResults([]);
+    if (isBootstrapping) {
       return;
     }
 
-    const token = accessToken;
+    const token = organizerSessionActive ? accessToken : null;
     let isMounted = true;
 
     async function loadRunnerSearch() {
@@ -588,11 +687,16 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [accessToken, deferredRunnerQuery, hasDashboardAccess, lastUpdatedAt, overallLeaderboard.topEntries, runnerCheckpointFilter]);
+  }, [accessToken, deferredRunnerQuery, isBootstrapping, organizerSessionActive, lastUpdatedAt, overallLeaderboard.topEntries, runnerCheckpointFilter]);
 
   useEffect(() => {
     window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteBibs));
   }, [favoriteBibs]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(overallLeaderboard.topEntries.length / FULL_RANKING_PAGE_SIZE));
+    setFullRankingPage((current) => Math.min(current, totalPages));
+  }, [overallLeaderboard.topEntries.length]);
 
   useEffect(() => {
     if (!runnerResults.length) {
@@ -610,12 +714,12 @@ export default function App() {
   }, [runnerResults]);
 
   useEffect(() => {
-    if (!accessToken || !hasDashboardAccess || !selectedRunnerBib) {
+    if (isBootstrapping || !selectedRunnerBib) {
       setRunnerDetail(null);
       return;
     }
 
-    const token = accessToken;
+    const token = organizerSessionActive ? accessToken : null;
     const runnerBib = selectedRunnerBib;
     let isMounted = true;
 
@@ -656,13 +760,17 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [accessToken, hasDashboardAccess, overallLeaderboard.topEntries, selectedRunnerBib]);
+  }, [accessToken, isBootstrapping, organizerSessionActive, overallLeaderboard.topEntries, selectedRunnerBib]);
 
   const selectedBoard = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
   }, [leaderboards, selectedCheckpointId]);
 
   const overallLeader = overallLeaderboard.topEntries[0] ?? null;
+  const nameByBib = useMemo(
+    () => new Map(overallLeaderboard.topEntries.map((entry) => [entry.bib.toUpperCase(), entry.name])),
+    [overallLeaderboard.topEntries]
+  );
 
   const totalOfficialScans = useMemo(() => {
     return leaderboards.reduce((sum, item) => sum + item.totalOfficialScans, 0);
@@ -672,6 +780,9 @@ export default function App() {
 
   const activeCheckpointCount = useMemo(() => {
     return leaderboards.filter((item) => item.totalOfficialScans > 0).length;
+  }, [leaderboards]);
+  const finisherCount = useMemo(() => {
+    return leaderboards.find((item) => item.checkpointId === "finish")?.totalOfficialScans ?? 0;
   }, [leaderboards]);
 
   const courseProfileStops = useMemo(() => {
@@ -714,10 +825,42 @@ export default function App() {
     return `${recentPassings.length} passing terbaru`;
   }, [recentPassings.length]);
   const totalDistanceKm = demoCourse.distanceKm;
-  const fullRankingRows = overallLeaderboard.topEntries.slice(0, 18);
+  const fullRankingPageCount = Math.max(1, Math.ceil(overallLeaderboard.topEntries.length / FULL_RANKING_PAGE_SIZE));
+  const fullRankingRows = overallLeaderboard.topEntries.slice(
+    (fullRankingPage - 1) * FULL_RANKING_PAGE_SIZE,
+    fullRankingPage * FULL_RANKING_PAGE_SIZE
+  );
+  const fullRankingRangeLabel = overallLeaderboard.topEntries.length
+    ? `${(fullRankingPage - 1) * FULL_RANKING_PAGE_SIZE + 1}-${Math.min(
+        fullRankingPage * FULL_RANKING_PAGE_SIZE,
+        overallLeaderboard.topEntries.length
+      )} dari ${overallLeaderboard.topEntries.length}`
+    : "0 runner";
   const selectedCheckpointEntries = selectedBoard?.topEntries.slice(0, 3) ?? [];
   const eventTitle = demoCourse.title;
-  const eventSubtitle = `${demoCourse.location} • ${demoCourse.subtitle}`;
+  const eventSubtitleText = `${demoCourse.location} | ${demoCourse.subtitle}`;
+  const accessLabel = organizerSessionActive ? "Organizer tools" : "Spectator view";
+  const liveStatusLabel =
+    liveStatus === "live"
+      ? "Live Realtime"
+      : liveStatus === "polling"
+        ? "Public Live"
+        : liveStatus === "fallback"
+          ? "Fallback Sync"
+          : "Loading";
+  const accessNotice = isBootstrapping
+    ? "Menyiapkan sesi organizer dan race hub..."
+    : organizerSessionActive
+      ? `Organizer tools aktif untuk ${profile?.displayName ?? profile?.email ?? profile?.role ?? "akun ini"}.`
+      : profile
+        ? `Akun role ${profile.role} tetap berada di spectator view. Login dengan admin, panitia, atau observer untuk tools organizer.`
+        : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
+  const heroRaceFacts = [
+    { label: "Distance", value: `${totalDistanceKm.toFixed(1)} KM` },
+    { label: "Ascent", value: `${demoCourse.ascentM} M+` },
+    { label: "Finishers", value: `${finisherCount}` },
+    { label: "Live mode", value: liveStatusLabel }
+  ];
   const sidebarLinks = [
     {
       title: "Overview",
@@ -752,13 +895,17 @@ export default function App() {
     if (supabase) {
       void supabase.auth.signOut();
     }
+
+    setLoginError(null);
+    setLoginPassword("");
+    setIsLoginModalOpen(false);
   }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!supabase) {
-      setIsAuthenticated(true);
+      setLoginError("Supabase auth belum terhubung di environment ini.");
       return;
     }
 
@@ -775,81 +922,6 @@ export default function App() {
     setLoginError(null);
   }
 
-  if (isBootstrapping) {
-    return (
-      <main className="dashboard-shell">
-        <section className="panel" style={{ margin: "12vh auto 0", maxWidth: 520 }}>
-          <div className="empty-state" style={{ minHeight: "auto" }}>
-            <strong>Menyiapkan dashboard...</strong>
-            <span>Session, role, dan koneksi data sedang dicek supaya dashboard tidak masuk dalam state setengah jadi.</span>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <main className="dashboard-shell">
-        <section className="panel" style={{ margin: "12vh auto 0", maxWidth: 520 }}>
-          <div className="panel-head">
-            <div>
-              <p className="section-label">Admin Login</p>
-              <h3>Masuk ke Dashboard</h3>
-            </div>
-          </div>
-          <form className="feed-list" onSubmit={handleLogin}>
-            <label>
-              Email
-              <input value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} />
-            </label>
-            <label>
-              Password
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(event) => setLoginPassword(event.target.value)}
-              />
-            </label>
-            <button className="checkpoint-chip active" style={{ justifyContent: "center" }} type="submit">
-              <span style={{ color: "white" }}>Login</span>
-            </button>
-            {loginError ? <div className="empty-compact">{loginError}</div> : null}
-          </form>
-        </section>
-      </main>
-    );
-  }
-
-  if (profile && !hasDashboardAccess) {
-    return (
-      <main className="dashboard-shell">
-        <section className="panel" style={{ margin: "12vh auto 0", maxWidth: 520 }}>
-          <div className="panel-head">
-            <div>
-              <p className="section-label">Unauthorized</p>
-              <h3>Akses Dashboard Ditolak</h3>
-            </div>
-          </div>
-          <div className="empty-state" style={{ minHeight: "auto" }}>
-            <strong>Akun dengan role `{profile.role}` tidak boleh membuka dashboard.</strong>
-            <span>Login memakai akun `admin`, `panitia`, atau `observer` untuk memantau leaderboard live.</span>
-          </div>
-          <div className="feed-list">
-            <button
-              className="checkpoint-chip active"
-              style={{ justifyContent: "center" }}
-              onClick={handleLogout}
-              type="button"
-            >
-              <span style={{ color: "white" }}>Logout</span>
-            </button>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
   return (
     <main className="dashboard-shell dashboard-hub-shell">
       <aside className="dashboard-sidebar">
@@ -857,6 +929,7 @@ export default function App() {
           <span className="brand-kicker">ApexRM Live</span>
           <h1>Race Hub</h1>
           <p>{eventTitle}</p>
+          <small>{eventSubtitleText}</small>
         </div>
 
         <nav className="sidebar-nav" aria-label="Dashboard navigation">
@@ -931,7 +1004,8 @@ export default function App() {
                 <div className="sidebar-mini-row" key={`checkpoint-focus-${entry.bib}-${entry.position}`}>
                   <strong>#{entry.position}</strong>
                   <div>
-                    <span>BIB {entry.bib}</span>
+                    <span>{nameByBib.get(entry.bib.toUpperCase()) ?? `Runner ${entry.bib}`}</span>
+                    <small>BIB {entry.bib}</small>
                     <small>{formatScanTime(entry.scannedAt)}</small>
                   </div>
                 </div>
@@ -942,9 +1016,22 @@ export default function App() {
           </div>
         </article>
 
-        <button className="sidebar-logout" onClick={handleLogout} type="button">
-          Logout
-        </button>
+        {organizerSessionActive ? (
+          <button className="sidebar-logout" onClick={handleLogout} type="button">
+            Logout Organizer
+          </button>
+        ) : (
+          <button
+            className="sidebar-logout"
+            onClick={() => {
+              setLoginError(null);
+              setIsLoginModalOpen(true);
+            }}
+            type="button"
+          >
+            Organizer Login
+          </button>
+        )}
       </aside>
 
       <div className="dashboard-main">
@@ -973,13 +1060,39 @@ export default function App() {
 
           <div className="topbar-meta">
             <div className="meta-pill">
-              <span className={`meta-dot ${liveStatus === "live" ? "live" : ""}`} />
-              {liveStatus === "live" ? "Live Realtime" : "Polling Fallback"}
+              <span className={`meta-dot ${liveStatus === "live" || liveStatus === "polling" ? "live" : ""}`} />
+              {liveStatusLabel}
             </div>
-            <div className="meta-card">
-              <span>{profile?.role ?? "role"}</span>
+            <button className="theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
+              {themeLabel}
+            </button>
+            <div className="meta-card topbar-auth-card">
+              <span>{accessLabel}</span>
               <strong>{isRefreshing ? "sync..." : lastUpdatedAt ?? "--:--:--"}</strong>
             </div>
+            {organizerSessionActive ? (
+              <button className="auth-trigger auth-trigger-active" onClick={handleLogout} type="button">
+                Logout
+              </button>
+            ) : (
+              <>
+                <button
+                  className="auth-trigger"
+                  onClick={() => {
+                    setLoginError(null);
+                    setIsLoginModalOpen(true);
+                  }}
+                  type="button"
+                >
+                  Login
+                </button>
+                {profile ? (
+                  <button className="theme-toggle auth-secondary" onClick={handleLogout} type="button">
+                    Logout
+                  </button>
+                ) : null}
+              </>
+            )}
           </div>
         </header>
 
@@ -987,25 +1100,19 @@ export default function App() {
           <div className="hero-copy">
             <div className="hero-badges">
               <span className="status-chip active">Live</span>
-              <span className="status-chip">{liveStatus === "live" ? "Realtime active" : "Fallback mode"}</span>
+              <span className="status-chip">{liveStatusLabel}</span>
               <span className="status-chip">Updated {lastUpdatedAt ?? "--:--:--"}</span>
             </div>
             <p className="section-label">Race Hub</p>
             <h2>{eventTitle}</h2>
-            <p className="section-copy">{eventSubtitle}</p>
+            <p className="section-copy">{eventSubtitleText}</p>
             <div className="hero-inline-stats">
-              <div className="inline-stat">
-                <span>Distance</span>
-                <strong>{totalDistanceKm.toFixed(1)} KM</strong>
-              </div>
-              <div className="inline-stat">
-                <span>Ascent</span>
-                <strong>{demoCourse.ascentM} M+</strong>
-              </div>
-              <div className="inline-stat">
-                <span>Descent</span>
-                <strong>{demoCourse.descentM} M-</strong>
-              </div>
+              {heroRaceFacts.map((fact) => (
+                <div className="inline-stat" key={fact.label}>
+                  <span>{fact.label}</span>
+                  <strong>{fact.value}</strong>
+                </div>
+              ))}
             </div>
           </div>
           <div className="hero-metrics">
@@ -1017,9 +1124,9 @@ export default function App() {
             <span>Total scan resmi</span>
             <strong>{totalOfficialScans}</strong>
           </article>
-          <article className="metric-card">
-            <span>Checkpoint aktif</span>
-            <strong>{activeCheckpointCount}</strong>
+            <article className="metric-card">
+              <span>Checkpoint aktif</span>
+              <strong>{activeCheckpointCount}</strong>
             </article>
             <article className="metric-card">
               <span>Recent passings</span>
@@ -1027,6 +1134,8 @@ export default function App() {
             </article>
           </div>
         </section>
+
+        <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div>
 
       <section className="spotlight-grid">
         <CourseProfilePanel
@@ -1039,7 +1148,7 @@ export default function App() {
       {fetchError ? <div className="notice-banner error">{fetchError}</div> : null}
 
       <section className="control-grid">
-        <article className="panel leaderboard-panel full-ranking-panel">
+        <article className="panel leaderboard-panel full-ranking-panel" id="full-ranking">
           <div className="panel-head">
             <div>
               <p className="section-label">Full Ranking</p>
@@ -1091,6 +1200,37 @@ export default function App() {
                 <span>Begitu scan resmi pertama masuk, papan overall akan dihitung otomatis dari progres checkpoint.</span>
               </div>
             )}
+          </div>
+
+          <div className="ranking-pager">
+            <div className="mini-stat">
+              <span>Rows</span>
+              <strong>{fullRankingRangeLabel}</strong>
+            </div>
+            <div className="pager-actions">
+              <button
+                className="theme-toggle pager-button"
+                disabled={fullRankingPage <= 1}
+                onClick={() => setFullRankingPage((current) => Math.max(1, current - 1))}
+                type="button"
+              >
+                Prev
+              </button>
+              <div className="meta-card pager-indicator">
+                <span>Page</span>
+                <strong>
+                  {fullRankingPage} / {fullRankingPageCount}
+                </strong>
+              </div>
+              <button
+                className="theme-toggle pager-button"
+                disabled={fullRankingPage >= fullRankingPageCount}
+                onClick={() => setFullRankingPage((current) => Math.min(fullRankingPageCount, current + 1))}
+                type="button"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </article>
 
@@ -1153,7 +1293,7 @@ export default function App() {
             </div>
           </article>
 
-          <article className="panel rail-panel">
+          <article className="panel rail-panel" id="recent-passings">
             <div className="panel-head">
               <div>
                 <p className="section-label">Race Pulse</p>
@@ -1201,61 +1341,89 @@ export default function App() {
             </ul>
           </article>
 
-          <article className="panel rail-panel">
-            <div className="panel-head">
-              <div>
-                <p className="section-label">Signals</p>
-                <h3>Broadcast & Audit</h3>
+          {organizerSessionActive ? (
+            <article className="panel rail-panel" id="signals">
+              <div className="panel-head">
+                <div>
+                  <p className="section-label">Signals</p>
+                  <h3>Broadcast & Audit</h3>
+                </div>
               </div>
-            </div>
-            <div className="signal-stack">
-              <section className="signal-section">
-                <div className="signal-head">
-                  <span className="detail-label">Top 5 Broadcast</span>
-                  <strong>{notifications.length}</strong>
-                </div>
-                {lastBroadcast ? (
-                  <div className="broadcast-card compact">
-                    <span className="broadcast-tag">Telegram Ready</span>
-                    <strong>BIB {lastBroadcast.bib} masuk posisi #{lastBroadcast.position}</strong>
-                    <p>
-                      Checkpoint {lastBroadcast.checkpointId} pada {formatScanTime(lastBroadcast.createdAt)}.
-                    </p>
+              <div className="signal-stack">
+                <section className="signal-section">
+                  <div className="signal-head">
+                    <span className="detail-label">Top 5 Broadcast</span>
+                    <strong>{notifications.length}</strong>
                   </div>
-                ) : (
-                  <div className="empty-compact">Belum ada event Top 5 yang perlu dibroadcast.</div>
-                )}
-                <ul className="feed-list compact-feed-list">
-                  {notifications.slice(0, 4).map((notification) => (
-                    <li key={notification.id}>
-                      <strong>BIB {notification.bib}</strong>
-                      <span>{notification.checkpointId} | posisi #{notification.position}</span>
-                      <time>{formatScanTime(notification.createdAt)}</time>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                  {lastBroadcast ? (
+                    <div className="broadcast-card compact">
+                      <span className="broadcast-tag">Telegram Ready</span>
+                      <strong>BIB {lastBroadcast.bib} masuk posisi #{lastBroadcast.position}</strong>
+                      <p>
+                        Checkpoint {lastBroadcast.checkpointId} pada {formatScanTime(lastBroadcast.createdAt)}.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="empty-compact">Belum ada event Top 5 yang perlu dibroadcast.</div>
+                  )}
+                  <ul className="feed-list compact-feed-list">
+                    {notifications.slice(0, 4).map((notification) => (
+                      <li key={notification.id}>
+                        <strong>BIB {notification.bib}</strong>
+                        <span>{notification.checkpointId} | posisi #{notification.position}</span>
+                        <time>{formatScanTime(notification.createdAt)}</time>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
 
-              <section className="signal-section">
-                <div className="signal-head">
-                  <span className="detail-label">Duplicate Audit</span>
-                  <strong>{duplicates.length}</strong>
+                <section className="signal-section">
+                  <div className="signal-head">
+                    <span className="detail-label">Duplicate Audit</span>
+                    <strong>{duplicates.length}</strong>
+                  </div>
+                  <ul className="feed-list compact-feed-list">
+                    {duplicates.slice(0, 4).map((duplicate) => (
+                      <li key={duplicate.clientScanId}>
+                        <strong>BIB {duplicate.bib}</strong>
+                        <span>{duplicate.checkpointId} | first scan {duplicate.firstAcceptedClientScanId}</span>
+                        <time>{formatScanTime(duplicate.serverReceivedAt)}</time>
+                      </li>
+                    ))}
+                  </ul>
+                  {duplicates.length === 0 ? (
+                    <div className="empty-compact">Belum ada duplikat yang perlu diaudit.</div>
+                  ) : null}
+                </section>
+              </div>
+            </article>
+          ) : (
+            <article className="panel rail-panel observer-teaser" id="signals">
+              <div className="panel-head">
+                <div>
+                  <p className="section-label">Organizer Access</p>
+                  <h3>Login untuk Tools</h3>
                 </div>
-                <ul className="feed-list compact-feed-list">
-                  {duplicates.slice(0, 4).map((duplicate) => (
-                    <li key={duplicate.clientScanId}>
-                      <strong>BIB {duplicate.bib}</strong>
-                      <span>{duplicate.checkpointId} | first scan {duplicate.firstAcceptedClientScanId}</span>
-                      <time>{formatScanTime(duplicate.serverReceivedAt)}</time>
-                    </li>
-                  ))}
-                </ul>
-                {duplicates.length === 0 ? (
-                  <div className="empty-compact">Belum ada duplikat yang perlu diaudit.</div>
-                ) : null}
-              </section>
-            </div>
-          </article>
+              </div>
+              <div className="signal-stack">
+                <div className="broadcast-card compact">
+                  <span className="broadcast-tag">Public View</span>
+                  <strong>Penonton tetap bisa menikmati live race tanpa login.</strong>
+                  <p>Masuk sebagai organizer untuk audit duplicate, monitor broadcast, dan kontrol operasional event day.</p>
+                </div>
+                <button
+                  className="auth-trigger"
+                  onClick={() => {
+                    setLoginError(null);
+                    setIsLoginModalOpen(true);
+                  }}
+                  type="button"
+                >
+                  Login Organizer
+                </button>
+              </div>
+            </article>
+          )}
         </aside>
       </section>
 
@@ -1301,7 +1469,7 @@ export default function App() {
 
           {selectedBoard?.topEntries.length ? (
             selectedBoard.topEntries.map((entry) => {
-              const runnerLabel = `Runner ${entry.bib}`;
+              const runnerLabel = nameByBib.get(entry.bib.toUpperCase()) ?? `Runner ${entry.bib}`;
 
               return (
                 <div className="leaderboard-row" key={`${entry.checkpointId}-${entry.bib}`} role="row">
@@ -1339,7 +1507,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="panel runner-search-panel">
+      <section className="panel runner-search-panel" id="runner-finder">
         <div className="panel-head">
           <div>
             <p className="section-label">Cari Pelari</p>
@@ -1554,6 +1722,75 @@ export default function App() {
         <span>Live {liveStatus}</span>
         {lastLiveEventAt ? <span>Last event {lastLiveEventAt}</span> : null}
       </footer>
+
+      {isLoginModalOpen ? (
+        <div
+          className="auth-modal-overlay"
+          onClick={() => setIsLoginModalOpen(false)}
+          role="presentation"
+        >
+          <section
+            aria-labelledby="organizer-login-title"
+            aria-modal="true"
+            className="auth-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <div className="auth-modal-head">
+              <div>
+                <p className="section-label">Organizer Access</p>
+                <h3 id="organizer-login-title">Login</h3>
+              </div>
+              <button
+                aria-label="Tutup modal login"
+                className="auth-modal-close"
+                onClick={() => setIsLoginModalOpen(false)}
+                type="button"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="auth-modal-copy">
+              <strong>Organizer, silakan identifikasi diri untuk membuka tools dashboard.</strong>
+              <span>Penonton tetap bisa mengikuti race secara gratis tanpa registrasi. Login ini hanya untuk tools operasional organizer.</span>
+            </div>
+
+            <form className="auth-modal-form" onSubmit={handleLogin}>
+              <label>
+                Email
+                <input
+                  autoComplete="username"
+                  placeholder="admin1@arm.local"
+                  value={loginEmail}
+                  onChange={(event) => setLoginEmail(event.target.value)}
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  autoComplete="current-password"
+                  placeholder="Password organizer"
+                  type="password"
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                />
+              </label>
+
+              {loginError ? <div className="empty-compact">{loginError}</div> : null}
+
+              <div className="auth-modal-actions">
+                <button className="auth-trigger" type="submit">
+                  Login
+                </button>
+                <button className="theme-toggle auth-secondary" onClick={() => setIsLoginModalOpen(false)} type="button">
+                  Lanjut sebagai penonton
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
       </div>
     </main>
   );

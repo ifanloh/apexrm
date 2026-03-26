@@ -5,7 +5,7 @@ const config = {
   databaseUrl: process.env.DATABASE_URL,
   runnerCount: Number(process.env.DEMO_RUNNER_COUNT ?? 500),
   raceId: process.env.DEMO_RACE_ID ?? "templiers-demo-2026",
-  raceStart: process.env.DEMO_RACE_START ?? "2026-03-29T00:15:00+07:00"
+  raceStart: process.env.DEMO_RACE_START ?? new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
 };
 
 const checkpoints = [

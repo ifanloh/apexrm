@@ -21,7 +21,11 @@ import {
 import { supabase } from "./supabase";
 import "./styles.css";
 
-const DEFAULT_RACE_ID = "race-demo-2026";
+const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
+const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Grand Trail des Templiers Demo";
+const THEME_STORAGE_KEY = "arm:scanner-theme";
+
+type ScannerTheme = "light" | "dark";
 
 type BarcodeDetectorLike = {
   detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
@@ -35,6 +39,24 @@ declare global {
 
 function getStoredValue(key: string, fallback: string) {
   return window.localStorage.getItem(key) ?? fallback;
+}
+
+function getInitialTheme(): ScannerTheme {
+  if (typeof window === "undefined") {
+    return "light";
+  }
+
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+
+  if (stored === "light" || stored === "dark") {
+    return stored;
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function getNextTheme(theme: ScannerTheme): ScannerTheme {
+  return theme === "dark" ? "light" : "dark";
 }
 
 function formatDateTime(value: string) {
@@ -91,12 +113,15 @@ export default function App() {
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([...defaultCheckpoints]);
   const [queue, setQueue] = useState<QueuedScan[]>([]);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
-  const [statusMessage, setStatusMessage] = useState("Scanner siap. QR dapat dipindai dari kamera atau diisi manual.");
+  const [statusMessage, setStatusMessage] = useState(
+    `Scanner siap untuk ${DEMO_EVENT_LABEL}. Gunakan BIB T0001-T0500 atau BIB baru untuk trial.`
+  );
   const [lastResponse, setLastResponse] = useState<IngestScanResponse | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const [theme, setTheme] = useState<ScannerTheme>(() => getInitialTheme());
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanLockRef = useRef<string>("");
@@ -145,6 +170,20 @@ export default function App() {
       !isBootstrapping
   );
   const apiHost = getApiHost();
+  const themeLabel = theme === "dark" ? "Dark" : "Light";
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    document.documentElement.dataset.theme = theme;
+
+    return () => {
+      delete document.documentElement.dataset.theme;
+    };
+  }, [theme]);
 
   useEffect(() => {
     if (!supabase) {
@@ -464,9 +503,14 @@ export default function App() {
     return (
       <main className="scanner-shell">
         <section className="scanner-panel auth-panel">
-          <div className="panel-copy">
-            <p className="scanner-kicker">Crew Login</p>
-            <h1>Masuk ke Scanner</h1>
+          <div className="panel-copy auth-copy">
+            <div>
+              <p className="scanner-kicker">Crew Login</p>
+              <h1>Masuk ke Scanner</h1>
+            </div>
+            <button className="theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
+              {themeLabel}
+            </button>
           </div>
           <form className="scanner-form" onSubmit={handleLogin}>
             <label>
@@ -495,9 +539,14 @@ export default function App() {
     return (
       <main className="scanner-shell">
         <section className="scanner-panel auth-panel">
-          <div className="panel-copy">
-            <p className="scanner-kicker">Unauthorized</p>
-            <h1>Akses scanner ditolak</h1>
+          <div className="panel-copy auth-copy">
+            <div>
+              <p className="scanner-kicker">Unauthorized</p>
+              <h1>Akses scanner ditolak</h1>
+            </div>
+            <button className="theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
+              {themeLabel}
+            </button>
           </div>
           <div className="placeholder-card">
             Akun dengan role <strong>{effectiveProfile.role}</strong> tidak boleh melakukan scan lapangan.
@@ -526,12 +575,20 @@ export default function App() {
         <div>
           <p className="scanner-kicker">Field Scanner</p>
           <h1>Race Control Scanner</h1>
+          <span className="scanner-event-label">{DEMO_EVENT_LABEL}</span>
         </div>
         <div className="scanner-topbar-meta">
           <div className={`scanner-pill ${isOnline ? "online" : "offline"}`}>
             <span className="status-dot" />
             {isOnline ? "Live Connectivity" : "Offline Queue Mode"}
           </div>
+          <div className="scanner-pill neutral">
+            <span className="status-dot" />
+            {selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Checkpoint"}
+          </div>
+          <button className="ghost-button theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
+            {themeLabel}
+          </button>
           <button className="ghost-button" onClick={() => void syncQueue()} type="button">
             {isSyncing ? "Syncing..." : "Sync Queue"}
           </button>
@@ -616,11 +673,16 @@ export default function App() {
               <label>
                 <input
                   disabled={!canScan || isBusy}
-                  placeholder="contoh: 1024"
+                  placeholder="contoh: T0001 atau BIB baru"
                   value={bib}
                   onChange={(event) => setBib(normalizeBib(event.target.value))}
                 />
               </label>
+
+              <div className="manual-helper">
+                Demo event berisi 500 runner seed. BIB <strong>T0001-T0500</strong> sudah tersedia dan scan baru tetap bisa
+                ditambahkan untuk trial.
+              </div>
 
               <button className="submit-button" disabled={!canScan || isBusy} type="submit">
                 {isBusy ? "Memproses..." : "Submit Scan"}

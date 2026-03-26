@@ -1,4 +1,4 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, decodeJwt, jwtVerify } from "jose";
 import type { IncomingHttpHeaders } from "node:http";
 import type { FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -8,6 +8,8 @@ import { config } from "./config.js";
 const issuer = `${config.supabaseUrl}/auth/v1`;
 const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
 const jwtKey = config.supabaseJwtSecret ? new TextEncoder().encode(config.supabaseJwtSecret) : null;
+const AUTH_CACHE_TTL_MS = 15 * 60 * 1000;
+const authCache = new Map<string, { user: AuthUser; expiresAt: number }>();
 
 export type AuthUser = {
   userId: string;
@@ -46,6 +48,43 @@ type SupabaseUserResponse = {
     name?: string;
   };
 };
+
+function getCacheExpiry(token: string) {
+  try {
+    const payload = decodeJwt(token);
+    const exp = typeof payload.exp === "number" ? payload.exp * 1000 : NaN;
+
+    if (Number.isFinite(exp) && exp > Date.now()) {
+      return exp;
+    }
+  } catch {
+    // Ignore malformed token decode errors and fall back to a short TTL.
+  }
+
+  return Date.now() + AUTH_CACHE_TTL_MS;
+}
+
+function getCachedAuthUser(token: string) {
+  const cached = authCache.get(token);
+
+  if (!cached) {
+    return null;
+  }
+
+  if (cached.expiresAt <= Date.now()) {
+    authCache.delete(token);
+    return null;
+  }
+
+  return cached.user;
+}
+
+function setCachedAuthUser(token: string, user: AuthUser) {
+  authCache.set(token, {
+    user,
+    expiresAt: getCacheExpiry(token)
+  });
+}
 
 const eventQuerySchema = z.object({
   access_token: z.string().optional()
@@ -137,19 +176,36 @@ async function verifyWithAuthServer(token: string): Promise<AuthUser> {
 }
 
 export async function authenticateToken(token: string): Promise<AuthUser> {
+  const cached = getCachedAuthUser(token);
+
+  if (cached) {
+    return cached;
+  }
+
+  let user: AuthUser;
+
   try {
-    return await verifyWithJwks(token);
+    user = await verifyWithJwks(token);
   } catch {
     if (jwtKey) {
       try {
-        return await verifyWithSharedSecret(token);
+        user = await verifyWithSharedSecret(token);
+        setCachedAuthUser(token, user);
+        return user;
       } catch {
-        return verifyWithAuthServer(token);
+        user = await verifyWithAuthServer(token);
+        setCachedAuthUser(token, user);
+        return user;
       }
     }
 
-    return verifyWithAuthServer(token);
+    user = await verifyWithAuthServer(token);
+    setCachedAuthUser(token, user);
+    return user;
   }
+
+  setCachedAuthUser(token, user);
+  return user;
 }
 
 export async function requireAuth(request: FastifyRequest): Promise<AuthUser> {
