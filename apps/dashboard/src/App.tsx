@@ -933,6 +933,13 @@ export default function App() {
     });
   }
 
+  function focusRunnerSearch() {
+    document.getElementById("runner-finder")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
   return (
     <main className="dashboard-shell dashboard-hub-shell">
       <aside className="dashboard-sidebar">
@@ -1017,63 +1024,53 @@ export default function App() {
 
       <div className="dashboard-main">
         <header className="topbar topbar-hub">
-          <div className="topbar-left">
-            <div className="brand-block">
-              <span className="brand-kicker">Live Data Feed</span>
-              <h1>Race Control</h1>
-            </div>
-            <label className="topbar-select">
-              <span className="detail-label">Race view</span>
-              <select defaultValue="mini-race-live">
-                <option value="mini-race-live">Mini Race Live</option>
+          <div className="topbar-title-block">
+            <span className="brand-kicker">Live Race View</span>
+            <h1>{eventTitle}</h1>
+          </div>
+
+          <div className="topbar-center">
+            <label className="topbar-select topbar-select-shell">
+              <span className="sr-only">Race selector</span>
+              <select defaultValue="grand-trail-des-templiers">
+                <option value="grand-trail-des-templiers">{eventTitle}</option>
               </select>
+            </label>
+
+            <label className="topbar-search topbar-search-shell">
+              <span className="sr-only">Search a runner</span>
+              <input
+                placeholder="Search a runner..."
+                value={runnerQuery}
+                onChange={(event) => setRunnerQuery(event.target.value)}
+              />
+              <button className="topbar-search-button" onClick={focusRunnerSearch} type="button">
+                Go
+              </button>
             </label>
           </div>
 
-          <label className="topbar-search">
-            <span className="detail-label">Search a runner</span>
-            <input
-              placeholder="Cari BIB atau nama runner..."
-              value={runnerQuery}
-              onChange={(event) => setRunnerQuery(event.target.value)}
-            />
-          </label>
-
-          <div className="topbar-meta">
-            <div className="meta-pill">
-              <span className={`meta-dot ${liveStatus === "live" || liveStatus === "polling" ? "live" : ""}`} />
-              {liveStatusLabel}
-            </div>
-            <button className="theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
-              {themeLabel}
-            </button>
-            <div className="meta-card topbar-auth-card">
-              <span>{accessLabel}</span>
-              <strong>{isRefreshing ? "sync..." : lastUpdatedAt ?? "--:--:--"}</strong>
-            </div>
+          <div className="topbar-actions">
             {organizerSessionActive ? (
-              <button className="auth-trigger auth-trigger-active" onClick={handleLogout} type="button">
+              <button className="topbar-link-button topbar-link-button-active" onClick={handleLogout} type="button">
                 Logout
               </button>
             ) : (
-              <>
-                <button
-                  className="auth-trigger"
-                  onClick={() => {
-                    setLoginError(null);
-                    setIsLoginModalOpen(true);
-                  }}
-                  type="button"
-                >
-                  Login
-                </button>
-                {profile ? (
-                  <button className="theme-toggle auth-secondary" onClick={handleLogout} type="button">
-                    Logout
-                  </button>
-                ) : null}
-              </>
+              <button
+                className="topbar-link-button"
+                onClick={() => {
+                  setLoginError(null);
+                  setIsLoginModalOpen(true);
+                }}
+                type="button"
+              >
+                Login
+              </button>
             )}
+
+            <button className="compact-theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
+              {themeLabel}
+            </button>
           </div>
         </header>
 
