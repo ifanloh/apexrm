@@ -10,6 +10,7 @@ import {
   type NotificationEvent,
   type OverallLeaderboard,
   type RunnerDetail,
+  type RunnerPassing,
   type RunnerSearchEntry
 } from "@arm/contracts";
 import { fetchCheckpointLeaderboard, fetchDashboardSnapshot, fetchRunnerDetail, fetchRunnerSearch } from "./api";
@@ -132,6 +133,59 @@ function buildRunnerDetailFallback(
     lastScannedAt: match.scannedAt,
     totalPassings: 0,
     passings: []
+  };
+}
+
+async function buildRunnerDetailFromCheckpointBoards(
+  bib: string,
+  accessToken: string,
+  overallEntries: OverallLeaderboard["topEntries"]
+): Promise<RunnerDetail | null> {
+  const normalizedBib = bib.trim().toUpperCase();
+  const overallEntry = overallEntries.find((entry) => entry.bib.toUpperCase() === normalizedBib);
+
+  if (!overallEntry) {
+    return null;
+  }
+
+  const boards = await Promise.all(
+    defaultCheckpoints.map((checkpoint) =>
+      fetchCheckpointLeaderboard(checkpoint.id, accessToken).catch(() => null)
+    )
+  );
+
+  const passings: RunnerPassing[] = boards
+    .flatMap((board) => board?.topEntries ?? [])
+    .filter((entry) => entry.bib.toUpperCase() === normalizedBib)
+    .map((entry) => {
+      const checkpoint = defaultCheckpoints.find((item) => item.id === entry.checkpointId);
+
+      return {
+        checkpointId: entry.checkpointId,
+        checkpointCode: checkpoint?.code ?? entry.checkpointId,
+        checkpointName: checkpoint?.name ?? entry.checkpointId,
+        checkpointKmMarker: checkpoint?.kmMarker ?? 0,
+        checkpointOrder: checkpoint?.order ?? 999,
+        scannedAt: entry.scannedAt,
+        position: entry.position,
+        crewId: entry.crewId,
+        deviceId: entry.deviceId
+      };
+    })
+    .sort((left, right) => left.checkpointOrder - right.checkpointOrder || left.scannedAt.localeCompare(right.scannedAt));
+
+  return {
+    bib: overallEntry.bib,
+    name: `Runner ${overallEntry.bib}`,
+    rank: overallEntry.rank,
+    currentCheckpointId: overallEntry.checkpointId,
+    currentCheckpointCode: overallEntry.checkpointCode,
+    currentCheckpointName: overallEntry.checkpointName,
+    currentCheckpointKmMarker: overallEntry.checkpointKmMarker,
+    currentCheckpointOrder: overallEntry.checkpointOrder,
+    lastScannedAt: overallEntry.scannedAt,
+    totalPassings: passings.length,
+    passings
   };
 }
 
@@ -473,7 +527,11 @@ export default function App() {
           return;
         }
 
-        setRunnerDetail(buildRunnerDetailFallback(overallLeaderboard.topEntries, runnerBib));
+        const fallbackDetail =
+          (await buildRunnerDetailFromCheckpointBoards(runnerBib, token, overallLeaderboard.topEntries).catch(() => null)) ??
+          buildRunnerDetailFallback(overallLeaderboard.topEntries, runnerBib);
+
+        setRunnerDetail(fallbackDetail);
         setRunnerDetailError(error instanceof Error ? error.message : "Detail pelari belum tersedia.");
       } finally {
         if (isMounted) {
