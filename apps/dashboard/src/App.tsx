@@ -94,6 +94,26 @@ function mergeCheckpointBoards(existing: CheckpointLeaderboard[], incoming: Chec
   });
 }
 
+function normalizeWomenLeaderboard(
+  overallBoard: OverallLeaderboard,
+  womenBoard: OverallLeaderboard
+): OverallLeaderboard {
+  const sameTotal = overallBoard.totalRankedRunners === womenBoard.totalRankedRunners;
+  const sameEntries =
+    overallBoard.topEntries.length === womenBoard.topEntries.length &&
+    overallBoard.topEntries.every((entry, index) => {
+      const candidate = womenBoard.topEntries[index];
+      return (
+        candidate &&
+        candidate.bib === entry.bib &&
+        candidate.rank === entry.rank &&
+        candidate.checkpointId === entry.checkpointId
+      );
+    });
+
+  return sameTotal && sameEntries ? emptyOverallLeaderboard : womenBoard;
+}
+
 function buildRunnerFallbackResults(
   entries: OverallLeaderboard["topEntries"],
   query: string,
@@ -308,8 +328,9 @@ export default function App() {
           return;
         }
 
-        setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
-        setWomenLeaderboard(nextWomenLeaderboard ?? emptyOverallLeaderboard);
+        const nextOverallLeaderboard = snapshot.overallLeaderboard ?? emptyOverallLeaderboard;
+        setOverallLeaderboard(nextOverallLeaderboard);
+        setWomenLeaderboard(normalizeWomenLeaderboard(nextOverallLeaderboard, nextWomenLeaderboard ?? emptyOverallLeaderboard));
         setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
         setDuplicates(snapshot.duplicates);
         setNotifications(snapshot.notifications);
@@ -366,8 +387,11 @@ export default function App() {
           ]);
           const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
-          setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
-          setWomenLeaderboard(nextWomenLeaderboard ?? emptyOverallLeaderboard);
+          const nextOverallLeaderboard = snapshot.overallLeaderboard ?? emptyOverallLeaderboard;
+          setOverallLeaderboard(nextOverallLeaderboard);
+          setWomenLeaderboard(
+            normalizeWomenLeaderboard(nextOverallLeaderboard, nextWomenLeaderboard ?? emptyOverallLeaderboard)
+          );
           setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
           setDuplicates(snapshot.duplicates);
           setNotifications(snapshot.notifications);
