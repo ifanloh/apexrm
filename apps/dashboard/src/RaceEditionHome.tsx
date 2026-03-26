@@ -60,6 +60,11 @@ export function RaceEditionHome({
   cards,
   onOpenRace
 }: Props) {
+  const totalCategories = cards.length;
+  const totalFinishers = cards.reduce((sum, card) => sum + card.finishers, 0);
+  const totalDnf = cards.reduce((sum, card) => sum + card.dnf, 0);
+  const liveCategories = cards.filter((card) => card.isLive).length;
+
   return (
     <section className="edition-home-shell" id="edition-home">
       <article className="panel edition-banner-panel">
@@ -81,10 +86,29 @@ export function RaceEditionHome({
 
       <div className="edition-home-header">
         <div>
-          <p className="section-label">Edition Home</p>
+          <p className="section-label">Race Edition</p>
           <h3>{homeTitle}</h3>
         </div>
         <p>{homeSubtitle}</p>
+      </div>
+
+      <div className="edition-summary-strip" role="list" aria-label="Edition summary">
+        <article className="edition-summary-card" role="listitem">
+          <span>Registered races</span>
+          <strong>{totalCategories}</strong>
+        </article>
+        <article className="edition-summary-card" role="listitem">
+          <span>Live categories</span>
+          <strong>{liveCategories}</strong>
+        </article>
+        <article className="edition-summary-card" role="listitem">
+          <span>Finishers</span>
+          <strong>{totalFinishers}</strong>
+        </article>
+        <article className="edition-summary-card" role="listitem">
+          <span>DNF / DNS</span>
+          <strong>{totalDnf}</strong>
+        </article>
       </div>
 
       <div className="race-card-grid" role="list" aria-label="Race categories">
@@ -172,7 +196,7 @@ export function RaceEditionHome({
               </div>
 
               <button className="race-card-cta" onClick={() => onOpenRace(card.slug)} type="button">
-                View the Results
+                Open Race Live
               </button>
             </article>
           );
@@ -181,4 +205,3 @@ export function RaceEditionHome({
     </section>
   );
 }
-

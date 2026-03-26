@@ -969,6 +969,38 @@ a {
   max-width: 50ch;
 }
 
+.edition-summary-strip {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.edition-summary-card {
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 6px;
+  min-height: 88px;
+  padding: 16px 18px;
+}
+
+.edition-summary-card span {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.edition-summary-card strong {
+  color: var(--green);
+  font-family: "Oxanium", sans-serif;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
 .race-card-grid {
   display: grid;
   gap: 18px;
@@ -2432,6 +2464,10 @@ a {
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .edition-summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -2474,6 +2510,10 @@ a {
   }
 
   .race-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .edition-summary-strip {
     grid-template-columns: 1fr;
   }
 

@@ -30,9 +30,10 @@ export const demoRaceFestival = {
   editionLabel: "Edition 2025",
   dateRibbon: "Du 16 au 19 octobre 2025",
   locationRibbon: "Millau Aveyron Occitanie",
-  homeTitle: "Les courses de l'edition",
-  homeSubtitle: "Satu event race dengan banyak kategori lomba dan hub live yang bisa dibuka dari tiap kartu kategori.",
-  bannerTagline: "ApexRM race hub preview inspired by LiveTrail",
+  homeTitle: "Registered race categories",
+  homeSubtitle:
+    "Satu event bisa memiliki banyak kategori race. Setiap kartu di bawah mewakili kategori yang didaftarkan organizer ke platform dan punya live page sendiri.",
+  bannerTagline: "Organizer edition hub",
   races: [
     {
       slug: demoCourse.slug,
@@ -252,4 +253,3 @@ export const demoRaceFestival = {
     }
   ] satisfies DemoRaceCard[]
 };
-
