@@ -84,6 +84,29 @@ function mergeCheckpointBoards(existing: CheckpointLeaderboard[], incoming: Chec
   });
 }
 
+function buildRunnerFallbackResults(
+  entries: OverallLeaderboard["topEntries"],
+  query: string,
+  checkpointId: string
+): RunnerSearchEntry[] {
+  const normalizedQuery = query.trim().toUpperCase();
+
+  return entries
+    .map<RunnerSearchEntry>((entry) => ({
+      ...entry,
+      name: `Runner ${entry.bib}`
+    }))
+    .filter((entry) => {
+      const matchesQuery =
+        !normalizedQuery ||
+        entry.bib.toUpperCase().includes(normalizedQuery) ||
+        entry.name.toUpperCase().includes(normalizedQuery);
+      const matchesCheckpoint = checkpointId === "all" || entry.checkpointId === checkpointId;
+      return matchesQuery && matchesCheckpoint;
+    })
+    .slice(0, 20);
+}
+
 export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -107,6 +130,7 @@ export default function App() {
   const [runnerResults, setRunnerResults] = useState<RunnerSearchEntry[]>([]);
   const [runnerSearchError, setRunnerSearchError] = useState<string | null>(null);
   const [isSearchingRunners, setIsSearchingRunners] = useState(false);
+  const [runnerSearchMode, setRunnerSearchMode] = useState<"server" | "fallback">("server");
   const hasDashboardAccess = profile ? ["admin", "panitia", "observer"].includes(profile.role) : false;
   const apiHost = getApiHost();
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
@@ -326,13 +350,16 @@ export default function App() {
         }
 
         setRunnerResults(items);
+        setRunnerSearchMode("server");
         setRunnerSearchError(null);
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
-        setRunnerSearchError(error instanceof Error ? error.message : "Pencarian pelari gagal dimuat.");
+        setRunnerResults(buildRunnerFallbackResults(overallLeaderboard.topEntries, deferredRunnerQuery, runnerCheckpointFilter));
+        setRunnerSearchMode("fallback");
+        setRunnerSearchError(null);
       } finally {
         if (isMounted) {
           setIsSearchingRunners(false);
@@ -345,7 +372,7 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [accessToken, deferredRunnerQuery, hasDashboardAccess, lastUpdatedAt, runnerCheckpointFilter]);
+  }, [accessToken, deferredRunnerQuery, hasDashboardAccess, lastUpdatedAt, overallLeaderboard.topEntries, runnerCheckpointFilter]);
 
   const selectedBoard = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
@@ -727,6 +754,7 @@ export default function App() {
           <div className="panel-badge">
             <span>Lookup</span>
             <strong>{runnerSearchSummary}</strong>
+            <span>{runnerSearchMode === "server" ? "live index" : "fallback index"}</span>
           </div>
         </div>
 
