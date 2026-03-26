@@ -104,29 +104,46 @@ a {
 }
 
 .dashboard-shell {
+  height: 100vh;
   margin: 0 auto;
   max-width: 1540px;
-  min-height: 100vh;
+  overflow: hidden;
   padding: 18px 16px 28px;
 }
 
 .dashboard-hub-shell {
+  align-items: stretch;
   display: grid;
   gap: 16px;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr) 320px;
+  height: 100%;
+  min-height: 0;
 }
 
-.dashboard-sidebar {
-  align-self: start;
+.dashboard-sidebar,
+.dashboard-rail {
   background: var(--sidebar);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 24px;
   box-shadow: var(--shadow);
   display: grid;
   gap: 18px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
   padding: 18px 16px;
-  position: sticky;
-  top: 16px;
+}
+
+.dashboard-sidebar {
+  align-self: stretch;
+}
+
+.dashboard-rail {
+  align-self: stretch;
+}
+
+.dashboard-rail-marker {
+  display: none;
 }
 
 .sidebar-brand {
@@ -498,6 +515,10 @@ a {
 .dashboard-main {
   display: grid;
   gap: 14px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .sr-only {
@@ -1087,7 +1108,7 @@ a {
 .control-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(0, 1.85fr) 300px;
+  grid-template-columns: 1fr;
   align-items: start;
 }
 
@@ -1230,13 +1251,12 @@ a {
 }
 
 .rail {
-  align-self: start;
   display: grid;
   gap: 14px;
-  max-height: calc(100vh - 24px);
-  overflow: auto;
-  position: sticky;
-  top: 12px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .leaders-stack {
@@ -1560,7 +1580,7 @@ a {
 
 @media (max-width: 1360px) {
   .dashboard-hub-shell {
-    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-columns: 220px minmax(0, 1fr) 300px;
   }
 
   .topbar {
@@ -1578,12 +1598,22 @@ a {
 }
 
 @media (max-width: 1200px) {
-  .dashboard-hub-shell {
-    grid-template-columns: 1fr;
+  .dashboard-shell {
+    height: auto;
+    overflow: visible;
   }
 
-  .dashboard-sidebar {
-    position: static;
+  .dashboard-hub-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .dashboard-sidebar,
+  .dashboard-rail,
+  .dashboard-main {
+    height: auto;
+    min-height: unset;
+    overflow: visible;
   }
 
   .spotlight-grid,
@@ -1605,9 +1635,8 @@ a {
   }
 
   .rail {
-    max-height: none;
     overflow: visible;
-    position: static;
+    padding-right: 0;
   }
 }
 
