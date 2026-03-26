@@ -280,7 +280,16 @@ a {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 14px;
   color: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  text-align: left;
   padding: 10px 12px;
+}
+
+.nav-link-primary {
+  background: rgba(255, 191, 110, 0.14);
+  border-color: rgba(255, 191, 110, 0.24);
+  color: var(--ink);
+  font-weight: 800;
 }
 
 .nav-link:hover {
@@ -1398,6 +1407,10 @@ a {
   padding: 10px 12px;
 }
 
+.mini-leaderboard-row.live {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+}
+
 .mini-ranking-row {
   grid-template-columns: 44px minmax(0, 1fr) auto;
 }
@@ -1419,6 +1432,12 @@ a {
 .mini-ranking-row small,
 .mini-ranking-row time {
   color: var(--ink-muted);
+}
+
+.mini-leaderboard-row time {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .course-profile-card {

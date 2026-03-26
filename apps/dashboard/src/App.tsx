@@ -375,6 +375,8 @@ export default function App() {
   const [showRankingFilters, setShowRankingFilters] = useState(false);
   const [rankingRowsPerPage, setRankingRowsPerPage] = useState(FULL_RANKING_PAGE_SIZE);
   const [selectedRaceSlug, setSelectedRaceSlug] = useState<string>(EDITION_HOME_VALUE);
+  const [runnerNavOpen, setRunnerNavOpen] = useState(true);
+  const [raceNavOpen, setRaceNavOpen] = useState(true);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
@@ -1031,6 +1033,17 @@ export default function App() {
     jumpToSection(sectionId);
   }
 
+  function focusTopbarSearch() {
+    if (isEditionHome) {
+      openRaceView(demoCourse.slug, "full-ranking");
+    }
+
+    window.setTimeout(() => {
+      const input = document.querySelector<HTMLInputElement>(".topbar-search-shell input");
+      input?.focus();
+    }, 90);
+  }
+
   function focusRanking(view: "overall" | "women") {
     setFullRankingView(view);
     if (isEditionHome) {
@@ -1042,12 +1055,13 @@ export default function App() {
   }
 
   function focusRunnerSearch() {
-    if (isEditionHome) {
-      openRaceView(demoCourse.slug, "runner-finder");
+    focusTopbarSearch();
+    if (organizerSessionActive) {
+      jumpToSection("runner-finder");
       return;
     }
 
-    jumpToSection("runner-finder");
+    jumpToSection("full-ranking");
   }
 
   function handleRaceSelection(nextValue: string) {
@@ -1060,6 +1074,46 @@ export default function App() {
     jumpToSection("race-hub");
   }
 
+  function focusHome() {
+    if (isEditionHome) {
+      jumpToSection("edition-home");
+      return;
+    }
+
+    handleRaceSelection(EDITION_HOME_VALUE);
+  }
+
+  function focusMyRunners() {
+    if (favoriteRunnerResults.length) {
+      setSelectedRunnerBib(favoriteRunnerResults[0].bib);
+    }
+
+    if (organizerSessionActive) {
+      jumpToSection("runner-finder");
+      return;
+    }
+
+    focusTopbarSearch();
+  }
+
+  function focusPassingsTable() {
+    if (organizerSessionActive) {
+      jumpToSection("signals-sidebar");
+      return;
+    }
+
+    jumpToSection("course-profile");
+  }
+
+  function focusStatistics() {
+    if (isEditionHome) {
+      openRaceView(demoCourse.slug, "race-statistics");
+      return;
+    }
+
+    jumpToSection("race-statistics");
+  }
+
   return (
     <main className="dashboard-shell dashboard-hub-shell">
       <aside className="dashboard-sidebar">
@@ -1070,59 +1124,60 @@ export default function App() {
           <small>{isEditionHome ? demoRaceFestival.editionLabel : selectedRaceCard.title}</small>
         </div>
 
-        <article className="sidebar-card sidebar-ranking-card" id="race-leaders">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Ranking</p>
-              <h3>Overall</h3>
-            </div>
-          </div>
-          <div className="mini-leaderboard">
-            {sidebarOverallRows.length ? (
-              sidebarOverallRows.map((entry) => (
-                <div className="mini-leaderboard-row" key={`sidebar-overall-${entry.bib}`}>
-                  <strong>{entry.rank}</strong>
-                  <div>
-                    <span>{entry.name}</span>
-                    <small>{entry.bib}</small>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="empty-compact">Belum ada pelari di ranking overall.</div>
-            )}
-          </div>
-          <button className="sidebar-more" onClick={() => focusRanking("overall")} type="button">
-            See More
+        <nav className="sidebar-nav" aria-label="Race navigation">
+          <button className="nav-link nav-link-primary" onClick={focusHome} type="button">
+            Home
           </button>
-        </article>
 
-        <article className="sidebar-card sidebar-ranking-card">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Ranking</p>
-              <h3>Woman</h3>
+          <div className={`nav-group ${runnerNavOpen ? "open" : ""}`}>
+            <button className="nav-toggle" onClick={() => setRunnerNavOpen((current) => !current)} type="button">
+              <span>The Runners</span>
+              <span className={`nav-chevron ${runnerNavOpen ? "open" : ""}`}>⌄</span>
+            </button>
+            <div className="nav-links">
+              <button className="nav-link" onClick={focusRunnerSearch} type="button">
+                Search for a runner
+              </button>
+              <button className="nav-link" onClick={() => focusRanking("overall")} type="button">
+                Runners list
+              </button>
+              <button className="nav-link" onClick={focusMyRunners} type="button">
+                Favorites list
+              </button>
+              <button className="nav-link" onClick={focusMyRunners} type="button">
+                My runners
+              </button>
+              <button className="nav-link" onClick={focusRunnerSearch} type="button">
+                Comparison
+              </button>
             </div>
           </div>
-          <div className="mini-leaderboard">
-            {sidebarWomenRows.length ? (
-              sidebarWomenRows.map((entry) => (
-                <div className="mini-leaderboard-row" key={`sidebar-women-${entry.bib}`}>
-                  <strong>{entry.rank}</strong>
-                  <div>
-                    <span>{entry.name}</span>
-                    <small>{entry.bib}</small>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="empty-compact">Belum ada runner woman di data event ini.</div>
-            )}
+
+          <div className={`nav-group ${raceNavOpen ? "open" : ""}`}>
+            <button className="nav-toggle" onClick={() => setRaceNavOpen((current) => !current)} type="button">
+              <span>Follow The Race</span>
+              <span className={`nav-chevron ${raceNavOpen ? "open" : ""}`}>⌄</span>
+            </button>
+            <div className="nav-links">
+              <button className="nav-link" onClick={() => focusRanking("overall")} type="button">
+                Ranking
+              </button>
+              <button className="nav-link" onClick={focusPassingsTable} type="button">
+                Passings table
+              </button>
+              <button className="nav-link" onClick={() => focusRanking("overall")} type="button">
+                Race leaders
+              </button>
+              <button className="nav-link" onClick={focusStatistics} type="button">
+                Statistics
+              </button>
+            </div>
           </div>
-          <button className="sidebar-more" onClick={() => focusRanking("women")} type="button">
-            See More
+
+          <button className="nav-link" onClick={() => jumpToSection("runtime-footer")} type="button">
+            Contact
           </button>
-        </article>
+        </nav>
 
         {organizerSessionActive ? (
           <button className="sidebar-logout" onClick={handleLogout} type="button">
@@ -1638,6 +1693,7 @@ export default function App() {
         </aside>
       </section>
 
+      {organizerSessionActive ? (
       <section className="panel checkpoint-monitor-panel">
         <div className="panel-head">
           <div>
@@ -1717,7 +1773,9 @@ export default function App() {
           )}
         </div>
       </section>
+      ) : null}
 
+      {organizerSessionActive ? (
       <section className="panel runner-search-panel" id="runner-finder">
         <div className="panel-head">
           <div>
@@ -1925,10 +1983,11 @@ export default function App() {
           </aside>
         </div>
       </section>
+      ) : null}
           </>
         )}
 
-      <footer className="runtime-footer">
+      <footer className="runtime-footer" id="runtime-footer">
         <span>Build {__APP_BUILD__}</span>
         <span>Built {new Date(__APP_BUILT_AT__).toLocaleString()}</span>
         <span>API {apiHost}</span>
@@ -2008,6 +2067,63 @@ export default function App() {
 
       <aside className="dashboard-rail">
         <div className="rail">
+          <article className="panel rail-panel rail-ranking-panel" id="race-leaders">
+            <div className="panel-head compact">
+              <div>
+                <p className="section-label">Ranking</p>
+                <h3>Overall</h3>
+              </div>
+            </div>
+            <div className="mini-leaderboard">
+              {sidebarOverallRows.length ? (
+                sidebarOverallRows.map((entry) => (
+                  <div className="mini-leaderboard-row live" key={`rail-overall-${entry.bib}`}>
+                    <strong>{entry.rank}</strong>
+                    <div>
+                      <span>{entry.name}</span>
+                      <small>{entry.checkpointName}</small>
+                    </div>
+                    <time>{formatScanTime(entry.scannedAt)}</time>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-compact">Belum ada pelari di ranking overall.</div>
+              )}
+            </div>
+            <button className="sidebar-more" onClick={() => focusRanking("overall")} type="button">
+              See More
+            </button>
+          </article>
+
+          <article className="panel rail-panel rail-ranking-panel">
+            <div className="panel-head compact">
+              <div>
+                <p className="section-label">Ranking</p>
+                <h3>Woman</h3>
+              </div>
+            </div>
+            <div className="mini-leaderboard">
+              {sidebarWomenRows.length ? (
+                sidebarWomenRows.map((entry) => (
+                  <div className="mini-leaderboard-row live" key={`rail-women-${entry.bib}`}>
+                    <strong>{entry.rank}</strong>
+                    <div>
+                      <span>{entry.name}</span>
+                      <small>{entry.checkpointName}</small>
+                    </div>
+                    <time>{formatScanTime(entry.scannedAt)}</time>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-compact">Belum ada runner woman di data event ini.</div>
+              )}
+            </div>
+            <button className="sidebar-more" onClick={() => focusRanking("women")} type="button">
+              See More
+            </button>
+          </article>
+
+          {organizerSessionActive ? (
           <article className="panel rail-panel" id="recent-passings-sidebar">
             <div className="panel-head">
               <div>
@@ -2024,7 +2140,7 @@ export default function App() {
               <div className="pulse-card">
                 <span className="broadcast-tag">Latest passing</span>
                 <strong>
-                  {latestPassing.name} Â· {formatCheckpointLabel({
+                  {latestPassing.name} | {formatCheckpointLabel({
                     code: latestPassing.checkpointCode,
                     kmMarker: latestPassing.checkpointKmMarker
                   })}
@@ -2055,6 +2171,7 @@ export default function App() {
               ))}
             </ul>
           </article>
+          ) : null}
 
           {organizerSessionActive ? (
             <article className="panel rail-panel" id="signals-sidebar">
