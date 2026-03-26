@@ -15,6 +15,8 @@ type Props = {
   courseStops: CourseStop[];
   selectedCheckpointId: string;
   onSelectCheckpoint: (checkpointId: string) => void;
+  finisherCount: number;
+  dnfCount: number;
 };
 
 const chartWidth = 960;
@@ -57,8 +59,40 @@ function getChartGeometry() {
   };
 }
 
-export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelectCheckpoint }: Props) {
+function getMapGeometry() {
+  const lats = demoCourse.waypoints.map((point) => point.lat);
+  const lons = demoCourse.waypoints.map((point) => point.lon);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons);
+  const maxLon = Math.max(...lons);
+  const width = 960;
+  const height = 420;
+  const padding = 28;
+  const lonSpan = Math.max(maxLon - minLon, 0.001);
+  const latSpan = Math.max(maxLat - minLat, 0.001);
+  const drawableWidth = width - padding * 2;
+  const drawableHeight = height - padding * 2;
+
+  const toX = (lon: number) => padding + ((lon - minLon) / lonSpan) * drawableWidth;
+  const toY = (lat: number) => padding + (1 - (lat - minLat) / latSpan) * drawableHeight;
+
+  const path = demoCourse.waypoints
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${toX(point.lon).toFixed(1)} ${toY(point.lat).toFixed(1)}`)
+    .join(" ");
+
+  return {
+    width,
+    height,
+    path,
+    toX,
+    toY
+  };
+}
+
+export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelectCheckpoint, finisherCount, dnfCount }: Props) {
   const chart = getChartGeometry();
+  const map = getMapGeometry();
 
   return (
     <article className="panel spotlight-panel course-profile-card">
@@ -96,6 +130,16 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
           <span>Selected CP</span>
           <strong>{courseStops.find((stop) => stop.id === selectedCheckpointId)?.code ?? "START"}</strong>
           <small>{courseStops.find((stop) => stop.id === selectedCheckpointId)?.name ?? "Millau"}</small>
+        </div>
+        <div className="course-stat-card">
+          <span>Finishers</span>
+          <strong>{finisherCount}</strong>
+          <small>Official finish scans</small>
+        </div>
+        <div className="course-stat-card">
+          <span>Withdrawals</span>
+          <strong>{dnfCount}</strong>
+          <small>DNF / DNS combined</small>
         </div>
       </div>
 
@@ -151,6 +195,75 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
           <span>{Math.round((chart.minEle + chart.maxEle) / 2)} m</span>
           <span>{Math.round(chart.maxEle)} m</span>
           <span>{demoCourse.distanceKm.toFixed(1)} km</span>
+        </div>
+      </div>
+
+      <div className="course-map-card">
+        <div className="course-map-copy">
+          <span className="detail-label">Route Map</span>
+          <strong>Open the map</strong>
+          <p>Visualisasi jalur GPX dan checkpoint marker untuk panitia dan penonton.</p>
+          <button className="download-pill map-cta" type="button">
+            Open the Map
+          </button>
+        </div>
+        <div className="course-map-visual">
+          <svg className="course-map-svg" viewBox={`0 0 ${map.width} ${map.height}`} role="img" aria-label="Course map preview">
+            <defs>
+              <linearGradient id="courseMapBg" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stopColor="rgba(247, 244, 234, 0.9)" />
+                <stop offset="55%" stopColor="rgba(72, 101, 71, 0.55)" />
+                <stop offset="100%" stopColor="rgba(31, 47, 39, 0.9)" />
+              </linearGradient>
+              <radialGradient id="courseMapGlow" cx="0.2" cy="0.25" r="0.85">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.8)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+              </radialGradient>
+            </defs>
+            <rect fill="url(#courseMapBg)" height={map.height} rx="26" width={map.width} x="0" y="0" />
+            <rect fill="url(#courseMapGlow)" height={map.height} width={map.width} x="0" y="0" />
+            {[0.18, 0.38, 0.62, 0.81].map((ratio) => (
+              <line
+                className="course-map-grid"
+                key={`grid-y-${ratio}`}
+                x1="0"
+                x2={map.width}
+                y1={map.height * ratio}
+                y2={map.height * ratio}
+              />
+            ))}
+            {[0.22, 0.47, 0.74].map((ratio) => (
+              <line
+                className="course-map-grid"
+                key={`grid-x-${ratio}`}
+                x1={map.width * ratio}
+                x2={map.width * ratio}
+                y1="0"
+                y2={map.height}
+              />
+            ))}
+            <path className="course-map-route" d={map.path} />
+            {courseStops.map((stop) => {
+              const waypoint =
+                demoCourse.waypoints.reduce((closest, point) => {
+                  const distance = Math.abs(point.km - stop.kmMarker);
+                  const currentDistance = Math.abs(closest.km - stop.kmMarker);
+                  return distance < currentDistance ? point : closest;
+                }, demoCourse.waypoints[0]) ?? demoCourse.waypoints[0];
+              const x = map.toX(waypoint.lon);
+              const y = map.toY(waypoint.lat);
+              const isSelected = stop.id === selectedCheckpointId;
+
+              return (
+                <g key={`map-${stop.id}`}>
+                  <circle className={`course-map-point ${isSelected ? "selected" : ""}`} cx={x} cy={y} r={isSelected ? 8 : 6} />
+                  <text className={`course-map-label ${isSelected ? "selected" : ""}`} x={x} y={y - 14} textAnchor="middle">
+                    {stop.code}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
       </div>
 

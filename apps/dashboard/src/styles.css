@@ -389,6 +389,36 @@ a {
   color: #19120c;
 }
 
+.route-tab.ghost {
+  opacity: 0.5;
+}
+
+.download-pill,
+.toolbar-link {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.download-pill:hover,
+.toolbar-link:hover {
+  border-color: var(--stroke-strong);
+  transform: translateY(-1px);
+}
+
 .sidebar-more {
   width: 100%;
 }
@@ -701,7 +731,7 @@ a {
   align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.95fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.75fr);
   padding: 18px;
 }
 
@@ -767,10 +797,11 @@ a {
   font-size: 1.02rem;
 }
 
+.hero-callout,
 .hero-metrics {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .metric-card {
@@ -795,6 +826,110 @@ a {
 .metric-card strong {
   font-size: clamp(1.8rem, 2vw, 2.2rem);
   line-height: 1;
+}
+
+.race-overview-panel,
+.course-command-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.race-overview-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.race-overview-stat {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 8px;
+  min-height: 80px;
+  padding: 4px 10px 4px 6px;
+}
+
+.race-overview-stat:last-child {
+  border-right: 0;
+}
+
+.race-overview-stat span {
+  color: var(--green);
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.race-overview-stat strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.course-command-panel {
+  align-items: center;
+  grid-template-columns: 1.15fr 1fr 1fr auto;
+}
+
+.course-command-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.course-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.legend-item {
+  color: var(--ink);
+  display: inline-flex;
+  font-weight: 800;
+  gap: 6px;
+}
+
+.legend-item::before {
+  border-radius: 999px;
+  content: "";
+  display: inline-block;
+  height: 10px;
+  margin-top: 6px;
+  width: 10px;
+}
+
+.legend-item.women::before {
+  background: #ff6f6f;
+}
+
+.legend-item.men::before {
+  background: #4bdbf5;
+}
+
+.course-beacon {
+  display: grid;
+  gap: 4px;
+}
+
+.course-beacon strong {
+  font-size: 0.98rem;
+}
+
+.course-beacon span {
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+.course-command-tabs,
+.course-command-actions,
+.course-downloads {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .notice-banner {
@@ -942,7 +1077,7 @@ a {
 .course-profile-summary {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .course-stat-card {
@@ -1105,6 +1240,95 @@ a {
   padding: 10px 12px;
 }
 
+.course-map-card {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 191, 110, 0.05)),
+    rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(220px, 0.45fr) minmax(0, 1fr);
+  overflow: hidden;
+  padding: 16px;
+}
+
+.course-map-copy {
+  align-content: start;
+  display: grid;
+  gap: 12px;
+}
+
+.course-map-copy strong {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.course-map-copy p {
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.map-cta {
+  background: linear-gradient(135deg, rgba(14, 159, 100, 0.94), rgba(9, 117, 74, 0.9));
+  border-color: transparent;
+  color: white;
+  justify-self: start;
+  min-width: 140px;
+}
+
+.course-map-visual {
+  border-radius: 22px;
+  min-height: 320px;
+  overflow: hidden;
+}
+
+.course-map-svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.course-map-grid {
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-dasharray: 4 8;
+  stroke-width: 1;
+}
+
+.course-map-route {
+  fill: none;
+  stroke: rgba(210, 125, 33, 0.95);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 8;
+}
+
+.course-map-point {
+  fill: white;
+  stroke: rgba(6, 17, 11, 0.95);
+  stroke-width: 3;
+}
+
+.course-map-point.selected {
+  fill: var(--gold);
+  stroke: rgba(25, 18, 12, 0.95);
+}
+
+.course-map-label {
+  fill: white;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.course-map-label.selected {
+  fill: var(--gold);
+}
+
 .control-grid {
   display: grid;
   gap: 14px;
@@ -1128,9 +1352,67 @@ a {
   gap: 12px;
 }
 
+.ranking-toolbar,
+.ranking-pagination-meta,
+.ranking-filters,
+.ranking-advanced-filters {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.ranking-toolbar,
+.ranking-pager.bottom {
+  justify-content: space-between;
+}
+
+.ranking-pagination-meta {
+  align-items: center;
+  gap: 10px;
+}
+
+.ranking-toolbar-label,
+.rows-per-page {
+  color: var(--ink-soft);
+  display: grid;
+  font-size: 0.84rem;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.ranking-toolbar-label select,
+.rows-per-page select {
+  min-width: 180px;
+}
+
+.ranking-range-text {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.ranking-column-head {
+  color: var(--ink-muted);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 180px minmax(280px, 1.35fr) repeat(3, minmax(110px, 0.7fr));
+  padding: 0 8px;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
 .full-ranking-list {
   display: grid;
   gap: 10px;
+}
+
+.full-ranking-table {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .full-ranking-row,
@@ -1145,10 +1427,10 @@ a {
   padding: 12px;
 }
 
-.full-ranking-list {
-  max-height: 760px;
-  overflow: auto;
-  padding-right: 4px;
+.race-ranking-row {
+  background: rgba(255, 255, 255, 0.04);
+  grid-template-columns: 180px minmax(280px, 1.35fr) repeat(3, minmax(110px, 0.7fr));
+  padding: 16px 18px;
 }
 
 .ranking-pager {
@@ -1165,8 +1447,12 @@ a {
   gap: 10px;
 }
 
+.pager-actions.compact {
+  gap: 8px;
+}
+
 .pager-button {
-  min-width: 82px;
+  min-width: 50px;
 }
 
 .pager-indicator {
@@ -1185,10 +1471,37 @@ a {
   text-transform: uppercase;
 }
 
-.leaderboard-rank strong {
-  color: var(--gold);
-  font-size: 1.55rem;
-  letter-spacing: -0.06em;
+.ranking-block {
+  display: grid;
+  gap: 10px;
+}
+
+.ranking-block strong {
+  color: var(--ink);
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 2.5rem;
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+}
+
+.ranking-submeta {
+  display: grid;
+  gap: 4px;
+}
+
+.ranking-submeta span {
+  font-weight: 800;
+}
+
+.ranking-submeta small {
+  color: var(--ink-soft);
+}
+
+.runner-main-cell {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 72px minmax(0, 1fr);
 }
 
 .runner-cell {
@@ -1196,6 +1509,25 @@ a {
   display: flex;
   gap: 12px;
   min-width: 0;
+}
+
+.runner-avatar-live {
+  border: 2px solid rgba(31, 209, 122, 0.8);
+  border-radius: 999px;
+}
+
+.bib-tile {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(210, 125, 33, 0.34);
+  border-radius: 6px;
+  color: #7b6f62;
+  display: inline-flex;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 1.7rem;
+  justify-content: center;
+  min-height: 56px;
+  text-align: center;
 }
 
 .runner-avatar {
@@ -1213,13 +1545,15 @@ a {
 }
 
 .runner-cell strong,
-.detail-cell strong {
+.detail-cell strong,
+.race-inline-cell strong {
   display: block;
   font-size: 0.96rem;
 }
 
 .runner-cell span,
 .detail-cell span,
+.race-inline-cell span,
 .feed-list span,
 .broadcast-card p,
 .pulse-card p,
@@ -1232,6 +1566,25 @@ a {
 .detail-cell {
   display: grid;
   gap: 6px;
+}
+
+.race-inline-cell {
+  display: grid;
+  gap: 6px;
+}
+
+.runner-status-pill {
+  align-items: center;
+  background: rgba(31, 209, 122, 0.18);
+  border-radius: 10px;
+  color: #0d6339;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin-top: 8px;
+  min-height: 28px;
+  padding: 0 10px;
+  width: fit-content;
 }
 
 .category-badge {
@@ -1595,6 +1948,10 @@ a {
   .topbar-center {
     grid-template-columns: 1fr;
   }
+
+  .course-command-panel {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -1623,6 +1980,16 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .race-overview-grid,
+  .course-profile-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .course-command-panel,
+  .course-map-card {
+    grid-template-columns: 1fr;
+  }
+
   .spotlight-grid > :nth-child(1),
   .spotlight-grid > :nth-child(2),
   .spotlight-grid > :nth-child(3) {
@@ -1645,6 +2012,7 @@ a {
     padding: 14px 12px 24px;
   }
 
+  .race-overview-grid,
   .hero-inline-stats,
   .hero-metrics,
   .stats-grid,
@@ -1656,16 +2024,33 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .ranking-column-head {
+    display: none;
+  }
+
   .full-ranking-row,
   .leaderboard-row,
-  .leaderboard-head {
-    grid-template-columns: 62px 1fr;
+  .leaderboard-head,
+  .race-ranking-row {
+    grid-template-columns: 1fr;
   }
 
   .detail-cell {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     grid-column: 2;
     padding-top: 10px;
+  }
+
+  .runner-main-cell,
+  .ranking-toolbar,
+  .ranking-pagination-meta,
+  .ranking-filters,
+  .ranking-advanced-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .runner-main-cell {
+    display: grid;
   }
 }
 
@@ -1690,12 +2075,21 @@ a {
   }
 
   .full-ranking-row,
-  .leaderboard-row {
+  .leaderboard-row,
+  .race-ranking-row {
     grid-template-columns: 1fr;
   }
 
   .detail-cell,
   .runner-cell {
     grid-column: auto;
+  }
+
+  .course-command-meta,
+  .course-command-tabs,
+  .course-command-actions,
+  .course-downloads {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

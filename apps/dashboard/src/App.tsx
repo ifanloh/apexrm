@@ -40,6 +40,7 @@ const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
 
 type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
+type RankingView = "overall" | "women" | "men";
 
 function getInitialTheme() {
   if (typeof window === "undefined") {
@@ -120,6 +121,16 @@ function formatRelativeTime(value: string) {
 
 function formatCategoryLabel(category: string) {
   return category === "women" ? "Women" : category === "men" ? "Men" : category;
+}
+
+function formatEventDateLabel(value: string) {
+  return new Date(value).toLocaleString([], {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function deriveProfileFromSession(session: Session): AuthProfile {
@@ -357,7 +368,9 @@ export default function App() {
   const [favoriteBibs, setFavoriteBibs] = useState<string[]>(() => loadFavoriteBibs());
   const [theme, setTheme] = useState<DashboardTheme>(() => getInitialTheme());
   const [fullRankingPage, setFullRankingPage] = useState(1);
-  const [fullRankingView, setFullRankingView] = useState<"overall" | "women">("overall");
+  const [fullRankingView, setFullRankingView] = useState<RankingView>("overall");
+  const [showRankingFilters, setShowRankingFilters] = useState(false);
+  const [rankingRowsPerPage, setRankingRowsPerPage] = useState(FULL_RANKING_PAGE_SIZE);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
@@ -694,16 +707,29 @@ export default function App() {
     window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteBibs));
   }, [favoriteBibs]);
 
-  const fullRankingSource = fullRankingView === "women" ? womenLeaderboard : overallLeaderboard;
+  const menLeaderboard = useMemo<OverallLeaderboard>(() => {
+    const items = overallLeaderboard.topEntries.filter((entry) => entry.category.toLowerCase() === "men");
+    return {
+      totalRankedRunners: items.length,
+      topEntries: items
+    };
+  }, [overallLeaderboard]);
+
+  const fullRankingSource =
+    fullRankingView === "women" ? womenLeaderboard : fullRankingView === "men" ? menLeaderboard : overallLeaderboard;
 
   useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(fullRankingSource.topEntries.length / FULL_RANKING_PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(fullRankingSource.topEntries.length / rankingRowsPerPage));
     setFullRankingPage((current) => Math.min(current, totalPages));
-  }, [fullRankingSource.topEntries.length]);
+  }, [fullRankingSource.topEntries.length, rankingRowsPerPage]);
 
   useEffect(() => {
     setFullRankingPage(1);
   }, [fullRankingView]);
+
+  useEffect(() => {
+    setFullRankingPage(1);
+  }, [runnerCheckpointFilter, runnerQuery, rankingRowsPerPage]);
 
   useEffect(() => {
     if (!runnerResults.length) {
@@ -836,16 +862,27 @@ export default function App() {
     return `${recentPassings.length} passing terbaru`;
   }, [recentPassings.length]);
   const totalDistanceKm = demoCourse.distanceKm;
-  const fullRankingPageCount = Math.max(1, Math.ceil(fullRankingSource.topEntries.length / FULL_RANKING_PAGE_SIZE));
-  const fullRankingRows = fullRankingSource.topEntries.slice(
-    (fullRankingPage - 1) * FULL_RANKING_PAGE_SIZE,
-    fullRankingPage * FULL_RANKING_PAGE_SIZE
+  const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
+  const fullRankingEntries = useMemo(() => {
+    return fullRankingSource.topEntries.filter((entry) => {
+      const matchesQuery =
+        !normalizedRunnerQuery ||
+        entry.bib.toUpperCase().includes(normalizedRunnerQuery) ||
+        entry.name.toUpperCase().includes(normalizedRunnerQuery);
+      const matchesCheckpoint = runnerCheckpointFilter === "all" || entry.checkpointId === runnerCheckpointFilter;
+      return matchesQuery && matchesCheckpoint;
+    });
+  }, [fullRankingSource.topEntries, normalizedRunnerQuery, runnerCheckpointFilter]);
+  const fullRankingPageCount = Math.max(1, Math.ceil(fullRankingEntries.length / rankingRowsPerPage));
+  const fullRankingRows = fullRankingEntries.slice(
+    (fullRankingPage - 1) * rankingRowsPerPage,
+    fullRankingPage * rankingRowsPerPage
   );
-  const fullRankingRangeLabel = fullRankingSource.topEntries.length
-    ? `${(fullRankingPage - 1) * FULL_RANKING_PAGE_SIZE + 1}-${Math.min(
-        fullRankingPage * FULL_RANKING_PAGE_SIZE,
-        fullRankingSource.topEntries.length
-      )} dari ${fullRankingSource.topEntries.length}`
+  const fullRankingRangeLabel = fullRankingEntries.length
+    ? `${(fullRankingPage - 1) * rankingRowsPerPage + 1}-${Math.min(
+        fullRankingPage * rankingRowsPerPage,
+        fullRankingEntries.length
+      )} dari ${fullRankingEntries.length}`
     : "0 runner";
   const eventTitle = demoCourse.title;
   const eventSubtitleText = `${demoCourse.location} | ${demoCourse.subtitle}`;
@@ -888,6 +925,16 @@ export default function App() {
       note: "Runner yang sudah mencapai finish."
     }
   ];
+  const raceOverviewStats = [
+    { label: "Distance", value: `${totalDistanceKm.toFixed(1)} KM` },
+    { label: "Ascent", value: `${demoCourse.ascentM} M+` },
+    { label: "Start", value: `${demoCourse.location} 7°C` },
+    { label: "Finish", value: `${demoCourse.location} 7°C` },
+    { label: "Start Date", value: formatEventDateLabel("2025-10-19T05:12:00+02:00") },
+    { label: "Finishers", value: `${finisherCount}` },
+    { label: "DNF / DNS", value: `${dnfDnsCount}` }
+  ];
+  const courseActionSummary = `${favoriteBibs.length} followed runners`;
   function toggleFavoriteBib(bib: string) {
     setFavoriteBibs((current) =>
       current.includes(bib) ? current.filter((item) => item !== bib) : [...current, bib].sort((left, right) => left.localeCompare(right))
@@ -1093,47 +1140,64 @@ export default function App() {
               ))}
             </div>
           </div>
-          <div className="hero-metrics">
+          <div className="hero-callout">
             <article className="metric-card primary">
               <span>Overall ranked runners</span>
               <strong>{totalRankedRunners}</strong>
             </article>
-          <article className="metric-card">
-            <span>Total scan resmi</span>
-            <strong>{totalOfficialScans}</strong>
-          </article>
             <article className="metric-card">
-              <span>Checkpoint aktif</span>
-              <strong>{activeCheckpointCount}</strong>
-            </article>
-            <article className="metric-card">
-              <span>Recent passings</span>
-              <strong>{recentPassings.length}</strong>
+              <span>Total scan resmi</span>
+              <strong>{totalOfficialScans}</strong>
             </article>
           </div>
         </section>
 
         <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div>
 
-      <section className="panel stats-panel" id="race-statistics">
-        <div className="panel-head">
-          <div>
-            <p className="section-label">The Race</p>
-            <h3>Statistics</h3>
-          </div>
-          <div className="panel-badge">
-            <span>Checkpoint aktif</span>
-            <strong>{activeCheckpointCount}</strong>
-          </div>
-        </div>
-        <div className="stats-grid">
-          {raceStatistics.map((stat) => (
-            <article className="stats-card" key={stat.label}>
+      <section className="panel race-overview-panel" id="race-statistics">
+        <div className="race-overview-grid">
+          {raceOverviewStats.map((stat) => (
+            <article className="race-overview-stat" key={stat.label}>
               <span>{stat.label}</span>
               <strong>{stat.value}</strong>
-              <small>{stat.note}</small>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="panel course-command-panel">
+        <div className="course-command-meta">
+          <div className="course-legend">
+            <span className="legend-item women">Woman</span>
+            <span className="legend-item men">Man</span>
+          </div>
+          <div className="course-beacon">
+            <strong>equipped with scan control</strong>
+            <span>Realtime checkpoint validations via ApexRM</span>
+          </div>
+        </div>
+
+        <div className="course-command-tabs">
+          <span className="detail-label">Outline</span>
+          <button className="route-tab active" type="button">Race</button>
+          <button className="route-tab ghost" type="button">Terrain</button>
+          <button className="route-tab ghost" type="button">Slope</button>
+        </div>
+
+        <div className="course-command-actions">
+          <span className="detail-label">See</span>
+          <button className="route-tab" onClick={() => focusRanking("overall")} type="button">
+            Leaders
+          </button>
+          <button className="route-tab" onClick={() => focusRunnerSearch()} type="button">
+            {courseActionSummary}
+          </button>
+        </div>
+
+        <div className="course-downloads">
+          <span className="detail-label">Download</span>
+          <button className="download-pill" type="button">GPX</button>
+          <button className="download-pill" type="button">PNG</button>
         </div>
       </section>
 
@@ -1142,6 +1206,8 @@ export default function App() {
           courseStops={courseProfileStops}
           selectedCheckpointId={selectedCheckpointId}
           onSelectCheckpoint={setSelectedCheckpointId}
+          finisherCount={finisherCount}
+          dnfCount={dnfDnsCount}
         />
       </section>
 
@@ -1151,64 +1217,138 @@ export default function App() {
         <article className="panel leaderboard-panel full-ranking-panel" id="full-ranking">
           <div className="panel-head">
             <div>
-              <p className="section-label">Full Ranking</p>
-              <h3>{fullRankingView === "women" ? "Standings kategori women" : "Standings resmi seluruh race"}</h3>
+              <p className="section-label">Ranking</p>
+              <h3>{fullRankingView === "women" ? "Women leaderboard" : fullRankingView === "men" ? "Men leaderboard" : "Official full ranking"}</h3>
             </div>
             <div className="panel-badge">
-              <span>{fullRankingView === "women" ? "Women ranked" : "Ranked runners"}</span>
-              <strong>{fullRankingSource.totalRankedRunners}</strong>
+              <span>{fullRankingView === "women" ? "Women ranked" : fullRankingView === "men" ? "Men ranked" : "Ranked runners"}</span>
+              <strong>{fullRankingEntries.length}</strong>
             </div>
           </div>
-          <div className="ranking-mode-switch" role="tablist" aria-label="Full ranking view switch">
-            <button
-              aria-selected={fullRankingView === "overall"}
-              className={`route-tab ${fullRankingView === "overall" ? "active" : ""}`}
-              onClick={() => setFullRankingView("overall")}
-              role="tab"
-              type="button"
-            >
-              Overall
-            </button>
-            <button
-              aria-selected={fullRankingView === "women"}
-              className={`route-tab ${fullRankingView === "women" ? "active" : ""}`}
-              onClick={() => setFullRankingView("women")}
-              role="tab"
-              type="button"
-            >
-              Woman
-            </button>
+          <div className="ranking-toolbar">
+            <div className="ranking-filters">
+              <label className="ranking-toolbar-label">
+                Of which gender?
+                <select value={fullRankingView} onChange={(event) => setFullRankingView(event.target.value as RankingView)}>
+                  <option value="overall">All genders</option>
+                  <option value="women">Women</option>
+                  <option value="men">Men</option>
+                </select>
+              </label>
+              <button className="toolbar-link" onClick={() => setShowRankingFilters((current) => !current)} type="button">
+                {showRankingFilters ? "Hide filters" : "More filters..."}
+              </button>
+            </div>
+
+            <div className="ranking-pagination-meta">
+              <label className="rows-per-page">
+                Rows per page
+                <select value={rankingRowsPerPage} onChange={(event) => setRankingRowsPerPage(Number(event.target.value))}>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={30}>30</option>
+                </select>
+              </label>
+              <div className="ranking-range-text">{fullRankingRangeLabel}</div>
+              <div className="pager-actions compact">
+                <button className="theme-toggle pager-button" disabled={fullRankingPage <= 1} onClick={() => setFullRankingPage(1)} type="button">
+                  «
+                </button>
+                <button
+                  className="theme-toggle pager-button"
+                  disabled={fullRankingPage <= 1}
+                  onClick={() => setFullRankingPage((current) => Math.max(1, current - 1))}
+                  type="button"
+                >
+                  ‹
+                </button>
+                <button
+                  className="theme-toggle pager-button"
+                  disabled={fullRankingPage >= fullRankingPageCount}
+                  onClick={() => setFullRankingPage((current) => Math.min(fullRankingPageCount, current + 1))}
+                  type="button"
+                >
+                  ›
+                </button>
+                <button
+                  className="theme-toggle pager-button"
+                  disabled={fullRankingPage >= fullRankingPageCount}
+                  onClick={() => setFullRankingPage(fullRankingPageCount)}
+                  type="button"
+                >
+                  »
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="full-ranking-list" role="list" aria-label="Overall leaderboard rows">
+          {showRankingFilters ? (
+            <div className="ranking-advanced-filters">
+              <label className="ranking-toolbar-label">
+                Progress checkpoint
+                <select value={runnerCheckpointFilter} onChange={(event) => setRunnerCheckpointFilter(event.target.value)}>
+                  <option value="all">All progress</option>
+                  {defaultCheckpoints.map((checkpoint) => (
+                    <option key={checkpoint.id} value={checkpoint.id}>
+                      {formatCheckpointLabel(checkpoint)} | {checkpoint.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="mini-stat">
+                <span>Search query</span>
+                <strong>{runnerQuery.trim() || "No runner filter"}</strong>
+              </div>
+
+              <div className="mini-stat">
+                <span>Index source</span>
+                <strong>{runnerSearchMode === "server" ? "Live index" : "Fallback index"}</strong>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="ranking-column-head">
+            <span>Ranking</span>
+            <span>Runner / Team</span>
+            <span>Categ.</span>
+            <span>Progress</span>
+            <span>Time / Device</span>
+          </div>
+
+          <div className="full-ranking-list full-ranking-table" role="list" aria-label="Overall leaderboard rows">
             {fullRankingRows.length ? (
               fullRankingRows.map((entry) => {
                 return (
-                  <div className="full-ranking-row" key={`${entry.checkpointId}-${entry.bib}`} role="listitem">
-                    <div className="leaderboard-rank">
-                      <strong>#{entry.rank}</strong>
-                    </div>
-                    <div className="runner-cell">
-                      <div className="runner-avatar">{getInitials(entry.name)}</div>
-                      <div>
-                        <strong>{entry.name}</strong>
-                        <span>
-                          BIB #{entry.bib} • <span className="category-badge">{formatCategoryLabel(entry.category)}</span>
-                        </span>
+                  <div className="full-ranking-row race-ranking-row" key={`${entry.checkpointId}-${entry.bib}`} role="listitem">
+                    <div className="ranking-block">
+                      <strong>{entry.rank}</strong>
+                      <div className="ranking-submeta">
+                        <span>{fullRankingView === "women" ? "Woman" : fullRankingView === "men" ? "Man" : "Overall"}</span>
+                        <small>Age Category {entry.rank}</small>
                       </div>
                     </div>
-                    <div className="detail-cell">
-                      <span className="detail-label">Progress</span>
-                      <strong>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</strong>
-                      <span>{entry.checkpointName}</span>
+                    <div className="runner-main-cell">
+                      <div className="bib-tile">{entry.bib}</div>
+                      <div className="runner-cell">
+                        <div className="runner-avatar runner-avatar-live">{getInitials(entry.name)}</div>
+                        <div>
+                          <strong>{entry.name}</strong>
+                          <span>{entry.crewId === "seed-system" ? "Demo seeded runner" : `Crew ${entry.crewId}`}</span>
+                          <div className="runner-status-pill">Finisher</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="detail-cell">
-                      <span className="detail-label">Scan terakhir</span>
+                    <div className="race-inline-cell">
+                      <strong>{formatCategoryLabel(entry.category)}</strong>
+                      <span>{entry.category === "women" ? "F division" : "Open division"}</span>
+                    </div>
+                    <div className="race-inline-cell">
+                      <strong>{entry.checkpointName}</strong>
+                      <span>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</span>
+                    </div>
+                    <div className="race-inline-cell">
                       <strong>{formatScanTime(entry.scannedAt)}</strong>
-                    </div>
-                    <div className="detail-cell">
-                      <span className="detail-label">Crew / Device</span>
-                      <strong>{entry.crewId}</strong>
                       <span>{entry.deviceId}</span>
                     </div>
                   </div>
@@ -1222,33 +1362,43 @@ export default function App() {
             )}
           </div>
 
-          <div className="ranking-pager">
-            <div className="mini-stat">
-              <span>Rows</span>
-              <strong>{fullRankingRangeLabel}</strong>
-            </div>
-            <div className="pager-actions">
+          <div className="ranking-pager bottom">
+            <label className="rows-per-page">
+              Rows per page
+              <select value={rankingRowsPerPage} onChange={(event) => setRankingRowsPerPage(Number(event.target.value))}>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={30}>30</option>
+              </select>
+            </label>
+            <div className="ranking-range-text">{fullRankingRangeLabel}</div>
+            <div className="pager-actions compact">
+              <button className="theme-toggle pager-button" disabled={fullRankingPage <= 1} onClick={() => setFullRankingPage(1)} type="button">
+                «
+              </button>
               <button
                 className="theme-toggle pager-button"
                 disabled={fullRankingPage <= 1}
                 onClick={() => setFullRankingPage((current) => Math.max(1, current - 1))}
                 type="button"
               >
-                Prev
+                ‹
               </button>
-              <div className="meta-card pager-indicator">
-                <span>Page</span>
-                <strong>
-                  {fullRankingPage} / {fullRankingPageCount}
-                </strong>
-              </div>
               <button
                 className="theme-toggle pager-button"
                 disabled={fullRankingPage >= fullRankingPageCount}
                 onClick={() => setFullRankingPage((current) => Math.min(fullRankingPageCount, current + 1))}
                 type="button"
               >
-                Next
+                ›
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={fullRankingPage >= fullRankingPageCount}
+                onClick={() => setFullRankingPage(fullRankingPageCount)}
+                type="button"
+              >
+                »
               </button>
             </div>
           </div>
