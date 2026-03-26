@@ -2,7 +2,9 @@ import {
   type CheckpointLeaderboard,
   type DuplicateScan,
   type NotificationEvent,
-  type OverallLeaderboard
+  type OverallLeaderboard,
+  runnerSearchResponseSchema,
+  type RunnerSearchEntry
 } from "@arm/contracts";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
@@ -100,4 +102,29 @@ export async function fetchCheckpointLeaderboard(checkpointId: string, accessTok
     retries: 0,
     timeoutMs: 18000
   });
+}
+
+export async function fetchRunnerSearch(
+  input: {
+    query: string;
+    checkpointId: string;
+  },
+  accessToken: string
+): Promise<RunnerSearchEntry[]> {
+  const query = new URLSearchParams();
+
+  if (input.query.trim()) {
+    query.set("q", input.query.trim());
+  }
+
+  if (input.checkpointId && input.checkpointId !== "all") {
+    query.set("checkpointId", input.checkpointId);
+  }
+
+  const payload = await requestJson<unknown>(`/runners/search?${query.toString()}`, accessToken, {
+    retries: 1,
+    timeoutMs: 12000
+  });
+
+  return runnerSearchResponseSchema.parse(payload).items;
 }

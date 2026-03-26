@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   authProfileSchema,
@@ -8,9 +8,10 @@ import {
   type CheckpointLeaderboard,
   type DuplicateScan,
   type NotificationEvent,
-  type OverallLeaderboard
+  type OverallLeaderboard,
+  type RunnerSearchEntry
 } from "@arm/contracts";
-import { fetchCheckpointLeaderboard, fetchDashboardSnapshot } from "./api";
+import { fetchCheckpointLeaderboard, fetchDashboardSnapshot, fetchRunnerSearch } from "./api";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -34,6 +35,17 @@ function formatScanTime(value: string) {
     minute: "2-digit",
     second: "2-digit"
   });
+}
+
+function formatCheckpointProgress(entry: {
+  checkpointCode: string;
+  checkpointKmMarker: number;
+  checkpointName: string;
+}) {
+  return `${formatCheckpointLabel({
+    code: entry.checkpointCode,
+    kmMarker: entry.checkpointKmMarker
+  })} · ${entry.checkpointName}`;
 }
 
 function getApiHost() {
@@ -90,8 +102,14 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [liveStatus, setLiveStatus] = useState<"idle" | "live" | "fallback">("idle");
   const [lastLiveEventAt, setLastLiveEventAt] = useState<string | null>(null);
+  const [runnerQuery, setRunnerQuery] = useState("");
+  const [runnerCheckpointFilter, setRunnerCheckpointFilter] = useState("all");
+  const [runnerResults, setRunnerResults] = useState<RunnerSearchEntry[]>([]);
+  const [runnerSearchError, setRunnerSearchError] = useState<string | null>(null);
+  const [isSearchingRunners, setIsSearchingRunners] = useState(false);
   const hasDashboardAccess = profile ? ["admin", "panitia", "observer"].includes(profile.role) : false;
   const apiHost = getApiHost();
+  const deferredRunnerQuery = useDeferredValue(runnerQuery);
 
   useEffect(() => {
     if (!supabase) {
@@ -280,6 +298,55 @@ export default function App() {
     };
   }, [accessToken, hasDashboardAccess, lastUpdatedAt, selectedCheckpointId]);
 
+  useEffect(() => {
+    if (!accessToken || !hasDashboardAccess) {
+      setRunnerResults([]);
+      return;
+    }
+
+    const token = accessToken;
+    let isMounted = true;
+
+    async function loadRunnerSearch() {
+      try {
+        if (isMounted) {
+          setIsSearchingRunners(true);
+        }
+
+        const items = await fetchRunnerSearch(
+          {
+            query: deferredRunnerQuery,
+            checkpointId: runnerCheckpointFilter
+          },
+          token
+        );
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRunnerResults(items);
+        setRunnerSearchError(null);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setRunnerSearchError(error instanceof Error ? error.message : "Pencarian pelari gagal dimuat.");
+      } finally {
+        if (isMounted) {
+          setIsSearchingRunners(false);
+        }
+      }
+    }
+
+    void loadRunnerSearch();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, deferredRunnerQuery, hasDashboardAccess, lastUpdatedAt, runnerCheckpointFilter]);
+
   const selectedBoard = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
   }, [leaderboards, selectedCheckpointId]);
@@ -298,6 +365,13 @@ export default function App() {
 
   const lastBroadcast = notifications[0] ?? null;
   const selectedCheckpointMeta = defaultCheckpoints.find((item) => item.id === selectedBoard?.checkpointId) ?? null;
+  const runnerSearchSummary = useMemo(() => {
+    if (runnerQuery.trim() || runnerCheckpointFilter !== "all") {
+      return `${runnerResults.length} pelari cocok`;
+    }
+
+    return `Top ${runnerResults.length} runner siap dicari`;
+  }, [runnerCheckpointFilter, runnerQuery, runnerResults.length]);
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -644,34 +718,88 @@ export default function App() {
         </div>
       </section>
 
-      <section className="checkpoint-grid">
-        {leaderboards.map((board) => {
-          const checkpoint = defaultCheckpoints.find((item) => item.id === board.checkpointId);
-          const leadEntry = board.topEntries[0];
+      <section className="panel runner-search-panel">
+        <div className="panel-head">
+          <div>
+            <p className="section-label">Cari Pelari</p>
+            <h3>Search & Filter runner progress</h3>
+          </div>
+          <div className="panel-badge">
+            <span>Lookup</span>
+            <strong>{runnerSearchSummary}</strong>
+          </div>
+        </div>
 
-          return (
-            <article className="panel checkpoint-panel" key={board.checkpointId}>
-              <div className="panel-head compact">
-                <div>
-                  <p className="section-label">Checkpoint</p>
-                  <h3>{checkpoint ? formatCheckpointLabel(checkpoint) : board.checkpointId}</h3>
-                </div>
-                <div className={`state-dot ${board.totalOfficialScans > 0 ? "live" : ""}`} />
-              </div>
+        <div className="runner-search-toolbar">
+          <label>
+            Cari BIB / nama
+            <input
+              placeholder="contoh: M150 atau runner 150"
+              value={runnerQuery}
+              onChange={(event) => setRunnerQuery(event.target.value)}
+            />
+          </label>
 
-              <div className="checkpoint-body">
-                <div className="mini-stat">
-                  <span>Official</span>
-                  <strong>{board.totalOfficialScans}</strong>
+          <label>
+            Filter progress checkpoint
+            <select value={runnerCheckpointFilter} onChange={(event) => setRunnerCheckpointFilter(event.target.value)}>
+              <option value="all">Semua progress</option>
+              {defaultCheckpoints.map((checkpoint) => (
+                <option key={checkpoint.id} value={checkpoint.id}>
+                  {formatCheckpointLabel(checkpoint)} · {checkpoint.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {runnerSearchError ? <div className="empty-compact">{runnerSearchError}</div> : null}
+
+        <div className="runner-search-results">
+          {runnerResults.length ? (
+            runnerResults.map((entry) => (
+              <article className="runner-search-card" key={`${entry.rank}-${entry.bib}`}>
+                <div className="runner-search-rank">
+                  <span>Overall rank</span>
+                  <strong>#{entry.rank}</strong>
                 </div>
-                <div className="mini-stat">
-                  <span>Leader</span>
-                  <strong>{leadEntry ? `#${leadEntry.bib}` : "--"}</strong>
+                <div className="runner-search-main">
+                  <div className="runner-cell">
+                    <div className="runner-avatar">{getInitials(entry.name)}</div>
+                    <div>
+                      <strong>{entry.name}</strong>
+                      <span>BIB #{entry.bib}</span>
+                    </div>
+                  </div>
+                  <div className="runner-search-meta">
+                    <div className="detail-cell">
+                      <span className="detail-label">Progress</span>
+                      <strong>{formatCheckpointProgress(entry)}</strong>
+                    </div>
+                    <div className="detail-cell">
+                      <span className="detail-label">Scan terakhir</span>
+                      <strong>{formatScanTime(entry.scannedAt)}</strong>
+                    </div>
+                    <div className="detail-cell">
+                      <span className="detail-label">Crew / Device</span>
+                      <strong>{entry.crewId}</strong>
+                      <span>{entry.deviceId}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </article>
-          );
-        })}
+              </article>
+            ))
+          ) : (
+            <div className="empty-state">
+              <strong>{isSearchingRunners ? "Mencari pelari..." : "Belum ada pelari yang cocok."}</strong>
+              <span>
+                {runnerQuery.trim() || runnerCheckpointFilter !== "all"
+                  ? "Ubah keyword atau filter progress untuk menemukan pelari yang dicari."
+                  : "Panel ini menampilkan runner teratas lebih dulu. Ketik BIB untuk lookup cepat saat race berjalan."}
+              </span>
+            </div>
+          )}
+        </div>
       </section>
 
       <footer className="runtime-footer">

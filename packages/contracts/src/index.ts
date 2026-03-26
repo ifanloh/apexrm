@@ -73,6 +73,24 @@ export const overallLeaderboardSchema = z.object({
   topEntries: z.array(overallLeaderboardEntrySchema)
 });
 
+export const runnerSearchEntrySchema = z.object({
+  bib: z.string(),
+  name: z.string(),
+  rank: z.number().int().positive(),
+  checkpointId: z.string(),
+  checkpointCode: z.string(),
+  checkpointName: z.string(),
+  checkpointKmMarker: z.number().nonnegative(),
+  checkpointOrder: z.number().int().nonnegative(),
+  scannedAt: z.string().datetime(),
+  crewId: z.string(),
+  deviceId: z.string()
+});
+
+export const runnerSearchResponseSchema = z.object({
+  items: z.array(runnerSearchEntrySchema)
+});
+
 export const notificationEventSchema = z.object({
   id: z.string(),
   channel: z.literal("telegram"),
@@ -122,6 +140,7 @@ export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;
 export type CheckpointLeaderboard = z.infer<typeof checkpointLeaderboardSchema>;
 export type OverallLeaderboardEntry = z.infer<typeof overallLeaderboardEntrySchema>;
 export type OverallLeaderboard = z.infer<typeof overallLeaderboardSchema>;
+export type RunnerSearchEntry = z.infer<typeof runnerSearchEntrySchema>;
 export type NotificationEvent = z.infer<typeof notificationEventSchema>;
 export type LiveRaceSnapshot = z.infer<typeof liveRaceSnapshotSchema>;
 export type AuthRole = z.infer<typeof authRoleSchema>;
