@@ -19,7 +19,11 @@ export default async function handler(request: IncomingMessage, response: Server
 
     const actor = await authenticateToken(token);
     requireRole(actor, ["admin", "panitia", "observer"]);
-    sendJson(request, response, 200, await getOverallLeaderboard(sql));
+
+    const url = new URL(request.url ?? "/api/leaderboard/overall", "https://arm.local");
+    const category = url.searchParams.get("category");
+
+    sendJson(request, response, 200, await getOverallLeaderboard(sql, 50, category));
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const statusCode = /token/i.test(message) ? 401 : message === "Forbidden" ? 403 : 500;

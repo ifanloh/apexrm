@@ -302,10 +302,18 @@ export async function getLiveLeaderboard(sql: Sql) {
   }));
 }
 
-export async function getOverallLeaderboard(sql: Sql, limit = 20): Promise<OverallLeaderboard> {
+export async function getOverallLeaderboard(
+  sql: Sql,
+  limit = 20,
+  category?: string | null
+): Promise<OverallLeaderboard> {
+  const normalizedCategory = category?.trim().toLowerCase() || null;
+
   const [totals] = await sql<{ total: number }[]>`
     select count(distinct participant_id)::int as total
-    from public.scans
+    from public.scans s
+    inner join public.participants p on p.id = s.participant_id
+    where ${normalizedCategory ? sql`lower(p.category) = ${normalizedCategory}` : sql`true`}
   `;
 
   const rows = await sql<{
@@ -338,7 +346,9 @@ export async function getOverallLeaderboard(sql: Sql, limit = 20): Promise<Overa
         ) as participant_pick
       from public.scans s
       inner join public.checkpoints c on c.id = s.checkpoint_id
+      inner join public.participants p on p.id = s.participant_id
       where c.is_active = true
+        and ${normalizedCategory ? sql`lower(p.category) = ${normalizedCategory}` : sql`true`}
     ),
     latest_progress as (
       select *

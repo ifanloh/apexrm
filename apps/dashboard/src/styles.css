@@ -73,6 +73,7 @@ label {
 .topbar,
 .hero-panel,
 .control-grid,
+.spotlight-grid,
 .checkpoint-grid,
 .checkpoint-monitor-panel {
   margin-bottom: 18px;
@@ -193,6 +194,82 @@ label {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.spotlight-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.spotlight-panel {
+  background: var(--surface-strong);
+  min-height: 100%;
+}
+
+.mini-leaderboard {
+  display: grid;
+  gap: 10px;
+}
+
+.mini-leaderboard-row {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(114, 119, 131, 0.12);
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 56px minmax(0, 1fr);
+  padding: 12px 14px;
+}
+
+.mini-leaderboard-row strong {
+  color: var(--primary);
+  font-size: 1.3rem;
+}
+
+.mini-leaderboard-row span,
+.mini-leaderboard-row small {
+  display: block;
+}
+
+.mini-leaderboard-row small {
+  color: var(--ink-muted);
+}
+
+.course-profile-card {
+  display: grid;
+  gap: 14px;
+}
+
+.course-profile-track {
+  display: grid;
+  gap: 10px;
+}
+
+.course-stop {
+  background: rgba(0, 70, 145, 0.05);
+  border: 1px solid rgba(114, 119, 131, 0.12);
+  border-radius: 18px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.course-stop.active {
+  background: linear-gradient(135deg, rgba(0, 70, 145, 0.96), rgba(38, 94, 174, 0.92));
+  border-color: transparent;
+  color: white;
+}
+
+.course-stop span,
+.course-stop small {
+  color: var(--ink-muted);
+}
+
+.course-stop.active span,
+.course-stop.active small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
 .metric-card {
   background: var(--surface-strong);
   display: flex;
@@ -273,6 +350,27 @@ label {
   background:
     linear-gradient(180deg, rgba(215, 226, 255, 0.42), rgba(255, 255, 255, 0.92) 26%),
     var(--surface-strong);
+}
+
+.full-ranking-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.full-ranking-list {
+  display: grid;
+  gap: 12px;
+}
+
+.full-ranking-row {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(114, 119, 131, 0.12);
+  border-radius: 22px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 84px minmax(220px, 1.2fr) repeat(3, minmax(120px, 1fr));
+  padding: 14px;
 }
 
 .rail {
@@ -641,12 +739,14 @@ label {
 @media (max-width: 1180px) {
   .hero-panel,
   .control-grid,
-  .runner-hub-grid {
+  .runner-hub-grid,
+  .spotlight-grid {
     grid-template-columns: 1fr;
   }
 
   .leaderboard-head,
-  .leaderboard-row {
+  .leaderboard-row,
+  .full-ranking-row {
     grid-template-columns: 72px minmax(180px, 1.1fr) repeat(3, minmax(90px, 1fr));
   }
 }
@@ -669,7 +769,8 @@ label {
     display: none;
   }
 
-  .leaderboard-row {
+  .leaderboard-row,
+  .full-ranking-row {
     grid-template-columns: 72px 1fr;
   }
 
@@ -711,7 +812,8 @@ label {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .leaderboard-row {
+  .leaderboard-row,
+  .full-ranking-row {
     grid-template-columns: 1fr;
   }
 

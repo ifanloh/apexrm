@@ -13,7 +13,13 @@ import {
   type RunnerPassing,
   type RunnerSearchEntry
 } from "@arm/contracts";
-import { fetchCheckpointLeaderboard, fetchDashboardSnapshot, fetchRunnerDetail, fetchRunnerSearch } from "./api";
+import {
+  fetchCheckpointLeaderboard,
+  fetchDashboardSnapshot,
+  fetchOverallLeaderboard,
+  fetchRunnerDetail,
+  fetchRunnerSearch
+} from "./api";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -212,6 +218,7 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [overallLeaderboard, setOverallLeaderboard] = useState<OverallLeaderboard>(emptyOverallLeaderboard);
+  const [womenLeaderboard, setWomenLeaderboard] = useState<OverallLeaderboard>(emptyOverallLeaderboard);
   const [leaderboards, setLeaderboards] = useState<CheckpointLeaderboard[]>([]);
   const [duplicates, setDuplicates] = useState<DuplicateScan[]>([]);
   const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
@@ -291,7 +298,10 @@ export default function App() {
           throw new Error("Akun ini tidak punya akses dashboard.");
         }
 
-        const snapshot = await fetchDashboardSnapshot(token);
+        const [snapshot, nextWomenLeaderboard] = await Promise.all([
+          fetchDashboardSnapshot(token),
+          fetchOverallLeaderboard(token, "women").catch(() => emptyOverallLeaderboard)
+        ]);
         const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
         if (!isMounted) {
@@ -299,6 +309,7 @@ export default function App() {
         }
 
         setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
+        setWomenLeaderboard(nextWomenLeaderboard ?? emptyOverallLeaderboard);
         setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
         setDuplicates(snapshot.duplicates);
         setNotifications(snapshot.notifications);
@@ -349,10 +360,14 @@ export default function App() {
 
       debounceId = window.setTimeout(async () => {
         try {
-          const snapshot = await fetchDashboardSnapshot(accessToken);
+          const [snapshot, nextWomenLeaderboard] = await Promise.all([
+            fetchDashboardSnapshot(accessToken),
+            fetchOverallLeaderboard(accessToken, "women").catch(() => emptyOverallLeaderboard)
+          ]);
           const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
           setOverallLeaderboard(snapshot.overallLeaderboard ?? emptyOverallLeaderboard);
+          setWomenLeaderboard(nextWomenLeaderboard ?? emptyOverallLeaderboard);
           setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
           setDuplicates(snapshot.duplicates);
           setNotifications(snapshot.notifications);
@@ -563,6 +578,24 @@ export default function App() {
     return leaderboards.filter((item) => item.totalOfficialScans > 0).length;
   }, [leaderboards]);
 
+  const courseProfileStops = useMemo(() => {
+    return defaultCheckpoints.map((checkpoint) => {
+      const board = leaderboards.find((item) => item.checkpointId === checkpoint.id);
+      const leader = board?.topEntries[0] ?? null;
+      const isLeaderHere = overallLeader?.checkpointId === checkpoint.id;
+
+      return {
+        ...checkpoint,
+        totalOfficialScans: board?.totalOfficialScans ?? 0,
+        leaderBib: leader?.bib ?? null,
+        isLeaderHere
+      };
+    });
+  }, [leaderboards, overallLeader]);
+
+  const featuredOverallRows = overallLeaderboard.topEntries.slice(0, 5);
+  const featuredWomenRows = womenLeaderboard.topEntries.slice(0, 5);
+
   const lastBroadcast = notifications[0] ?? null;
   const selectedCheckpointMeta = defaultCheckpoints.find((item) => item.id === selectedBoard?.checkpointId) ?? null;
   const runnerSearchSummary = useMemo(() => {
@@ -709,11 +742,11 @@ export default function App() {
 
       <section className="hero-panel">
         <div>
-          <p className="section-label">Overall Race Ranking</p>
-          <h2>Leaderboard utama sekarang membaca progres race secara keseluruhan, bukan hanya per checkpoint.</h2>
+          <p className="section-label">Race Hub</p>
+          <h2>Live race dashboard yang fokus ke progress runner, passings, dan course monitoring.</h2>
           <p className="section-copy">
-            Pelari diurutkan berdasarkan checkpoint terjauh yang sudah dicapai, lalu waktu scan tercepat pada checkpoint
-            terakhir itu. Panel checkpoint tetap ada, tapi sekarang fungsinya sebagai monitor operasional sekunder.
+            Susunannya dibuat lebih dekat ke pengalaman race hub: ada spotlight ranking di atas, course profile yang
+            mudah dibaca, lalu full ranking berbentuk rows supaya tidak melelahkan saat memantau banyak pelari.
           </p>
         </div>
         <div className="hero-metrics">
@@ -736,13 +769,82 @@ export default function App() {
         </div>
       </section>
 
+      <section className="spotlight-grid">
+        <article className="panel spotlight-panel">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Overall</p>
+              <h3>Top Overall</h3>
+            </div>
+          </div>
+          <div className="mini-leaderboard">
+            {featuredOverallRows.length ? (
+              featuredOverallRows.map((entry) => (
+                <div className="mini-leaderboard-row" key={`overall-${entry.bib}`}>
+                  <strong>#{entry.rank}</strong>
+                  <div>
+                    <span>BIB {entry.bib}</span>
+                    <small>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</small>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="empty-compact">Belum ada pelari di overall ranking.</div>
+            )}
+          </div>
+        </article>
+
+        <article className="panel spotlight-panel">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Women</p>
+              <h3>Top Women</h3>
+            </div>
+          </div>
+          <div className="mini-leaderboard">
+            {featuredWomenRows.length ? (
+              featuredWomenRows.map((entry) => (
+                <div className="mini-leaderboard-row" key={`women-${entry.bib}`}>
+                  <strong>#{entry.rank}</strong>
+                  <div>
+                    <span>BIB {entry.bib}</span>
+                    <small>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</small>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="empty-compact">Belum ada runner kategori women di data event ini.</div>
+            )}
+          </div>
+        </article>
+
+        <article className="panel spotlight-panel course-profile-card">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Course Profile</p>
+              <h3>Checkpoint Progression</h3>
+            </div>
+          </div>
+          <div className="course-profile-track">
+            {courseProfileStops.map((stop) => (
+              <div className={`course-stop ${stop.isLeaderHere ? "active" : ""}`} key={stop.id}>
+                <span>{stop.code}</span>
+                <strong>KM {stop.kmMarker}</strong>
+                <small>{stop.totalOfficialScans} scan</small>
+                <small>{stop.leaderBib ? `Leader ${stop.leaderBib}` : "Belum ada leader"}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
       {fetchError ? <div className="notice-banner error">{fetchError}</div> : null}
 
       <section className="control-grid">
-        <article className="panel leaderboard-panel">
+        <article className="panel leaderboard-panel full-ranking-panel">
           <div className="panel-head">
             <div>
-              <p className="section-label">Overall Ranking</p>
+              <p className="section-label">Full Ranking</p>
               <h3>Standings resmi seluruh race</h3>
             </div>
             <div className="panel-badge">
@@ -751,21 +853,13 @@ export default function App() {
             </div>
           </div>
 
-          <div className="leaderboard-table" role="table" aria-label="Overall leaderboard">
-            <div className="leaderboard-head" role="row">
-              <span>Rank</span>
-              <span>Pelari</span>
-              <span>Progress</span>
-              <span>Scan terakhir</span>
-              <span>Crew / Device</span>
-            </div>
-
+          <div className="full-ranking-list" role="list" aria-label="Overall leaderboard rows">
             {overallLeaderboard.topEntries.length ? (
               overallLeaderboard.topEntries.map((entry) => {
                 const runnerLabel = `Runner ${entry.bib}`;
 
                 return (
-                  <div className="leaderboard-row" key={`${entry.checkpointId}-${entry.bib}`} role="row">
+                  <div className="full-ranking-row" key={`${entry.checkpointId}-${entry.bib}`} role="listitem">
                     <div className="leaderboard-rank">
                       <strong>#{entry.rank}</strong>
                     </div>

@@ -80,10 +80,7 @@ async function requestJson<T>(
 
 export async function fetchDashboardSnapshot(accessToken: string) {
   const [overallLeaderboard, leaderboardPayload, duplicatePayload, notificationPayload] = await Promise.all([
-    requestJson<OverallLeaderboard>("/leaderboard/overall", accessToken, {
-      retries: 1,
-      timeoutMs: 15000
-    }),
+    fetchOverallLeaderboard(accessToken),
     requestJson<{ items: CheckpointLeaderboard[] }>("/leaderboard/live", accessToken),
     requestJson<{ items: DuplicateScan[] }>("/audit/duplicates", accessToken),
     requestJson<{ items: NotificationEvent[] }>("/notifications", accessToken)
@@ -103,6 +100,20 @@ export async function fetchCheckpointLeaderboard(checkpointId: string, accessTok
   return requestJson<CheckpointLeaderboard>(`/leaderboard/live/${checkpointId}`, accessToken, {
     retries: 0,
     timeoutMs: 18000
+  });
+}
+
+export async function fetchOverallLeaderboard(accessToken: string, category?: string) {
+  const query = new URLSearchParams();
+
+  if (category) {
+    query.set("category", category);
+  }
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return requestJson<OverallLeaderboard>(`/leaderboard/overall${suffix}`, accessToken, {
+    retries: 1,
+    timeoutMs: 15000
   });
 }
 
