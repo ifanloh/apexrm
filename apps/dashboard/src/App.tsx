@@ -674,8 +674,8 @@ export default function App() {
     });
   }, [leaderboards, overallLeader]);
 
-  const featuredOverallRows = overallLeaderboard.topEntries.slice(0, 5);
-  const featuredWomenRows = womenLeaderboard.topEntries.slice(0, 5);
+  const featuredOverallRows = overallLeaderboard.topEntries.slice(0, 3);
+  const featuredWomenRows = womenLeaderboard.topEntries.slice(0, 3);
 
   const lastBroadcast = notifications[0] ?? null;
   const latestPassing = recentPassings[0] ?? null;
@@ -703,11 +703,46 @@ export default function App() {
 
     return `${recentPassings.length} passing terbaru`;
   }, [recentPassings.length]);
+  const totalDistanceKm = defaultCheckpoints[defaultCheckpoints.length - 1]?.kmMarker ?? 0;
+  const fullRankingRows = overallLeaderboard.topEntries.slice(0, 18);
+  const selectedCheckpointEntries = selectedBoard?.topEntries.slice(0, 3) ?? [];
+  const eventTitle = "Mini Race Control";
+  const eventSubtitle = "Live race hub untuk monitor progress, passings, favorites, dan audit lapangan.";
+  const routeHighlightCheckpoint = selectedCheckpointMeta ?? defaultCheckpoints[0];
+  const sidebarLinks = [
+    {
+      title: "Overview",
+      items: [
+        { label: "Race hub", href: "#race-hub" },
+        { label: "Ranking", href: "#full-ranking" }
+      ]
+    },
+    {
+      title: "Runners",
+      items: [
+        { label: "Runner finder", href: "#runner-finder" },
+        { label: "Favorites", href: "#favorites" }
+      ]
+    },
+    {
+      title: "Signals",
+      items: [
+        { label: "Recent passings", href: "#recent-passings" },
+        { label: "Broadcast & audit", href: "#signals" }
+      ]
+    }
+  ];
 
   function toggleFavoriteBib(bib: string) {
     setFavoriteBibs((current) =>
       current.includes(bib) ? current.filter((item) => item !== bib) : [...current, bib].sort((left, right) => left.localeCompare(right))
     );
+  }
+
+  function handleLogout() {
+    if (supabase) {
+      void supabase.auth.signOut();
+    }
   }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -795,11 +830,7 @@ export default function App() {
             <button
               className="checkpoint-chip active"
               style={{ justifyContent: "center" }}
-              onClick={() => {
-                if (supabase) {
-                  void supabase.auth.signOut();
-                }
-              }}
+              onClick={handleLogout}
               type="button"
             >
               <span style={{ color: "white" }}>Logout</span>
@@ -811,38 +842,168 @@ export default function App() {
   }
 
   return (
-    <main className="dashboard-shell">
-      <header className="topbar">
-        <div className="brand-block">
-          <span className="brand-kicker">Live Data Feed</span>
-          <h1>Race Control</h1>
+    <main className="dashboard-shell dashboard-hub-shell">
+      <aside className="dashboard-sidebar">
+        <div className="sidebar-brand">
+          <span className="brand-kicker">ApexRM Live</span>
+          <h1>Race Hub</h1>
+          <p>{eventTitle}</p>
         </div>
-        <div className="topbar-meta">
-          <div className="meta-pill">
-            <span className="meta-dot" />
-            {liveStatus === "live" ? "Live Realtime" : "Polling Fallback"}
-          </div>
-          <div className="meta-card">
-            <span>{profile?.role ?? "role"}</span>
-            <strong>{isRefreshing ? "sync..." : profile?.crewCode ?? lastUpdatedAt ?? "--:--:--"}</strong>
-          </div>
-        </div>
-      </header>
 
-      <section className="hero-panel">
-        <div>
-          <p className="section-label">Race Hub</p>
-          <h2>Live race dashboard yang fokus ke progress runner, passings, dan course monitoring.</h2>
-          <p className="section-copy">
-            Susunannya dibuat lebih dekat ke pengalaman race hub: ada spotlight ranking di atas, course profile yang
-            mudah dibaca, lalu full ranking berbentuk rows supaya tidak melelahkan saat memantau banyak pelari.
-          </p>
-        </div>
-        <div className="hero-metrics">
-          <article className="metric-card primary">
-            <span>Overall ranked runners</span>
-            <strong>{totalRankedRunners}</strong>
-          </article>
+        <nav className="sidebar-nav" aria-label="Dashboard navigation">
+          {sidebarLinks.map((group) => (
+            <section className="nav-group" key={group.title}>
+              <h2>{group.title}</h2>
+              <div className="nav-links">
+                {group.items.map((item) => (
+                  <a className="nav-link" href={item.href} key={item.href}>
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+            </section>
+          ))}
+        </nav>
+
+        <article className="sidebar-card" id="favorites">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">My Runners</p>
+              <h3>Favorites</h3>
+            </div>
+          </div>
+          <div className="sidebar-chip-list">
+            {favoriteRunnerResults.length ? (
+              favoriteRunnerResults.map((entry) => (
+                <button
+                  className={`sidebar-chip ${selectedRunnerBib === entry.bib ? "active" : ""}`}
+                  key={`sidebar-favorite-${entry.bib}`}
+                  onClick={() => setSelectedRunnerBib(entry.bib)}
+                  type="button"
+                >
+                  <strong>{entry.bib}</strong>
+                  <span>#{entry.rank}</span>
+                </button>
+              ))
+            ) : (
+              <div className="empty-compact">Belum ada favorit. Tandai runner dari hasil search untuk pantau cepat.</div>
+            )}
+          </div>
+        </article>
+
+        <article className="sidebar-card">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Checkpoint Focus</p>
+              <h3>{selectedCheckpointMeta ? formatCheckpointLabel(selectedCheckpointMeta) : "Checkpoint"}</h3>
+            </div>
+          </div>
+          <div className="checkpoint-strip" aria-label="Checkpoint switcher">
+            {leaderboards.map((board) => {
+              const checkpoint = defaultCheckpoints.find((item) => item.id === board.checkpointId);
+              const isActive = board.checkpointId === selectedBoard?.checkpointId;
+
+              return (
+                <button
+                  className={`checkpoint-chip ${isActive ? "active" : ""}`}
+                  key={`sidebar-${board.checkpointId}`}
+                  onClick={() => setSelectedCheckpointId(board.checkpointId)}
+                  type="button"
+                >
+                  <span>{checkpoint ? checkpoint.code : board.checkpointId}</span>
+                  <strong>{board.totalOfficialScans}</strong>
+                </button>
+              );
+            })}
+          </div>
+          <div className="sidebar-mini-list">
+            {selectedCheckpointEntries.length ? (
+              selectedCheckpointEntries.map((entry) => (
+                <div className="sidebar-mini-row" key={`checkpoint-focus-${entry.bib}-${entry.position}`}>
+                  <strong>#{entry.position}</strong>
+                  <div>
+                    <span>BIB {entry.bib}</span>
+                    <small>{formatScanTime(entry.scannedAt)}</small>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="empty-compact">Belum ada scan resmi di checkpoint ini.</div>
+            )}
+          </div>
+        </article>
+
+        <button className="sidebar-logout" onClick={handleLogout} type="button">
+          Logout
+        </button>
+      </aside>
+
+      <div className="dashboard-main">
+        <header className="topbar topbar-hub">
+          <div className="topbar-left">
+            <div className="brand-block">
+              <span className="brand-kicker">Live Data Feed</span>
+              <h1>Race Control</h1>
+            </div>
+            <label className="topbar-select">
+              <span className="detail-label">Race view</span>
+              <select defaultValue="mini-race-live">
+                <option value="mini-race-live">Mini Race Live</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="topbar-search">
+            <span className="detail-label">Search a runner</span>
+            <input
+              placeholder="Cari BIB atau nama runner..."
+              value={runnerQuery}
+              onChange={(event) => setRunnerQuery(event.target.value)}
+            />
+          </label>
+
+          <div className="topbar-meta">
+            <div className="meta-pill">
+              <span className={`meta-dot ${liveStatus === "live" ? "live" : ""}`} />
+              {liveStatus === "live" ? "Live Realtime" : "Polling Fallback"}
+            </div>
+            <div className="meta-card">
+              <span>{profile?.role ?? "role"}</span>
+              <strong>{isRefreshing ? "sync..." : lastUpdatedAt ?? "--:--:--"}</strong>
+            </div>
+          </div>
+        </header>
+
+        <section className="hero-panel hero-race-panel" id="race-hub">
+          <div className="hero-copy">
+            <div className="hero-badges">
+              <span className="status-chip active">Live</span>
+              <span className="status-chip">{liveStatus === "live" ? "Realtime active" : "Fallback mode"}</span>
+              <span className="status-chip">Updated {lastUpdatedAt ?? "--:--:--"}</span>
+            </div>
+            <p className="section-label">Race Hub</p>
+            <h2>{eventTitle}</h2>
+            <p className="section-copy">{eventSubtitle}</p>
+            <div className="hero-inline-stats">
+              <div className="inline-stat">
+                <span>Distance</span>
+                <strong>{totalDistanceKm.toFixed(1)} KM</strong>
+              </div>
+              <div className="inline-stat">
+                <span>Leader</span>
+                <strong>{overallLeader ? `BIB ${overallLeader.bib}` : "--"}</strong>
+              </div>
+              <div className="inline-stat">
+                <span>Recent passing</span>
+                <strong>{latestPassing ? formatRelativeTime(latestPassing.scannedAt) : "Belum ada"}</strong>
+              </div>
+            </div>
+          </div>
+          <div className="hero-metrics">
+            <article className="metric-card primary">
+              <span>Overall ranked runners</span>
+              <strong>{totalRankedRunners}</strong>
+            </article>
           <article className="metric-card">
             <span>Total scan resmi</span>
             <strong>{totalOfficialScans}</strong>
@@ -850,13 +1011,13 @@ export default function App() {
           <article className="metric-card">
             <span>Checkpoint aktif</span>
             <strong>{activeCheckpointCount}</strong>
-          </article>
-          <article className="metric-card">
-            <span>Leader saat ini</span>
-            <strong>{overallLeader ? `#${overallLeader.bib}` : "--"}</strong>
-          </article>
-        </div>
-      </section>
+            </article>
+            <article className="metric-card">
+              <span>Recent passings</span>
+              <strong>{recentPassings.length}</strong>
+            </article>
+          </div>
+        </section>
 
       <section className="spotlight-grid">
         <article className="panel spotlight-panel">
@@ -1187,15 +1348,6 @@ export default function App() {
 
         <div className="runner-search-toolbar">
           <label>
-            Cari BIB / nama
-            <input
-              placeholder="contoh: M150 atau runner 150"
-              value={runnerQuery}
-              onChange={(event) => setRunnerQuery(event.target.value)}
-            />
-          </label>
-
-          <label>
             Filter progress checkpoint
             <select value={runnerCheckpointFilter} onChange={(event) => setRunnerCheckpointFilter(event.target.value)}>
               <option value="all">Semua progress</option>
@@ -1206,6 +1358,11 @@ export default function App() {
               ))}
             </select>
           </label>
+
+          <div className="mini-stat">
+            <span>Current search</span>
+            <strong>{runnerQuery.trim() ? runnerQuery : "Semua pelari"}</strong>
+          </div>
         </div>
 
         {runnerSearchError ? <div className="empty-compact">{runnerSearchError}</div> : null}
@@ -1237,53 +1394,47 @@ export default function App() {
                 const isFavorite = favoriteBibs.includes(entry.bib);
 
                 return (
-                  <button
-                    className={`runner-search-card ${isSelected ? "selected" : ""}`}
-                    key={`${entry.rank}-${entry.bib}`}
-                    onClick={() => setSelectedRunnerBib(entry.bib)}
-                    type="button"
-                  >
-                    <div className="runner-search-rank">
-                      <span>Overall rank</span>
-                      <strong>#{entry.rank}</strong>
+                  <article className={`runner-search-card ${isSelected ? "selected" : ""}`} key={`${entry.rank}-${entry.bib}`}>
+                    <div className="runner-card-head">
+                      <div className="runner-cell">
+                        <div className="runner-avatar">{getInitials(entry.name)}</div>
+                        <div>
+                          <strong>{entry.name}</strong>
+                          <span>BIB #{entry.bib}</span>
+                        </div>
+                      </div>
+                      <button
+                        className={`favorite-toggle ${isFavorite ? "active" : ""}`}
+                        onClick={() => toggleFavoriteBib(entry.bib)}
+                        type="button"
+                      >
+                        {isFavorite ? "Favorit" : "Ikuti"}
+                      </button>
                     </div>
-                    <div className="runner-search-main">
-                      <div className="runner-card-head">
-                        <div className="runner-cell">
-                          <div className="runner-avatar">{getInitials(entry.name)}</div>
-                          <div>
-                            <strong>{entry.name}</strong>
-                            <span>BIB #{entry.bib}</span>
+                    <button className="runner-card-select" onClick={() => setSelectedRunnerBib(entry.bib)} type="button">
+                      <div className="runner-search-rank">
+                        <span>Overall rank</span>
+                        <strong>#{entry.rank}</strong>
+                      </div>
+                      <div className="runner-search-main">
+                        <div className="runner-search-meta">
+                          <div className="detail-cell">
+                            <span className="detail-label">Progress</span>
+                            <strong>{formatCheckpointProgress(entry)}</strong>
+                          </div>
+                          <div className="detail-cell">
+                            <span className="detail-label">Scan terakhir</span>
+                            <strong>{formatScanTime(entry.scannedAt)}</strong>
+                          </div>
+                          <div className="detail-cell">
+                            <span className="detail-label">Crew / Device</span>
+                            <strong>{entry.crewId}</strong>
+                            <span>{entry.deviceId}</span>
                           </div>
                         </div>
-                        <button
-                          className={`favorite-toggle ${isFavorite ? "active" : ""}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            toggleFavoriteBib(entry.bib);
-                          }}
-                          type="button"
-                        >
-                          {isFavorite ? "Favorit" : "Ikuti"}
-                        </button>
                       </div>
-                      <div className="runner-search-meta">
-                        <div className="detail-cell">
-                          <span className="detail-label">Progress</span>
-                          <strong>{formatCheckpointProgress(entry)}</strong>
-                        </div>
-                        <div className="detail-cell">
-                          <span className="detail-label">Scan terakhir</span>
-                          <strong>{formatScanTime(entry.scannedAt)}</strong>
-                        </div>
-                        <div className="detail-cell">
-                          <span className="detail-label">Crew / Device</span>
-                          <strong>{entry.crewId}</strong>
-                          <span>{entry.deviceId}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </button>
+                    </button>
+                  </article>
                 );
               })
             ) : (
@@ -1397,6 +1548,7 @@ export default function App() {
         <span>Live {liveStatus}</span>
         {lastLiveEventAt ? <span>Last event {lastLiveEventAt}</span> : null}
       </footer>
+      </div>
     </main>
   );
 }
