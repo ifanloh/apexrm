@@ -11,11 +11,11 @@ export const checkpointSchema = z.object({
 });
 
 export const defaultCheckpoints = [
-  { id: "cp-start", code: "START", name: "Start Line", kmMarker: 0, order: 0 },
-  { id: "cp-10", code: "CP1", name: "Checkpoint 1", kmMarker: 10, order: 1 },
-  { id: "cp-21", code: "CP2", name: "Checkpoint 2", kmMarker: 21, order: 2 },
-  { id: "cp-30", code: "CP3", name: "Checkpoint 3", kmMarker: 30, order: 3 },
-  { id: "finish", code: "FIN", name: "Finish", kmMarker: 42, order: 4 }
+  { id: "cp-start", code: "START", name: "Millau", kmMarker: 0, order: 0 },
+  { id: "cp-10", code: "CP1", name: "Peyreleau", kmMarker: 23.3, order: 1 },
+  { id: "cp-21", code: "CP2", name: "Roquesaltes", kmMarker: 44.4, order: 2 },
+  { id: "cp-30", code: "CP3", name: "La Salvage", kmMarker: 55.9, order: 3 },
+  { id: "finish", code: "FIN", name: "Arrivee Millau", kmMarker: 80.6, order: 4 }
 ] as const satisfies ReadonlyArray<z.infer<typeof checkpointSchema>>;
 
 export const scanSubmissionSchema = z.object({
@@ -57,6 +57,8 @@ export const checkpointLeaderboardSchema = z.object({
 
 export const overallLeaderboardEntrySchema = z.object({
   bib: z.string(),
+  name: z.string(),
+  category: z.string(),
   rank: z.number().int().positive(),
   checkpointId: z.string(),
   checkpointCode: z.string(),

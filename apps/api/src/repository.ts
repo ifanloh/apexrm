@@ -319,6 +319,8 @@ export async function getOverallLeaderboard(
 
   const rows = await sql<{
     bib: string;
+    name: string;
+    category: string;
     checkpoint_id: string;
     checkpoint_code: string;
     checkpoint_name: string;
@@ -333,6 +335,8 @@ export async function getOverallLeaderboard(
       select
         s.participant_id,
         s.bib,
+        p.name,
+        p.category,
         s.checkpoint_id,
         c.code as checkpoint_code,
         c.name as checkpoint_name,
@@ -366,6 +370,8 @@ export async function getOverallLeaderboard(
     )
     select
       bib,
+      name,
+      category,
       checkpoint_id,
       checkpoint_code,
       checkpoint_name,
@@ -382,6 +388,8 @@ export async function getOverallLeaderboard(
 
   const topEntries: OverallLeaderboardEntry[] = rows.map((row) => ({
     bib: row.bib,
+    name: row.name,
+    category: row.category,
     rank: Number(row.rank),
     checkpointId: row.checkpoint_id,
     checkpointCode: row.checkpoint_code,

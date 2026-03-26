@@ -569,6 +569,117 @@ a {
   gap: 12px;
 }
 
+.course-profile-summary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.course-stat-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  display: grid;
+  gap: 6px;
+  min-height: 88px;
+  padding: 12px 14px;
+}
+
+.course-stat-card span,
+.course-stat-card small,
+.course-waypoint-pill span,
+.course-waypoint-pill small {
+  color: var(--ink-muted);
+}
+
+.course-stat-card strong,
+.course-waypoint-pill strong {
+  font-size: 1rem;
+}
+
+.course-elevation-card {
+  background:
+    linear-gradient(180deg, rgba(255, 191, 110, 0.08), rgba(17, 18, 23, 0.96)),
+    rgba(17, 18, 23, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  display: grid;
+  gap: 10px;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.course-elevation-chart {
+  display: block;
+  height: 240px;
+  width: 100%;
+}
+
+.course-grid-line {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-dasharray: 6 8;
+  stroke-width: 1;
+}
+
+.course-area {
+  fill: url(#courseElevationFill);
+}
+
+.course-line {
+  fill: none;
+  stroke: var(--gold);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.course-marker-line {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-dasharray: 4 6;
+  stroke-width: 1.5;
+}
+
+.course-marker-line.selected {
+  stroke: rgba(255, 191, 110, 0.76);
+  stroke-width: 2;
+}
+
+.course-marker-point {
+  fill: rgba(255, 255, 255, 0.9);
+  stroke: rgba(17, 18, 23, 0.95);
+  stroke-width: 2;
+}
+
+.course-marker-point.leader {
+  fill: var(--green);
+}
+
+.course-marker-point.selected {
+  fill: var(--gold);
+}
+
+.course-marker-label {
+  fill: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.course-marker-label.selected {
+  fill: var(--gold);
+}
+
+.course-scale {
+  align-items: center;
+  color: var(--ink-muted);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
 .course-profile-track {
   display: grid;
   gap: 10px;
@@ -593,6 +704,10 @@ a {
   color: #19120c;
 }
 
+.course-stop.selected {
+  box-shadow: 0 0 0 3px rgba(255, 191, 110, 0.22);
+}
+
 .course-stop span,
 .course-stop small {
   color: var(--ink-muted);
@@ -601,6 +716,23 @@ a {
 .course-stop.active span,
 .course-stop.active small {
   color: rgba(25, 18, 12, 0.7);
+}
+
+.course-waypoint-strip {
+  display: flex;
+  gap: 10px;
+  overflow: auto;
+  padding-bottom: 4px;
+}
+
+.course-waypoint-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  display: grid;
+  gap: 4px;
+  min-width: 138px;
+  padding: 10px 12px;
 }
 
 .control-grid {
@@ -708,6 +840,18 @@ a {
 .detail-cell {
   display: grid;
   gap: 6px;
+}
+
+.category-badge {
+  background: rgba(255, 191, 110, 0.14);
+  border-radius: 999px;
+  color: var(--gold);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  text-transform: uppercase;
 }
 
 .status-inline.finish {
@@ -1000,6 +1144,7 @@ a {
 
   .hero-inline-stats,
   .hero-metrics,
+  .course-profile-summary,
   .runner-search-toolbar,
   .runner-search-meta,
   .runner-detail-stats,

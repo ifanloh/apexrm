@@ -22,6 +22,8 @@ import {
   fetchRunnerDetail,
   fetchRunnerSearch
 } from "./api";
+import { CourseProfilePanel } from "./CourseProfilePanel";
+import { demoCourse } from "./demoCourse";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -91,6 +93,10 @@ function formatRelativeTime(value: string) {
   return new Date(value).toLocaleDateString();
 }
 
+function formatCategoryLabel(category: string) {
+  return category === "women" ? "Women" : category === "men" ? "Men" : category;
+}
+
 function deriveProfileFromSession(session: Session): AuthProfile {
   const appMetadata = session.user.app_metadata ?? {};
   const userMetadata = session.user.user_metadata ?? {};
@@ -148,8 +154,17 @@ function buildRunnerFallbackResults(
 
   return entries
     .map<RunnerSearchEntry>((entry) => ({
-      ...entry,
-      name: `Runner ${entry.bib}`
+      bib: entry.bib,
+      name: entry.name,
+      rank: entry.rank,
+      checkpointId: entry.checkpointId,
+      checkpointCode: entry.checkpointCode,
+      checkpointName: entry.checkpointName,
+      checkpointKmMarker: entry.checkpointKmMarker,
+      checkpointOrder: entry.checkpointOrder,
+      scannedAt: entry.scannedAt,
+      crewId: entry.crewId,
+      deviceId: entry.deviceId
     }))
     .filter((entry) => {
       const matchesQuery =
@@ -174,7 +189,7 @@ function buildRunnerDetailFallback(
 
   return {
     bib: match.bib,
-    name: `Runner ${match.bib}`,
+    name: match.name,
     rank: match.rank,
     currentCheckpointId: match.checkpointId,
     currentCheckpointCode: match.checkpointCode,
@@ -251,7 +266,7 @@ async function buildRunnerDetailFromCheckpointBoards(
 
   return {
     bib: overallEntry.bib,
-    name: `Runner ${overallEntry.bib}`,
+    name: overallEntry.name,
     rank: overallEntry.rank,
     currentCheckpointId: overallEntry.checkpointId,
     currentCheckpointCode: overallEntry.checkpointCode,
@@ -660,7 +675,7 @@ export default function App() {
   }, [leaderboards]);
 
   const courseProfileStops = useMemo(() => {
-    return defaultCheckpoints.map((checkpoint) => {
+    return demoCourse.checkpoints.map((checkpoint) => {
       const board = leaderboards.find((item) => item.checkpointId === checkpoint.id);
       const leader = board?.topEntries[0] ?? null;
       const isLeaderHere = overallLeader?.checkpointId === checkpoint.id;
@@ -689,12 +704,7 @@ export default function App() {
   }, [runnerCheckpointFilter, runnerQuery, runnerResults.length]);
   const favoriteRunnerResults = useMemo(() => {
     const favoriteSet = new Set(favoriteBibs);
-    return overallLeaderboard.topEntries
-      .filter((entry) => favoriteSet.has(entry.bib))
-      .map((entry) => ({
-        ...entry,
-        name: `Runner ${entry.bib}`
-      }));
+    return overallLeaderboard.topEntries.filter((entry) => favoriteSet.has(entry.bib));
   }, [favoriteBibs, overallLeaderboard.topEntries]);
   const recentPassingSummary = useMemo(() => {
     if (!recentPassings.length) {
@@ -703,12 +713,11 @@ export default function App() {
 
     return `${recentPassings.length} passing terbaru`;
   }, [recentPassings.length]);
-  const totalDistanceKm = defaultCheckpoints[defaultCheckpoints.length - 1]?.kmMarker ?? 0;
+  const totalDistanceKm = demoCourse.distanceKm;
   const fullRankingRows = overallLeaderboard.topEntries.slice(0, 18);
   const selectedCheckpointEntries = selectedBoard?.topEntries.slice(0, 3) ?? [];
-  const eventTitle = "Mini Race Control";
-  const eventSubtitle = "Live race hub untuk monitor progress, passings, favorites, dan audit lapangan.";
-  const routeHighlightCheckpoint = selectedCheckpointMeta ?? defaultCheckpoints[0];
+  const eventTitle = demoCourse.title;
+  const eventSubtitle = `${demoCourse.location} • ${demoCourse.subtitle}`;
   const sidebarLinks = [
     {
       title: "Overview",
@@ -990,12 +999,12 @@ export default function App() {
                 <strong>{totalDistanceKm.toFixed(1)} KM</strong>
               </div>
               <div className="inline-stat">
-                <span>Leader</span>
-                <strong>{overallLeader ? `BIB ${overallLeader.bib}` : "--"}</strong>
+                <span>Ascent</span>
+                <strong>{demoCourse.ascentM} M+</strong>
               </div>
               <div className="inline-stat">
-                <span>Recent passing</span>
-                <strong>{latestPassing ? formatRelativeTime(latestPassing.scannedAt) : "Belum ada"}</strong>
+                <span>Descent</span>
+                <strong>{demoCourse.descentM} M-</strong>
               </div>
             </div>
           </div>
@@ -1020,24 +1029,11 @@ export default function App() {
         </section>
 
       <section className="spotlight-grid">
-        <article className="panel spotlight-panel course-profile-card">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Course Profile</p>
-              <h3>Checkpoint Progression</h3>
-            </div>
-          </div>
-          <div className="course-profile-track">
-            {courseProfileStops.map((stop) => (
-              <div className={`course-stop ${stop.isLeaderHere ? "active" : ""}`} key={stop.id}>
-                <span>{stop.code}</span>
-                <strong>KM {stop.kmMarker}</strong>
-                <small>{stop.totalOfficialScans} scan</small>
-                <small>{stop.leaderBib ? `Leader ${stop.leaderBib}` : "Belum ada leader"}</small>
-              </div>
-            ))}
-          </div>
-        </article>
+        <CourseProfilePanel
+          courseStops={courseProfileStops}
+          selectedCheckpointId={selectedCheckpointId}
+          onSelectCheckpoint={setSelectedCheckpointId}
+        />
       </section>
 
       {fetchError ? <div className="notice-banner error">{fetchError}</div> : null}
@@ -1056,20 +1052,20 @@ export default function App() {
           </div>
 
           <div className="full-ranking-list" role="list" aria-label="Overall leaderboard rows">
-            {overallLeaderboard.topEntries.length ? (
-              overallLeaderboard.topEntries.map((entry) => {
-                const runnerLabel = `Runner ${entry.bib}`;
-
+            {fullRankingRows.length ? (
+              fullRankingRows.map((entry) => {
                 return (
                   <div className="full-ranking-row" key={`${entry.checkpointId}-${entry.bib}`} role="listitem">
                     <div className="leaderboard-rank">
                       <strong>#{entry.rank}</strong>
                     </div>
                     <div className="runner-cell">
-                      <div className="runner-avatar">{getInitials(runnerLabel)}</div>
+                      <div className="runner-avatar">{getInitials(entry.name)}</div>
                       <div>
-                        <strong>{runnerLabel}</strong>
-                        <span>BIB #{entry.bib}</span>
+                        <strong>{entry.name}</strong>
+                        <span>
+                          BIB #{entry.bib} • <span className="category-badge">{formatCategoryLabel(entry.category)}</span>
+                        </span>
                       </div>
                     </div>
                     <div className="detail-cell">
@@ -1112,7 +1108,7 @@ export default function App() {
                   <div className="mini-leaderboard-row" key={`overall-rail-${entry.bib}`}>
                     <strong>#{entry.rank}</strong>
                     <div>
-                      <span>BIB {entry.bib}</span>
+                      <span>{entry.name}</span>
                       <small>
                         {formatCheckpointLabel({
                           code: entry.checkpointCode,
@@ -1141,7 +1137,7 @@ export default function App() {
                   <div className="mini-leaderboard-row" key={`women-rail-${entry.bib}`}>
                     <strong>#{entry.rank}</strong>
                     <div>
-                      <span>BIB {entry.bib}</span>
+                      <span>{entry.name}</span>
                       <small>
                         {formatCheckpointLabel({
                           code: entry.checkpointCode,

@@ -110,6 +110,15 @@ async function main() {
       get(config.scannerUrl)
     ]);
 
+  const overallPayload = overall.ok ? JSON.parse(overall.body) : null;
+  const topBib = overallPayload?.topEntries?.[0]?.bib ?? null;
+  const [runnerSearch, runnerDetail] = await Promise.all([
+    fetchJson(`${config.apiBaseUrl}/runners/search?q=T0`, { Authorization: `Bearer ${token}` }, 12000),
+    topBib
+      ? fetchJson(`${config.apiBaseUrl}/runners/detail?bib=${encodeURIComponent(topBib)}`, { Authorization: `Bearer ${token}` }, 12000)
+      : Promise.resolve({ ok: false, status: 0, ms: 0, body: "missing top bib" })
+  ]);
+
   const dashboardBundle = dashboardHtml.body.match(/assets\/index-[^"']+\.js/)?.[0] ?? null;
   const scannerBundle = scannerHtml.body.match(/assets\/index-[^"']+\.js/)?.[0] ?? null;
 
@@ -121,6 +130,8 @@ async function main() {
     { name: "checkpoint summary", pass: toPass(summary, 8000), result: summary },
     { name: "cp10 detail", pass: toPass(cp10, 12000), result: cp10 },
     { name: "recent passings", pass: toPass(recentPassings, 8000), result: recentPassings },
+    { name: "runner search", pass: toPass(runnerSearch, 8000), result: runnerSearch },
+    { name: "runner detail", pass: toPass(runnerDetail, 8000), result: runnerDetail },
     { name: "duplicates feed", pass: toPass(duplicates, 8000), result: duplicates },
     { name: "notifications feed", pass: toPass(notifications, 8000), result: notifications },
     { name: "dashboard html", pass: dashboardHtml.status === 200 && Boolean(dashboardBundle), result: { ...dashboardHtml, bundle: dashboardBundle } },
