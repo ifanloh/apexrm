@@ -1001,7 +1001,7 @@ export default function App() {
       : profile
         ? `Akun role ${profile.role} tetap berada di spectator view. Login dengan admin, panitia, atau observer untuk tools organizer.`
         : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
-  const showAccessNotice = organizerSessionActive || Boolean(profile && !hasDashboardAccess);
+  const showAccessNotice = organizerSessionActive;
   const raceStatistics = [
     {
       label: "Starters",
@@ -1366,11 +1366,11 @@ export default function App() {
             </article>
             <article className="race-stat-strip-item">
               <span>Start</span>
-              <strong>{demoCourse.location} 7C</strong>
+              <strong>{demoCourse.location} 7°C</strong>
             </article>
             <article className="race-stat-strip-item">
               <span>Finish</span>
-              <strong>{demoCourse.location} 7C</strong>
+              <strong>{demoCourse.location} 7°C</strong>
             </article>
             <article className="race-stat-strip-item">
               <span>Start Date</span>
@@ -2099,12 +2099,7 @@ export default function App() {
           <span className="word-live">LIVE</span>
           <span className="word-trail">TRAIL</span>
         </div>
-        <p>Powered by ApexRM race intelligence.</p>
-        {organizerSessionActive ? (
-          <small>
-            Build {__APP_BUILD__} | API {apiHost} | Live {liveStatus}
-          </small>
-        ) : null}
+        <p>Powered by LiveTrail</p>
       </footer>
 
       {isLoginModalOpen ? (
@@ -2136,8 +2131,8 @@ export default function App() {
             </div>
 
             <div className="auth-modal-copy">
-              <strong>Dear Organiser, please identify yourself to access the dashboard tools.</strong>
-              <span>Spectators can follow the race for free without registering. Login is only required for organizer tools.</span>
+              <strong>Dear Organiser, please identify yourself to access LiveTrail's tools.</strong>
+              <span>Dear spectators, the live following is free and you do not need to register to follow the race.</span>
             </div>
 
             <form className="auth-modal-form" onSubmit={handleLogin}>
@@ -2188,7 +2183,7 @@ export default function App() {
                     <strong>{entry.rank}</strong>
                     <div>
                       <span>{entry.name}</span>
-                      <small>{entry.checkpointName}</small>
+                      <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
                     </div>
                     <div className="rail-rank-time">
                       <small>{getNationalityCode(entry.bib)}</small>
@@ -2197,7 +2192,7 @@ export default function App() {
                   </div>
                 ))
               ) : (
-                <div className="empty-compact">Belum ada pelari di ranking overall.</div>
+                <div className="empty-compact">No runner in the overall ranking yet.</div>
               )}
             </div>
             <button className="sidebar-more" onClick={() => focusRanking("overall")} type="button">
@@ -2217,7 +2212,7 @@ export default function App() {
                     <strong>{entry.rank}</strong>
                     <div>
                       <span>{entry.name}</span>
-                      <small>{entry.checkpointName}</small>
+                      <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
                     </div>
                     <div className="rail-rank-time">
                       <small>{getNationalityCode(entry.bib)}</small>
@@ -2226,7 +2221,7 @@ export default function App() {
                   </div>
                 ))
               ) : (
-                <div className="empty-compact">Belum ada runner woman di data event ini.</div>
+                <div className="empty-compact">No woman ranking data available yet.</div>
               )}
             </div>
             <button className="sidebar-more" onClick={() => focusRanking("women")} type="button">
