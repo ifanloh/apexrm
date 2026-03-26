@@ -6,11 +6,11 @@ export function SpectatorPromoPanel() {
       </div>
 
       <div className="spectator-promo-copy">
-        <span className="spectator-promo-kicker">LiveTrail-style Race Hub</span>
+        <span className="spectator-promo-kicker">LiveTrail App</span>
         <h3>An essential app for runners and support crew</h3>
         <p>
-          Semua informasi race untuk penonton, crew, dan organizer dalam satu hub live. Ikuti ranking, passings, course
-          profile, dan update race tanpa perlu berpindah halaman.
+          All the information to optimize your race experience and share the adventure with followers thanks to real-time
+          rankings, passings, course views, and event-day updates.
         </p>
         <div className="spectator-promo-actions">
           <button className="store-button" type="button">

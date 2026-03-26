@@ -3538,7 +3538,7 @@ body {
 }
 
 .course-beacon span {
-  font-size: 0.82rem;
+  display: none;
 }
 
 .course-command-tabs,
@@ -3792,6 +3792,18 @@ body {
   gap: 16px;
 }
 
+.ranking-advanced-filters {
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(220px, 280px) auto;
+  justify-content: space-between;
+}
+
+.ranking-advanced-filters .mini-stat {
+  display: none;
+}
+
 .ranking-toolbar-label {
   font-size: 0.8rem;
   font-weight: 700;
@@ -3809,6 +3821,12 @@ body {
   border-top: 1px solid rgba(20, 22, 24, 0.08);
   min-height: 76px;
   padding: 0 18px;
+}
+
+.ranking-range-text {
+  color: #4f4f4f;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .full-ranking-list.full-ranking-table {
@@ -3870,6 +3888,10 @@ body {
   font-size: 0.78rem;
 }
 
+.mini-leaderboard {
+  gap: 12px;
+}
+
 .pager-button {
   font-size: 0;
   font-weight: 700;
@@ -3898,6 +3920,18 @@ body {
 
 .spectator-promo-panel {
   margin-top: 6px;
+}
+
+.spectator-promo-copy {
+  align-self: center;
+}
+
+.spectator-promo-kicker {
+  color: #d79b41;
+}
+
+.spectator-promo-copy h3 {
+  max-width: 420px;
 }
 
 @media (max-width: 1280px) {
@@ -3944,7 +3978,8 @@ body {
   .course-command-panel.livetrail-course-toolbar,
   .course-map-card,
   .course-profile-headline,
-  .course-profile-footer {
+  .course-profile-footer,
+  .ranking-advanced-filters {
     grid-template-columns: 1fr;
   }
 
