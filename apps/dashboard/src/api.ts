@@ -3,7 +3,9 @@ import {
   type DuplicateScan,
   type NotificationEvent,
   type OverallLeaderboard,
+  runnerDetailSchema,
   runnerSearchResponseSchema,
+  type RunnerDetail,
   type RunnerSearchEntry
 } from "@arm/contracts";
 
@@ -127,4 +129,17 @@ export async function fetchRunnerSearch(
   });
 
   return runnerSearchResponseSchema.parse(payload).items;
+}
+
+export async function fetchRunnerDetail(bib: string, accessToken: string): Promise<RunnerDetail> {
+  const query = new URLSearchParams({
+    bib
+  });
+
+  const payload = await requestJson<unknown>(`/runners/detail?${query.toString()}`, accessToken, {
+    retries: 1,
+    timeoutMs: 12000
+  });
+
+  return runnerDetailSchema.parse(payload);
 }

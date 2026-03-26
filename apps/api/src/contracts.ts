@@ -91,6 +91,32 @@ export const runnerSearchResponseSchema = z.object({
   items: z.array(runnerSearchEntrySchema)
 });
 
+export const runnerPassingSchema = z.object({
+  checkpointId: z.string(),
+  checkpointCode: z.string(),
+  checkpointName: z.string(),
+  checkpointKmMarker: z.number().nonnegative(),
+  checkpointOrder: z.number().int().nonnegative(),
+  scannedAt: z.string().datetime(),
+  position: z.number().int().positive(),
+  crewId: z.string(),
+  deviceId: z.string()
+});
+
+export const runnerDetailSchema = z.object({
+  bib: z.string(),
+  name: z.string(),
+  rank: z.number().int().positive(),
+  currentCheckpointId: z.string(),
+  currentCheckpointCode: z.string(),
+  currentCheckpointName: z.string(),
+  currentCheckpointKmMarker: z.number().nonnegative(),
+  currentCheckpointOrder: z.number().int().nonnegative(),
+  lastScannedAt: z.string().datetime(),
+  totalPassings: z.number().int().nonnegative(),
+  passings: z.array(runnerPassingSchema)
+});
+
 export const notificationEventSchema = z.object({
   id: z.string(),
   channel: z.literal("telegram"),
@@ -119,4 +145,6 @@ export type CheckpointLeaderboard = z.infer<typeof checkpointLeaderboardSchema>;
 export type OverallLeaderboardEntry = z.infer<typeof overallLeaderboardEntrySchema>;
 export type OverallLeaderboard = z.infer<typeof overallLeaderboardSchema>;
 export type RunnerSearchEntry = z.infer<typeof runnerSearchEntrySchema>;
+export type RunnerPassing = z.infer<typeof runnerPassingSchema>;
+export type RunnerDetail = z.infer<typeof runnerDetailSchema>;
 export type NotificationEvent = z.infer<typeof notificationEventSchema>;

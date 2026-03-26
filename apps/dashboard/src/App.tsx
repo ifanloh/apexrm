@@ -9,9 +9,10 @@ import {
   type DuplicateScan,
   type NotificationEvent,
   type OverallLeaderboard,
+  type RunnerDetail,
   type RunnerSearchEntry
 } from "@arm/contracts";
-import { fetchCheckpointLeaderboard, fetchDashboardSnapshot, fetchRunnerSearch } from "./api";
+import { fetchCheckpointLeaderboard, fetchDashboardSnapshot, fetchRunnerDetail, fetchRunnerSearch } from "./api";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -19,6 +20,8 @@ const emptyOverallLeaderboard: OverallLeaderboard = {
   totalRankedRunners: 0,
   topEntries: []
 };
+
+const FAVORITES_STORAGE_KEY = "arm:dashboard-favorites";
 
 function getInitials(value: string) {
   return value
@@ -107,6 +110,49 @@ function buildRunnerFallbackResults(
     .slice(0, 20);
 }
 
+function buildRunnerDetailFallback(
+  entries: OverallLeaderboard["topEntries"],
+  bib: string
+): RunnerDetail | null {
+  const match = entries.find((entry) => entry.bib.toUpperCase() === bib.toUpperCase());
+
+  if (!match) {
+    return null;
+  }
+
+  return {
+    bib: match.bib,
+    name: `Runner ${match.bib}`,
+    rank: match.rank,
+    currentCheckpointId: match.checkpointId,
+    currentCheckpointCode: match.checkpointCode,
+    currentCheckpointName: match.checkpointName,
+    currentCheckpointKmMarker: match.checkpointKmMarker,
+    currentCheckpointOrder: match.checkpointOrder,
+    lastScannedAt: match.scannedAt,
+    totalPassings: 0,
+    passings: []
+  };
+}
+
+function loadFavoriteBibs() {
+  if (typeof window === "undefined") {
+    return [] as string[];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -131,6 +177,11 @@ export default function App() {
   const [runnerSearchError, setRunnerSearchError] = useState<string | null>(null);
   const [isSearchingRunners, setIsSearchingRunners] = useState(false);
   const [runnerSearchMode, setRunnerSearchMode] = useState<"server" | "fallback">("server");
+  const [selectedRunnerBib, setSelectedRunnerBib] = useState<string | null>(null);
+  const [runnerDetail, setRunnerDetail] = useState<RunnerDetail | null>(null);
+  const [runnerDetailError, setRunnerDetailError] = useState<string | null>(null);
+  const [isLoadingRunnerDetail, setIsLoadingRunnerDetail] = useState(false);
+  const [favoriteBibs, setFavoriteBibs] = useState<string[]>(() => loadFavoriteBibs());
   const hasDashboardAccess = profile ? ["admin", "panitia", "observer"].includes(profile.role) : false;
   const apiHost = getApiHost();
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
@@ -374,6 +425,70 @@ export default function App() {
     };
   }, [accessToken, deferredRunnerQuery, hasDashboardAccess, lastUpdatedAt, overallLeaderboard.topEntries, runnerCheckpointFilter]);
 
+  useEffect(() => {
+    window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteBibs));
+  }, [favoriteBibs]);
+
+  useEffect(() => {
+    if (!runnerResults.length) {
+      setSelectedRunnerBib(null);
+      return;
+    }
+
+    setSelectedRunnerBib((current) => {
+      if (current && runnerResults.some((entry) => entry.bib === current)) {
+        return current;
+      }
+
+      return runnerResults[0]?.bib ?? null;
+    });
+  }, [runnerResults]);
+
+  useEffect(() => {
+    if (!accessToken || !hasDashboardAccess || !selectedRunnerBib) {
+      setRunnerDetail(null);
+      return;
+    }
+
+    const token = accessToken;
+    const runnerBib = selectedRunnerBib;
+    let isMounted = true;
+
+    async function loadRunnerDetail() {
+      try {
+        if (isMounted) {
+          setIsLoadingRunnerDetail(true);
+        }
+
+        const detail = await fetchRunnerDetail(runnerBib, token);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRunnerDetail(detail);
+        setRunnerDetailError(null);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setRunnerDetail(buildRunnerDetailFallback(overallLeaderboard.topEntries, runnerBib));
+        setRunnerDetailError(error instanceof Error ? error.message : "Detail pelari belum tersedia.");
+      } finally {
+        if (isMounted) {
+          setIsLoadingRunnerDetail(false);
+        }
+      }
+    }
+
+    void loadRunnerDetail();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken, hasDashboardAccess, overallLeaderboard.topEntries, selectedRunnerBib]);
+
   const selectedBoard = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
   }, [leaderboards, selectedCheckpointId]);
@@ -399,6 +514,21 @@ export default function App() {
 
     return `Top ${runnerResults.length} runner siap dicari`;
   }, [runnerCheckpointFilter, runnerQuery, runnerResults.length]);
+  const favoriteRunnerResults = useMemo(() => {
+    const favoriteSet = new Set(favoriteBibs);
+    return overallLeaderboard.topEntries
+      .filter((entry) => favoriteSet.has(entry.bib))
+      .map((entry) => ({
+        ...entry,
+        name: `Runner ${entry.bib}`
+      }));
+  }, [favoriteBibs, overallLeaderboard.topEntries]);
+
+  function toggleFavoriteBib(bib: string) {
+    setFavoriteBibs((current) =>
+      current.includes(bib) ? current.filter((item) => item !== bib) : [...current, bib].sort((left, right) => left.localeCompare(right))
+    );
+  }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -749,7 +879,7 @@ export default function App() {
         <div className="panel-head">
           <div>
             <p className="section-label">Cari Pelari</p>
-            <h3>Search & Filter runner progress</h3>
+            <h3>Runner Finder & Passings</h3>
           </div>
           <div className="panel-badge">
             <span>Lookup</span>
@@ -774,7 +904,7 @@ export default function App() {
               <option value="all">Semua progress</option>
               {defaultCheckpoints.map((checkpoint) => (
                 <option key={checkpoint.id} value={checkpoint.id}>
-                  {formatCheckpointLabel(checkpoint)} · {checkpoint.name}
+                  {formatCheckpointLabel(checkpoint)} | {checkpoint.name}
                 </option>
               ))}
             </select>
@@ -783,50 +913,183 @@ export default function App() {
 
         {runnerSearchError ? <div className="empty-compact">{runnerSearchError}</div> : null}
 
-        <div className="runner-search-results">
-          {runnerResults.length ? (
-            runnerResults.map((entry) => (
-              <article className="runner-search-card" key={`${entry.rank}-${entry.bib}`}>
-                <div className="runner-search-rank">
-                  <span>Overall rank</span>
-                  <strong>#{entry.rank}</strong>
-                </div>
-                <div className="runner-search-main">
-                  <div className="runner-cell">
-                    <div className="runner-avatar">{getInitials(entry.name)}</div>
-                    <div>
-                      <strong>{entry.name}</strong>
-                      <span>BIB #{entry.bib}</span>
-                    </div>
-                  </div>
-                  <div className="runner-search-meta">
-                    <div className="detail-cell">
-                      <span className="detail-label">Progress</span>
-                      <strong>{formatCheckpointProgress(entry)}</strong>
-                    </div>
-                    <div className="detail-cell">
-                      <span className="detail-label">Scan terakhir</span>
-                      <strong>{formatScanTime(entry.scannedAt)}</strong>
-                    </div>
-                    <div className="detail-cell">
-                      <span className="detail-label">Crew / Device</span>
-                      <strong>{entry.crewId}</strong>
-                      <span>{entry.deviceId}</span>
-                    </div>
-                  </div>
-                </div>
-              </article>
+        <div className="favorites-strip">
+          <span className="detail-label">Favorites</span>
+          {favoriteRunnerResults.length ? (
+            favoriteRunnerResults.map((entry) => (
+              <button
+                className={`favorite-chip ${selectedRunnerBib === entry.bib ? "active" : ""}`}
+                key={entry.bib}
+                onClick={() => setSelectedRunnerBib(entry.bib)}
+                type="button"
+              >
+                <strong>{entry.bib}</strong>
+                <span>#{entry.rank}</span>
+              </button>
             ))
           ) : (
-            <div className="empty-state">
-              <strong>{isSearchingRunners ? "Mencari pelari..." : "Belum ada pelari yang cocok."}</strong>
-              <span>
-                {runnerQuery.trim() || runnerCheckpointFilter !== "all"
-                  ? "Ubah keyword atau filter progress untuk menemukan pelari yang dicari."
-                  : "Panel ini menampilkan runner teratas lebih dulu. Ketik BIB untuk lookup cepat saat race berjalan."}
-              </span>
-            </div>
+            <div className="empty-compact">Belum ada pelari favorit. Tandai dari hasil search untuk pantau cepat.</div>
           )}
+        </div>
+
+        <div className="runner-hub-grid">
+          <div className="runner-search-results">
+            {runnerResults.length ? (
+              runnerResults.map((entry) => {
+                const isSelected = selectedRunnerBib === entry.bib;
+                const isFavorite = favoriteBibs.includes(entry.bib);
+
+                return (
+                  <button
+                    className={`runner-search-card ${isSelected ? "selected" : ""}`}
+                    key={`${entry.rank}-${entry.bib}`}
+                    onClick={() => setSelectedRunnerBib(entry.bib)}
+                    type="button"
+                  >
+                    <div className="runner-search-rank">
+                      <span>Overall rank</span>
+                      <strong>#{entry.rank}</strong>
+                    </div>
+                    <div className="runner-search-main">
+                      <div className="runner-card-head">
+                        <div className="runner-cell">
+                          <div className="runner-avatar">{getInitials(entry.name)}</div>
+                          <div>
+                            <strong>{entry.name}</strong>
+                            <span>BIB #{entry.bib}</span>
+                          </div>
+                        </div>
+                        <button
+                          className={`favorite-toggle ${isFavorite ? "active" : ""}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggleFavoriteBib(entry.bib);
+                          }}
+                          type="button"
+                        >
+                          {isFavorite ? "Favorit" : "Ikuti"}
+                        </button>
+                      </div>
+                      <div className="runner-search-meta">
+                        <div className="detail-cell">
+                          <span className="detail-label">Progress</span>
+                          <strong>{formatCheckpointProgress(entry)}</strong>
+                        </div>
+                        <div className="detail-cell">
+                          <span className="detail-label">Scan terakhir</span>
+                          <strong>{formatScanTime(entry.scannedAt)}</strong>
+                        </div>
+                        <div className="detail-cell">
+                          <span className="detail-label">Crew / Device</span>
+                          <strong>{entry.crewId}</strong>
+                          <span>{entry.deviceId}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            ) : (
+              <div className="empty-state">
+                <strong>{isSearchingRunners ? "Mencari pelari..." : "Belum ada pelari yang cocok."}</strong>
+                <span>
+                  {runnerQuery.trim() || runnerCheckpointFilter !== "all"
+                    ? "Ubah keyword atau filter progress untuk menemukan pelari yang dicari."
+                    : "Panel ini menampilkan runner teratas lebih dulu. Ketik BIB untuk lookup cepat saat race berjalan."}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <aside className="runner-detail-panel">
+            <div className="panel-head compact">
+              <div>
+                <p className="section-label">Runner Detail</p>
+                <h3>{runnerDetail ? runnerDetail.bib : "Pilih pelari"}</h3>
+              </div>
+              {runnerDetail ? (
+                <div className="panel-badge">
+                  <span>Overall rank</span>
+                  <strong>#{runnerDetail.rank}</strong>
+                </div>
+              ) : null}
+            </div>
+
+            {runnerDetail ? (
+              <>
+                <div className="runner-detail-summary">
+                  <div className="runner-cell">
+                    <div className="runner-avatar">{getInitials(runnerDetail.name)}</div>
+                    <div>
+                      <strong>{runnerDetail.name}</strong>
+                      <span>BIB #{runnerDetail.bib}</span>
+                    </div>
+                  </div>
+                  <div className="runner-detail-stats">
+                    <div className="mini-stat">
+                      <span>Current progress</span>
+                      <strong>
+                        {formatCheckpointLabel({
+                          code: runnerDetail.currentCheckpointCode,
+                          kmMarker: runnerDetail.currentCheckpointKmMarker
+                        })}
+                      </strong>
+                    </div>
+                    <div className="mini-stat">
+                      <span>Total passings</span>
+                      <strong>{runnerDetail.totalPassings}</strong>
+                    </div>
+                    <div className="mini-stat">
+                      <span>Last scan</span>
+                      <strong>{formatScanTime(runnerDetail.lastScannedAt)}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {runnerDetailError ? <div className="empty-compact">{runnerDetailError}</div> : null}
+
+                <div className="passings-list">
+                  {runnerDetail.passings.length ? (
+                    runnerDetail.passings.map((passing) => (
+                      <article className="passing-card" key={`${runnerDetail.bib}-${passing.checkpointId}`}>
+                        <div>
+                          <span className="detail-label">Checkpoint</span>
+                          <strong>
+                            {formatCheckpointLabel({
+                              code: passing.checkpointCode,
+                              kmMarker: passing.checkpointKmMarker
+                            })}
+                          </strong>
+                          <span>{passing.checkpointName}</span>
+                        </div>
+                        <div>
+                          <span className="detail-label">Passing</span>
+                          <strong>{formatScanTime(passing.scannedAt)}</strong>
+                          <span>Posisi #{passing.position}</span>
+                        </div>
+                        <div>
+                          <span className="detail-label">Crew</span>
+                          <strong>{passing.crewId}</strong>
+                          <span>{passing.deviceId}</span>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="empty-compact">
+                      {isLoadingRunnerDetail
+                        ? "Memuat history passings..."
+                        : "History passings detail belum tersedia di endpoint live, jadi sementara pakai summary progress."}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">
+                <strong>Pilih satu pelari dari hasil search.</strong>
+                <span>Panel ini jadi fondasi fitur ala LiveTrail: profile runner, passings, dan favorit.</span>
+              </div>
+            )}
+          </aside>
         </div>
       </section>
 

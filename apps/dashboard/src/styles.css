@@ -455,10 +455,52 @@ label {
   gap: 18px;
 }
 
+.favorites-strip {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.favorite-chip,
+.favorite-toggle,
+.runner-search-card {
+  border: 0;
+  cursor: pointer;
+}
+
+.favorite-chip {
+  align-items: center;
+  background: rgba(0, 70, 145, 0.07);
+  border-radius: 999px;
+  color: var(--primary);
+  display: inline-flex;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.favorite-chip.active,
+.favorite-toggle.active {
+  background: linear-gradient(135deg, rgba(0, 70, 145, 0.96), rgba(38, 94, 174, 0.92));
+  color: white;
+}
+
+.favorite-chip span,
+.favorite-toggle {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .runner-search-toolbar {
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+}
+
+.runner-hub-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
 }
 
 .runner-search-results {
@@ -473,7 +515,13 @@ label {
   display: grid;
   gap: 16px;
   grid-template-columns: 120px minmax(0, 1fr);
+  text-align: left;
   padding: 16px;
+}
+
+.runner-search-card.selected {
+  border-color: rgba(0, 70, 145, 0.34);
+  box-shadow: 0 0 0 4px rgba(0, 70, 145, 0.08);
 }
 
 .runner-search-rank {
@@ -503,10 +551,58 @@ label {
   gap: 16px;
 }
 
+.runner-card-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.favorite-toggle {
+  background: rgba(0, 70, 145, 0.08);
+  border-radius: 999px;
+  color: var(--primary);
+  padding: 10px 14px;
+}
+
 .runner-search-meta {
   display: grid;
   gap: 12px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.runner-detail-panel {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(114, 119, 131, 0.12);
+  border-radius: 24px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.runner-detail-summary,
+.runner-detail-stats,
+.passings-list {
+  display: grid;
+  gap: 12px;
+}
+
+.runner-detail-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.passing-card {
+  background: rgba(0, 70, 145, 0.05);
+  border-radius: 18px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 14px;
+}
+
+.passing-card strong,
+.favorite-chip strong {
+  display: block;
 }
 
 .runtime-footer {
@@ -544,7 +640,8 @@ label {
 
 @media (max-width: 1180px) {
   .hero-panel,
-  .control-grid {
+  .control-grid,
+  .runner-hub-grid {
     grid-template-columns: 1fr;
   }
 
@@ -578,7 +675,9 @@ label {
 
   .runner-search-toolbar,
   .runner-search-meta,
-  .runner-search-card {
+  .runner-search-card,
+  .runner-detail-stats,
+  .passing-card {
     grid-template-columns: 1fr;
   }
 
@@ -601,6 +700,11 @@ label {
 
   .runner-search-card {
     padding: 14px;
+  }
+
+  .runner-card-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .checkpoint-strip {
