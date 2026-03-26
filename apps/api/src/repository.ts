@@ -7,6 +7,7 @@ import type {
   NotificationEvent,
   OverallLeaderboard,
   OverallLeaderboardEntry,
+  RecentPassing,
   RunnerDetail,
   RunnerSearchEntry,
   RunnerPassing,
@@ -680,6 +681,54 @@ export async function getNotificationFeed(sql: Sql): Promise<NotificationEvent[]
     position: row.position,
     createdAt: toIsoString(row.created_at),
     delivered: row.delivered
+  }));
+}
+
+export async function getRecentPassings(sql: Sql, limit = 12): Promise<RecentPassing[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 30);
+
+  const rows = await sql<{
+    bib: string;
+    name: string;
+    checkpoint_id: string;
+    checkpoint_code: string;
+    checkpoint_name: string;
+    checkpoint_km_marker: number;
+    scanned_at: string | Date;
+    crew_code: string;
+    device_id: string;
+    position: number;
+  }[]>`
+    select
+      s.bib,
+      p.name,
+      s.checkpoint_id,
+      c.code as checkpoint_code,
+      c.name as checkpoint_name,
+      c.km_marker as checkpoint_km_marker,
+      s.scanned_at,
+      s.crew_code,
+      s.device_id,
+      s.position
+    from public.scans s
+    inner join public.participants p on p.id = s.participant_id
+    inner join public.checkpoints c on c.id = s.checkpoint_id
+    where c.is_active = true
+    order by s.scanned_at desc, s.server_received_at desc
+    limit ${safeLimit}
+  `;
+
+  return rows.map((row) => ({
+    bib: row.bib,
+    name: row.name,
+    checkpointId: row.checkpoint_id,
+    checkpointCode: row.checkpoint_code,
+    checkpointName: row.checkpoint_name,
+    checkpointKmMarker: Number(row.checkpoint_km_marker),
+    scannedAt: toIsoString(row.scanned_at),
+    crewId: row.crew_code,
+    deviceId: row.device_id,
+    position: row.position
   }));
 }
 

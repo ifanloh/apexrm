@@ -9,6 +9,7 @@ import {
   type DuplicateScan,
   type NotificationEvent,
   type OverallLeaderboard,
+  type RecentPassing,
   type RunnerDetail,
   type RunnerPassing,
   type RunnerSearchEntry
@@ -17,6 +18,7 @@ import {
   fetchCheckpointLeaderboard,
   fetchDashboardSnapshot,
   fetchOverallLeaderboard,
+  fetchRecentPassings,
   fetchRunnerDetail,
   fetchRunnerSearch
 } from "./api";
@@ -64,6 +66,29 @@ function getApiHost() {
   } catch {
     return import.meta.env.VITE_API_BASE_URL ?? "unknown-api";
   }
+}
+
+function formatRelativeTime(value: string) {
+  const deltaMs = Math.max(0, Date.now() - new Date(value).getTime());
+  const seconds = Math.floor(deltaMs / 1000);
+
+  if (seconds < 60) {
+    return `${Math.max(1, seconds)}s lalu`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+
+  if (minutes < 60) {
+    return `${minutes}m lalu`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  if (hours < 24) {
+    return `${hours}j lalu`;
+  }
+
+  return new Date(value).toLocaleDateString();
 }
 
 function deriveProfileFromSession(session: Session): AuthProfile {
@@ -162,6 +187,30 @@ function buildRunnerDetailFallback(
   };
 }
 
+function buildRecentPassingsFallback(leaderboards: CheckpointLeaderboard[]): RecentPassing[] {
+  return leaderboards
+    .flatMap((board) =>
+      board.topEntries.map((entry) => {
+        const checkpoint = defaultCheckpoints.find((item) => item.id === entry.checkpointId);
+
+        return {
+          bib: entry.bib,
+          name: `Runner ${entry.bib}`,
+          checkpointId: entry.checkpointId,
+          checkpointCode: checkpoint?.code ?? entry.checkpointId,
+          checkpointName: checkpoint?.name ?? entry.checkpointId,
+          checkpointKmMarker: checkpoint?.kmMarker ?? 0,
+          scannedAt: entry.scannedAt,
+          crewId: entry.crewId,
+          deviceId: entry.deviceId,
+          position: entry.position
+        };
+      })
+    )
+    .sort((left, right) => right.scannedAt.localeCompare(left.scannedAt))
+    .slice(0, 8);
+}
+
 async function buildRunnerDetailFromCheckpointBoards(
   bib: string,
   accessToken: string,
@@ -242,6 +291,7 @@ export default function App() {
   const [leaderboards, setLeaderboards] = useState<CheckpointLeaderboard[]>([]);
   const [duplicates, setDuplicates] = useState<DuplicateScan[]>([]);
   const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
+  const [recentPassings, setRecentPassings] = useState<RecentPassing[]>([]);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [selectedCheckpointId, setSelectedCheckpointId] = useState("cp-10");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
@@ -258,6 +308,7 @@ export default function App() {
   const [runnerSearchError, setRunnerSearchError] = useState<string | null>(null);
   const [isSearchingRunners, setIsSearchingRunners] = useState(false);
   const [runnerSearchMode, setRunnerSearchMode] = useState<"server" | "fallback">("server");
+  const [recentPassingsMode, setRecentPassingsMode] = useState<"server" | "fallback">("server");
   const [selectedRunnerBib, setSelectedRunnerBib] = useState<string | null>(null);
   const [runnerDetail, setRunnerDetail] = useState<RunnerDetail | null>(null);
   const [runnerDetailError, setRunnerDetailError] = useState<string | null>(null);
@@ -318,9 +369,10 @@ export default function App() {
           throw new Error("Akun ini tidak punya akses dashboard.");
         }
 
-        const [snapshot, nextWomenLeaderboard] = await Promise.all([
+        const [snapshot, nextWomenLeaderboard, nextRecentPassings] = await Promise.all([
           fetchDashboardSnapshot(token),
-          fetchOverallLeaderboard(token, "women").catch(() => emptyOverallLeaderboard)
+          fetchOverallLeaderboard(token, "women").catch(() => emptyOverallLeaderboard),
+          fetchRecentPassings(token).catch(() => null)
         ]);
         const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
@@ -334,6 +386,8 @@ export default function App() {
         setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
         setDuplicates(snapshot.duplicates);
         setNotifications(snapshot.notifications);
+        setRecentPassings(nextRecentPassings ?? buildRecentPassingsFallback(checkpointLeaderboards));
+        setRecentPassingsMode(nextRecentPassings ? "server" : "fallback");
         setLastUpdatedAt(
           new Date(snapshot.updatedAt).toLocaleTimeString([], {
             hour: "2-digit",
@@ -381,9 +435,10 @@ export default function App() {
 
       debounceId = window.setTimeout(async () => {
         try {
-          const [snapshot, nextWomenLeaderboard] = await Promise.all([
+          const [snapshot, nextWomenLeaderboard, nextRecentPassings] = await Promise.all([
             fetchDashboardSnapshot(accessToken),
-            fetchOverallLeaderboard(accessToken, "women").catch(() => emptyOverallLeaderboard)
+            fetchOverallLeaderboard(accessToken, "women").catch(() => emptyOverallLeaderboard),
+            fetchRecentPassings(accessToken).catch(() => null)
           ]);
           const checkpointLeaderboards = snapshot.checkpointLeaderboards ?? snapshot.leaderboards ?? [];
 
@@ -395,6 +450,8 @@ export default function App() {
           setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
           setDuplicates(snapshot.duplicates);
           setNotifications(snapshot.notifications);
+          setRecentPassings(nextRecentPassings ?? buildRecentPassingsFallback(checkpointLeaderboards));
+          setRecentPassingsMode(nextRecentPassings ? "server" : "fallback");
           setLastUpdatedAt(
             new Date(snapshot.updatedAt).toLocaleTimeString([], {
               hour: "2-digit",
@@ -621,6 +678,7 @@ export default function App() {
   const featuredWomenRows = womenLeaderboard.topEntries.slice(0, 5);
 
   const lastBroadcast = notifications[0] ?? null;
+  const latestPassing = recentPassings[0] ?? null;
   const selectedCheckpointMeta = defaultCheckpoints.find((item) => item.id === selectedBoard?.checkpointId) ?? null;
   const runnerSearchSummary = useMemo(() => {
     if (runnerQuery.trim() || runnerCheckpointFilter !== "all") {
@@ -638,6 +696,13 @@ export default function App() {
         name: `Runner ${entry.bib}`
       }));
   }, [favoriteBibs, overallLeaderboard.topEntries]);
+  const recentPassingSummary = useMemo(() => {
+    if (!recentPassings.length) {
+      return "Belum ada passing";
+    }
+
+    return `${recentPassings.length} passing terbaru`;
+  }, [recentPassings.length]);
 
   function toggleFavoriteBib(bib: string) {
     setFavoriteBibs((current) =>
@@ -924,27 +989,46 @@ export default function App() {
           <article className="panel rail-panel">
             <div className="panel-head">
               <div>
-                <p className="section-label">Broadcast Feed</p>
-                <h3>Top 5 Notification</h3>
+                <p className="section-label">Race Pulse</p>
+                <h3>Recent Passings</h3>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>Source</span>
+                <strong>{recentPassingSummary}</strong>
+                <span>{recentPassingsMode === "server" ? "live feed" : "fallback feed"}</span>
               </div>
             </div>
-            {lastBroadcast ? (
-              <div className="broadcast-card">
-                <span className="broadcast-tag">Telegram Ready</span>
-                <strong>BIB {lastBroadcast.bib} masuk posisi #{lastBroadcast.position}</strong>
+            {latestPassing ? (
+              <div className="pulse-card">
+                <span className="broadcast-tag">Latest passing</span>
+                <strong>
+                  {latestPassing.name} · {formatCheckpointLabel({
+                    code: latestPassing.checkpointCode,
+                    kmMarker: latestPassing.checkpointKmMarker
+                  })}
+                </strong>
                 <p>
-                  Checkpoint {lastBroadcast.checkpointId} pada {formatScanTime(lastBroadcast.createdAt)}.
+                  BIB {latestPassing.bib} | Posisi #{latestPassing.position} | {formatRelativeTime(latestPassing.scannedAt)}
                 </p>
               </div>
             ) : (
-              <div className="empty-compact">Belum ada event Top 5 yang perlu dibroadcast.</div>
+              <div className="empty-compact">Belum ada passing resmi yang masuk.</div>
             )}
-            <ul className="feed-list">
-              {notifications.slice(0, 6).map((notification) => (
-                <li key={notification.id}>
-                  <strong>BIB {notification.bib}</strong>
-                  <span>{notification.checkpointId} | posisi #{notification.position}</span>
-                  <time>{formatScanTime(notification.createdAt)}</time>
+            <ul className="feed-list compact-feed-list">
+              {recentPassings.slice(0, 8).map((passing) => (
+                <li key={`${passing.bib}-${passing.checkpointId}-${passing.scannedAt}`}>
+                  <strong>{passing.name}</strong>
+                  <span>
+                    {formatCheckpointLabel({
+                      code: passing.checkpointCode,
+                      kmMarker: passing.checkpointKmMarker
+                    })}{" "}
+                    | Pos #{passing.position}
+                  </span>
+                  <span>
+                    Crew {passing.crewId} | {passing.deviceId}
+                  </span>
+                  <time>{formatRelativeTime(passing.scannedAt)}</time>
                 </li>
               ))}
             </ul>
@@ -953,20 +1037,57 @@ export default function App() {
           <article className="panel rail-panel">
             <div className="panel-head">
               <div>
-                <p className="section-label">Duplicate Audit</p>
-                <h3>Server Validation Log</h3>
+                <p className="section-label">Signals</p>
+                <h3>Broadcast & Audit</h3>
               </div>
             </div>
-            <ul className="feed-list">
-              {duplicates.slice(0, 6).map((duplicate) => (
-                <li key={duplicate.clientScanId}>
-                  <strong>BIB {duplicate.bib}</strong>
-                  <span>{duplicate.checkpointId} | first scan {duplicate.firstAcceptedClientScanId}</span>
-                  <time>{formatScanTime(duplicate.serverReceivedAt)}</time>
-                </li>
-              ))}
-            </ul>
-            {duplicates.length === 0 ? <div className="empty-compact">Belum ada duplikat yang perlu diaudit.</div> : null}
+            <div className="signal-stack">
+              <section className="signal-section">
+                <div className="signal-head">
+                  <span className="detail-label">Top 5 Broadcast</span>
+                  <strong>{notifications.length}</strong>
+                </div>
+                {lastBroadcast ? (
+                  <div className="broadcast-card compact">
+                    <span className="broadcast-tag">Telegram Ready</span>
+                    <strong>BIB {lastBroadcast.bib} masuk posisi #{lastBroadcast.position}</strong>
+                    <p>
+                      Checkpoint {lastBroadcast.checkpointId} pada {formatScanTime(lastBroadcast.createdAt)}.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="empty-compact">Belum ada event Top 5 yang perlu dibroadcast.</div>
+                )}
+                <ul className="feed-list compact-feed-list">
+                  {notifications.slice(0, 4).map((notification) => (
+                    <li key={notification.id}>
+                      <strong>BIB {notification.bib}</strong>
+                      <span>{notification.checkpointId} | posisi #{notification.position}</span>
+                      <time>{formatScanTime(notification.createdAt)}</time>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="signal-section">
+                <div className="signal-head">
+                  <span className="detail-label">Duplicate Audit</span>
+                  <strong>{duplicates.length}</strong>
+                </div>
+                <ul className="feed-list compact-feed-list">
+                  {duplicates.slice(0, 4).map((duplicate) => (
+                    <li key={duplicate.clientScanId}>
+                      <strong>BIB {duplicate.bib}</strong>
+                      <span>{duplicate.checkpointId} | first scan {duplicate.firstAcceptedClientScanId}</span>
+                      <time>{formatScanTime(duplicate.serverReceivedAt)}</time>
+                    </li>
+                  ))}
+                </ul>
+                {duplicates.length === 0 ? (
+                  <div className="empty-compact">Belum ada duplikat yang perlu diaudit.</div>
+                ) : null}
+              </section>
+            </div>
           </article>
         </aside>
       </section>

@@ -95,7 +95,7 @@ async function main() {
 
   const token = login.data.session.access_token;
 
-  const [health, me, checkpoints, overall, summary, cp10, duplicates, notifications, dashboardHtml, scannerHtml] =
+  const [health, me, checkpoints, overall, summary, cp10, recentPassings, duplicates, notifications, dashboardHtml, scannerHtml] =
     await Promise.all([
       fetchJson(`${config.apiBaseUrl.replace(/\/api$/, "")}/health`, {}, 10000),
       fetchJson(`${config.apiBaseUrl}/me`, { Authorization: `Bearer ${token}` }, 10000),
@@ -103,6 +103,7 @@ async function main() {
       fetchJson(`${config.apiBaseUrl}/leaderboard/overall`, { Authorization: `Bearer ${token}` }, 12000),
       fetchJson(`${config.apiBaseUrl}/leaderboard/live`, { Authorization: `Bearer ${token}` }, 12000),
       fetchJson(`${config.apiBaseUrl}/leaderboard/live/cp-10`, { Authorization: `Bearer ${token}` }, 15000),
+      fetchJson(`${config.apiBaseUrl}/passings/recent`, { Authorization: `Bearer ${token}` }, 12000),
       fetchJson(`${config.apiBaseUrl}/audit/duplicates`, { Authorization: `Bearer ${token}` }, 12000),
       fetchJson(`${config.apiBaseUrl}/notifications`, { Authorization: `Bearer ${token}` }, 12000),
       get(config.dashboardUrl),
@@ -119,6 +120,7 @@ async function main() {
     { name: "overall leaderboard", pass: toPass(overall, 8000), result: overall },
     { name: "checkpoint summary", pass: toPass(summary, 8000), result: summary },
     { name: "cp10 detail", pass: toPass(cp10, 12000), result: cp10 },
+    { name: "recent passings", pass: toPass(recentPassings, 8000), result: recentPassings },
     { name: "duplicates feed", pass: toPass(duplicates, 8000), result: duplicates },
     { name: "notifications feed", pass: toPass(notifications, 8000), result: notifications },
     { name: "dashboard html", pass: dashboardHtml.status === 200 && Boolean(dashboardBundle), result: { ...dashboardHtml, bundle: dashboardBundle } },

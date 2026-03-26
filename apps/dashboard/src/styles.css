@@ -52,8 +52,8 @@ label {
 
 .dashboard-shell {
   margin: 0 auto;
-  max-width: 1440px;
-  padding: 24px 18px 44px;
+  max-width: 1460px;
+  padding: 18px 16px 34px;
 }
 
 .topbar,
@@ -82,9 +82,9 @@ label {
 .topbar {
   align-items: center;
   display: flex;
-  gap: 18px;
+  gap: 14px;
   justify-content: space-between;
-  padding: 18px 22px;
+  padding: 14px 18px;
 }
 
 .brand-kicker,
@@ -113,7 +113,7 @@ label {
 .topbar-meta {
   align-items: center;
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .meta-pill {
@@ -148,7 +148,7 @@ label {
   flex-direction: column;
   gap: 4px;
   min-width: 126px;
-  padding: 10px 14px;
+  padding: 8px 12px;
 }
 
 .meta-card span,
@@ -169,34 +169,34 @@ label {
 .hero-panel {
   align-items: start;
   display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
-  padding: 24px;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
+  padding: 20px;
 }
 
 .hero-panel h2 {
-  font-size: clamp(2rem, 4vw, 3.35rem);
+  font-size: clamp(1.7rem, 3.4vw, 2.7rem);
   line-height: 1;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .section-copy {
   color: var(--ink-soft);
-  font-size: 0.98rem;
-  line-height: 1.7;
-  margin: 14px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin: 10px 0 0;
   max-width: 60ch;
 }
 
 .hero-metrics {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .spotlight-grid {
   display: grid;
-  gap: 18px;
+  gap: 14px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -207,7 +207,7 @@ label {
 
 .mini-leaderboard {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .mini-leaderboard-row {
@@ -218,7 +218,7 @@ label {
   display: grid;
   gap: 12px;
   grid-template-columns: 56px minmax(0, 1fr);
-  padding: 12px 14px;
+  padding: 10px 12px;
 }
 
 .mini-leaderboard-row strong {
@@ -237,12 +237,13 @@ label {
 
 .course-profile-card {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .course-profile-track {
   display: grid;
   gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
 }
 
 .course-stop {
@@ -251,7 +252,8 @@ label {
   border-radius: 18px;
   display: grid;
   gap: 4px;
-  padding: 12px 14px;
+  min-height: 112px;
+  padding: 10px 12px;
 }
 
 .course-stop.active {
@@ -275,8 +277,8 @@ label {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 110px;
-  padding: 18px;
+  min-height: 94px;
+  padding: 14px;
 }
 
 .metric-card.primary {
@@ -338,12 +340,12 @@ label {
 
 .control-grid {
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.9fr);
+  gap: 14px;
+  grid-template-columns: minmax(0, 1.9fr) minmax(300px, 0.82fr);
 }
 
 .panel {
-  padding: 22px;
+  padding: 18px;
 }
 
 .leaderboard-panel {
@@ -359,23 +361,23 @@ label {
 
 .full-ranking-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .full-ranking-row {
   align-items: center;
   background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(114, 119, 131, 0.12);
-  border-radius: 22px;
+  border-radius: 18px;
   display: grid;
   gap: 14px;
   grid-template-columns: 84px minmax(220px, 1.2fr) repeat(3, minmax(120px, 1fr));
-  padding: 14px;
+  padding: 12px;
 }
 
 .rail {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .panel-head {
@@ -383,16 +385,16 @@ label {
   display: flex;
   gap: 12px;
   justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.panel-head.compact {
   margin-bottom: 14px;
 }
 
+.panel-head.compact {
+  margin-bottom: 10px;
+}
+
 .panel-head h3 {
-  font-size: 1.5rem;
-  margin-top: 6px;
+  font-size: 1.28rem;
+  margin-top: 4px;
 }
 
 .panel-badge {
@@ -402,7 +404,11 @@ label {
   display: flex;
   flex-direction: column;
   min-width: 120px;
-  padding: 12px 14px;
+  padding: 10px 12px;
+}
+
+.compact-badge {
+  min-width: 148px;
 }
 
 .leaderboard-table {
@@ -489,8 +495,14 @@ label {
   color: white;
   display: grid;
   gap: 8px;
-  margin-bottom: 16px;
-  padding: 18px;
+  margin-bottom: 14px;
+  padding: 16px;
+}
+
+.broadcast-card.compact {
+  border-radius: 18px;
+  margin-bottom: 12px;
+  padding: 14px;
 }
 
 .broadcast-tag {
@@ -512,7 +524,7 @@ label {
 
 .feed-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -524,7 +536,13 @@ label {
   border-radius: 18px;
   display: grid;
   gap: 4px;
-  padding: 14px;
+  padding: 12px;
+}
+
+.compact-feed-list li {
+  border-radius: 16px;
+  gap: 3px;
+  padding: 10px 12px;
 }
 
 .feed-list time {
@@ -550,7 +568,7 @@ label {
 
 .runner-search-panel {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .favorites-strip {
@@ -707,7 +725,7 @@ label {
   color: var(--ink-muted);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   justify-content: flex-end;
   padding: 4px 4px 0;
   font-size: 0.78rem;
@@ -734,6 +752,37 @@ label {
 .state-dot.live {
   background: var(--success);
   box-shadow: 0 0 0 8px rgba(0, 109, 72, 0.09);
+}
+
+.pulse-card {
+  background: linear-gradient(135deg, rgba(0, 70, 145, 0.12), rgba(38, 94, 174, 0.18));
+  border: 1px solid rgba(38, 94, 174, 0.18);
+  border-radius: 18px;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 14px;
+}
+
+.pulse-card p {
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.signal-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.signal-section {
+  display: grid;
+  gap: 10px;
+}
+
+.signal-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
 }
 
 @media (max-width: 1180px) {

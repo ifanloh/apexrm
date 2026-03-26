@@ -3,6 +3,8 @@ import {
   type DuplicateScan,
   type NotificationEvent,
   type OverallLeaderboard,
+  type RecentPassing,
+  recentPassingsResponseSchema,
   runnerDetailSchema,
   runnerSearchResponseSchema,
   type RunnerDetail,
@@ -153,4 +155,13 @@ export async function fetchRunnerDetail(bib: string, accessToken: string): Promi
   });
 
   return runnerDetailSchema.parse(payload);
+}
+
+export async function fetchRecentPassings(accessToken: string): Promise<RecentPassing[]> {
+  const payload = await requestJson<unknown>("/passings/recent", accessToken, {
+    retries: 1,
+    timeoutMs: 12000
+  });
+
+  return recentPassingsResponseSchema.parse(payload).items;
 }
