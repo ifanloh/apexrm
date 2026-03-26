@@ -357,6 +357,10 @@ export default function App() {
   const [favoriteBibs, setFavoriteBibs] = useState<string[]>(() => loadFavoriteBibs());
   const [theme, setTheme] = useState<DashboardTheme>(() => getInitialTheme());
   const [fullRankingPage, setFullRankingPage] = useState(1);
+  const [openSidebarGroups, setOpenSidebarGroups] = useState<Record<string, boolean>>({
+    runners: true,
+    race: true
+  });
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
@@ -784,6 +788,10 @@ export default function App() {
   const finisherCount = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === "finish")?.totalOfficialScans ?? 0;
   }, [leaderboards]);
+  const starterCount = useMemo(() => {
+    return leaderboards.find((item) => item.checkpointId === "cp-start")?.totalOfficialScans ?? totalRankedRunners;
+  }, [leaderboards, totalRankedRunners]);
+  const dnfDnsCount = Math.max(starterCount - finisherCount, 0);
 
   const courseProfileStops = useMemo(() => {
     return demoCourse.checkpoints.map((checkpoint) => {
@@ -861,29 +869,51 @@ export default function App() {
     { label: "Finishers", value: `${finisherCount}` },
     { label: "Live mode", value: liveStatusLabel }
   ];
-  const sidebarLinks = [
+  const raceStatistics = [
     {
-      title: "Overview",
+      label: "Starters",
+      value: `${starterCount}`,
+      note: "Runner yang sudah tercatat mulai race."
+    },
+    {
+      label: "DNF / DNS",
+      value: `${dnfDnsCount}`,
+      note: "Gabungan runner yang belum finish."
+    },
+    {
+      label: "Finishers",
+      value: `${finisherCount}`,
+      note: "Runner yang sudah mencapai finish."
+    }
+  ];
+  const sidebarGroups = [
+    {
+      id: "runners",
+      title: "RUNNERS",
       items: [
-        { label: "Race hub", href: "#race-hub" },
-        { label: "Ranking", href: "#full-ranking" }
+        { label: "Search", href: "#runner-finder" },
+        { label: "Runner List", href: "#full-ranking" },
+        { label: "Favorites", href: "#favorites" },
+        { label: "My Runner", href: "#my-runner" }
       ]
     },
     {
-      title: "Runners",
+      id: "race",
+      title: "THE RACE",
       items: [
-        { label: "Runner finder", href: "#runner-finder" },
-        { label: "Favorites", href: "#favorites" }
-      ]
-    },
-    {
-      title: "Signals",
-      items: [
-        { label: "Recent passings", href: "#recent-passings" },
-        { label: "Broadcast & audit", href: "#signals" }
+        { label: "Ranking", href: "#full-ranking" },
+        { label: "Race Leaders", href: "#race-leaders" },
+        { label: "Statistics", href: "#race-statistics" }
       ]
     }
   ];
+
+  function toggleSidebarGroup(groupId: string) {
+    setOpenSidebarGroups((current) => ({
+      ...current,
+      [groupId]: !current[groupId]
+    }));
+  }
 
   function toggleFavoriteBib(bib: string) {
     setFavoriteBibs((current) =>
@@ -933,10 +963,21 @@ export default function App() {
         </div>
 
         <nav className="sidebar-nav" aria-label="Dashboard navigation">
-          {sidebarLinks.map((group) => (
-            <section className="nav-group" key={group.title}>
-              <h2>{group.title}</h2>
-              <div className="nav-links">
+          {sidebarGroups.map((group) => {
+            const isOpen = openSidebarGroups[group.id] ?? true;
+
+            return (
+            <section className={`nav-group ${isOpen ? "open" : ""}`} key={group.id}>
+              <button
+                aria-expanded={isOpen}
+                className="nav-toggle"
+                onClick={() => toggleSidebarGroup(group.id)}
+                type="button"
+              >
+                <span>{group.title}</span>
+                <span className={`nav-chevron ${isOpen ? "open" : ""}`}>⌄</span>
+              </button>
+              <div className="nav-links" hidden={!isOpen}>
                 {group.items.map((item) => (
                   <a className="nav-link" href={item.href} key={item.href}>
                     {item.label}
@@ -944,14 +985,14 @@ export default function App() {
                 ))}
               </div>
             </section>
-          ))}
+          )})}
         </nav>
 
         <article className="sidebar-card" id="favorites">
           <div className="panel-head compact">
             <div>
-              <p className="section-label">My Runners</p>
-              <h3>Favorites</h3>
+              <p className="section-label">My Runner</p>
+              <h3>Favorites List</h3>
             </div>
           </div>
           <div className="sidebar-chip-list">
@@ -1137,6 +1178,28 @@ export default function App() {
 
         <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div>
 
+      <section className="panel stats-panel" id="race-statistics">
+        <div className="panel-head">
+          <div>
+            <p className="section-label">The Race</p>
+            <h3>Statistics</h3>
+          </div>
+          <div className="panel-badge">
+            <span>Checkpoint aktif</span>
+            <strong>{activeCheckpointCount}</strong>
+          </div>
+        </div>
+        <div className="stats-grid">
+          {raceStatistics.map((stat) => (
+            <article className="stats-card" key={stat.label}>
+              <span>{stat.label}</span>
+              <strong>{stat.value}</strong>
+              <small>{stat.note}</small>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="spotlight-grid">
         <CourseProfilePanel
           courseStops={courseProfileStops}
@@ -1235,6 +1298,7 @@ export default function App() {
         </article>
 
         <aside className="rail">
+          <section className="leaders-stack" id="race-leaders">
           <article className="panel rail-panel rail-ranking-panel">
             <div className="panel-head compact">
               <div>
@@ -1292,6 +1356,7 @@ export default function App() {
               )}
             </div>
           </article>
+          </section>
 
           <article className="panel rail-panel" id="recent-passings">
             <div className="panel-head">
@@ -1623,7 +1688,7 @@ export default function App() {
             )}
           </div>
 
-          <aside className="runner-detail-panel">
+          <aside className="runner-detail-panel" id="my-runner">
             <div className="panel-head compact">
               <div>
                 <p className="section-label">Runner Detail</p>

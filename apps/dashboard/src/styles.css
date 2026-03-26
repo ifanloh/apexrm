@@ -188,6 +188,7 @@ a {
 
 :root[data-theme="light"] .sidebar-brand p,
 :root[data-theme="light"] .nav-group h2,
+:root[data-theme="light"] .nav-toggle,
 :root[data-theme="light"] .nav-link,
 :root[data-theme="light"] .sidebar-mini-row,
 :root[data-theme="light"] .sidebar-logout {
@@ -221,17 +222,40 @@ a {
   gap: 10px;
 }
 
-.nav-group h2 {
+.nav-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
   color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  display: flex;
   font-size: 0.88rem;
+  font-weight: 800;
+  justify-content: space-between;
   letter-spacing: 0.08em;
   margin: 0;
+  padding: 0;
+  text-align: left;
   text-transform: uppercase;
+}
+
+.nav-chevron {
+  color: var(--ink-muted);
+  font-size: 1rem;
+  transition: transform 160ms ease;
+}
+
+.nav-chevron.open {
+  transform: rotate(180deg);
 }
 
 .nav-links {
   display: grid;
   gap: 8px;
+}
+
+.nav-group:not(.open) .nav-links {
+  display: none;
 }
 
 .nav-link {
@@ -651,6 +675,38 @@ a {
   grid-template-columns: 1fr;
 }
 
+.stats-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.stats-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stats-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  padding: 14px;
+}
+
+.stats-card span,
+.stats-card small {
+  color: var(--ink-muted);
+}
+
+.stats-card strong {
+  color: var(--gold);
+  font-size: 2rem;
+  line-height: 1;
+}
+
 .spotlight-panel,
 .panel {
   padding: 16px;
@@ -1056,6 +1112,11 @@ a {
   top: 12px;
 }
 
+.leaders-stack {
+  display: grid;
+  gap: 14px;
+}
+
 .rail-ranking-panel {
   background:
     linear-gradient(180deg, rgba(255, 191, 110, 0.08), rgba(24, 27, 33, 0.98) 28%),
@@ -1426,6 +1487,7 @@ a {
 
   .hero-inline-stats,
   .hero-metrics,
+  .stats-grid,
   .course-profile-summary,
   .runner-search-toolbar,
   .runner-search-meta,
