@@ -93,57 +93,27 @@ function getMapGeometry() {
 export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelectCheckpoint, finisherCount, dnfCount }: Props) {
   const chart = getChartGeometry();
   const map = getMapGeometry();
+  const selectedStop = courseStops.find((stop) => stop.id === selectedCheckpointId) ?? courseStops[0];
 
   return (
     <article className="panel spotlight-panel course-profile-card">
-      <div className="panel-head compact">
-        <div>
-          <p className="section-label">Course Profile</p>
-          <h3>{demoCourse.title}</h3>
+      <div className="course-profile-stage">
+        <div className="course-profile-headline">
+          <div className="course-profile-title">
+            <span className="detail-label">Race Profile</span>
+            <strong>{demoCourse.title}</strong>
+            <small>
+              {demoCourse.distanceKm.toFixed(1)} km | +{demoCourse.ascentM}m | -{demoCourse.descentM}m
+            </small>
+          </div>
+          <div className="course-profile-meta-card">
+            <span>{selectedStop.code}</span>
+            <strong>{selectedStop.name}</strong>
+            <small>{selectedStop.totalOfficialScans} official scan</small>
+          </div>
         </div>
-        <div className="panel-badge">
-          <span>Route</span>
-          <strong>{demoCourse.distanceKm.toFixed(1)} KM</strong>
-          <span>
-            +{demoCourse.ascentM}m / -{demoCourse.descentM}m
-          </span>
-        </div>
-      </div>
 
-      <div className="course-profile-summary">
-        <div className="course-stat-card">
-          <span>Start</span>
-          <strong>{demoCourse.checkpoints[0].name}</strong>
-          <small>Live start gate</small>
-        </div>
-        <div className="course-stat-card">
-          <span>Finish</span>
-          <strong>{demoCourse.checkpoints.at(-1)?.name}</strong>
-          <small>Official finish line</small>
-        </div>
-        <div className="course-stat-card">
-          <span>Waypoints</span>
-          <strong>{demoCourse.waypoints.length}</strong>
-          <small>GPX support points</small>
-        </div>
-        <div className="course-stat-card">
-          <span>Selected CP</span>
-          <strong>{courseStops.find((stop) => stop.id === selectedCheckpointId)?.code ?? "START"}</strong>
-          <small>{courseStops.find((stop) => stop.id === selectedCheckpointId)?.name ?? "Millau"}</small>
-        </div>
-        <div className="course-stat-card">
-          <span>Finishers</span>
-          <strong>{finisherCount}</strong>
-          <small>Official finish scans</small>
-        </div>
-        <div className="course-stat-card">
-          <span>Withdrawals</span>
-          <strong>{dnfCount}</strong>
-          <small>DNF / DNS combined</small>
-        </div>
-      </div>
-
-      <div className="course-elevation-card">
+        <div className="course-elevation-card">
         <svg className="course-elevation-chart" viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="Course elevation profile">
           <defs>
             <linearGradient id="courseElevationFill" x1="0" x2="0" y1="0" y2="1">
@@ -157,6 +127,7 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
             return <line className="course-grid-line" key={ratio} x1={chartPadding.left} x2={chartWidth - chartPadding.right} y1={y} y2={y} />;
           })}
 
+          <line className="course-baseline" x1={chartPadding.left} x2={chartWidth - chartPadding.right} y1={chartHeight - chartPadding.bottom} y2={chartHeight - chartPadding.bottom} />
           <path className="course-area" d={chart.areaPath} />
           <path className="course-line" d={chart.linePath} />
 
@@ -172,7 +143,7 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
             const isSelected = stop.id === selectedCheckpointId;
 
             return (
-              <g key={stop.id}>
+              <g key={stop.id} onClick={() => onSelectCheckpoint(stop.id)}>
                 <line
                   className={`course-marker-line ${isSelected ? "selected" : ""}`}
                   x1={x}
@@ -181,20 +152,41 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
                   y2={chartHeight - chartPadding.bottom}
                 />
                 <circle className={`course-marker-point ${isSelected ? "selected" : stop.isLeaderHere ? "leader" : ""}`} cx={x} cy={y} r={isSelected ? 6 : 4.5} />
-                <text className={`course-marker-label ${isSelected ? "selected" : ""}`} x={x} y={chartPadding.top - 2} textAnchor="middle">
-                  {stop.code}
-                </text>
+                <g transform={`translate(${x - 42}, ${chartPadding.top + 2})`}>
+                  <rect className={`course-marker-pill ${isSelected ? "selected" : ""}`} height="34" rx="10" width="84" x="0" y="0" />
+                  <text className={`course-marker-pill-km ${isSelected ? "selected" : ""}`} x="42" y="13" textAnchor="middle">
+                    {stop.kmMarker} km
+                  </text>
+                  <text className={`course-marker-pill-name ${isSelected ? "selected" : ""}`} x="42" y="25" textAnchor="middle">
+                    {stop.name}
+                  </text>
+                </g>
               </g>
             );
           })}
         </svg>
 
-        <div className="course-scale">
-          <span>0 km</span>
-          <span>{Math.round(chart.minEle)} m</span>
-          <span>{Math.round((chart.minEle + chart.maxEle) / 2)} m</span>
-          <span>{Math.round(chart.maxEle)} m</span>
-          <span>{demoCourse.distanceKm.toFixed(1)} km</span>
+        <div className="course-profile-footer">
+          <div className="course-withdrawal-card">
+            <strong>{dnfCount}</strong>
+            <span>See details</span>
+          </div>
+          <div className="course-scale">
+            <span>0 km</span>
+            <span>{Math.round(chart.minEle)} m</span>
+            <span>{Math.round((chart.minEle + chart.maxEle) / 2)} m</span>
+            <span>{Math.round(chart.maxEle)} m</span>
+            <span>{demoCourse.distanceKm.toFixed(1)} km</span>
+          </div>
+        </div>
+
+        <div className="course-legend-switch">
+          <button className="course-switch-ghost" type="button">
+            Runners
+          </button>
+          <button className="course-switch-active" type="button">
+            Withdrawals
+          </button>
         </div>
       </div>
 
@@ -202,7 +194,7 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
         <div className="course-map-copy">
           <span className="detail-label">Route Map</span>
           <strong>Open the map</strong>
-          <p>Visualisasi jalur GPX dan checkpoint marker untuk panitia dan penonton.</p>
+          <p>Satellite preview, route outline, and checkpoint anchors for spectators and organizers.</p>
           <button className="download-pill map-cta" type="button">
             Open the Map
           </button>
@@ -266,36 +258,6 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
           </svg>
         </div>
       </div>
-
-      <div className="course-profile-track">
-        {courseStops.map((stop) => {
-          const isSelected = stop.id === selectedCheckpointId;
-
-          return (
-            <button
-              className={`course-stop ${stop.isLeaderHere ? "active" : ""} ${isSelected ? "selected" : ""}`}
-              key={stop.id}
-              onClick={() => onSelectCheckpoint(stop.id)}
-              type="button"
-            >
-              <span>{stop.code}</span>
-              <strong>{formatCheckpointLabel(stop)}</strong>
-              <small>{stop.name}</small>
-              <small>{stop.totalOfficialScans} official scan</small>
-              <small>{stop.leaderBib ? `Leader ${stop.leaderBib}` : "Belum ada leader"}</small>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="course-waypoint-strip">
-        {demoCourse.waypoints.map((waypoint) => (
-          <div className="course-waypoint-pill" key={waypoint.id}>
-            <span>{waypoint.km.toFixed(1)} km</span>
-            <strong>{waypoint.name}</strong>
-            <small>{waypoint.ele} mdpl</small>
-          </div>
-        ))}
       </div>
     </article>
   );

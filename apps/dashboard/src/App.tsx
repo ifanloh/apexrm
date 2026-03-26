@@ -1253,7 +1253,7 @@ export default function App() {
       </aside>
 
       <div className="dashboard-main dashboard-main-scroll live-main">
-        <header className="topbar topbar-hub">
+        <header className="topbar topbar-hub live-topbar">
           <div className="topbar-race-lockup">
             {demoRaceFestival.brandStack.map((line) => (
               <strong key={line}>{line}</strong>
@@ -1386,17 +1386,6 @@ export default function App() {
             </article>
           </div>
         </section>
-
-      <section className="panel race-overview-panel compact-race-overview">
-        <div className="race-overview-grid">
-          {raceOverviewStats.map((stat) => (
-            <article className="race-overview-stat" key={stat.label}>
-              <span>{stat.label}</span>
-              <strong>{stat.value}</strong>
-            </article>
-          ))}
-        </div>
-      </section>
 
       <section className="panel course-command-panel livetrail-course-toolbar">
         <div className="course-command-meta">

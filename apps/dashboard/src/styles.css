@@ -3445,6 +3445,461 @@ body {
   font-size: 1.5rem;
 }
 
+.live-main {
+  background: #f5f2ea;
+}
+
+.live-main > .detail-topline,
+.live-main > .panel.race-detail-hero,
+.live-main > .panel.course-command-panel,
+.live-main > .spotlight-grid,
+.live-main > .control-grid,
+.live-main > .spectator-promo-panel,
+.live-main > .spectator-footer,
+.live-main > .edition-home-shell {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 1160px;
+  width: 100%;
+}
+
+.dashboard-rail-marker {
+  display: none;
+}
+
+.live-topbar {
+  align-items: center;
+  backdrop-filter: blur(14px);
+  margin: 0 -18px;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.notice-banner {
+  max-width: 1160px;
+}
+
+.detail-topline {
+  margin-top: 12px;
+}
+
+.race-detail-hero {
+  margin-top: 6px;
+}
+
+.race-detail-hero-head {
+  gap: 10px;
+}
+
+.race-stat-strip {
+  align-items: start;
+  border-bottom: 1px solid rgba(20, 22, 24, 0.08);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 6px 0 18px;
+}
+
+.race-stat-strip-item {
+  gap: 6px;
+}
+
+.race-stat-strip-item span {
+  font-family: "Rubik", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.race-stat-strip-item strong {
+  font-family: "Oxanium", sans-serif;
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+.course-command-panel.livetrail-course-toolbar {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1.2fr auto auto;
+}
+
+.course-command-meta {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+}
+
+.course-legend {
+  min-width: 124px;
+}
+
+.course-beacon strong {
+  font-family: "Oxanium", sans-serif;
+  font-size: 0.96rem;
+}
+
+.course-beacon span {
+  font-size: 0.82rem;
+}
+
+.course-command-tabs,
+.course-command-actions,
+.course-downloads {
+  align-items: center;
+  gap: 8px;
+}
+
+.spotlight-grid {
+  margin-top: 2px;
+}
+
+.course-profile-card {
+  gap: 24px;
+  padding: 22px 22px 28px;
+}
+
+.course-profile-stage {
+  display: grid;
+  gap: 18px;
+}
+
+.course-profile-headline {
+  align-items: end;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.course-profile-title {
+  display: grid;
+  gap: 4px;
+}
+
+.course-profile-title strong {
+  color: #111;
+  font-family: "Oxanium", sans-serif;
+  font-size: 1.25rem;
+  text-transform: uppercase;
+}
+
+.course-profile-title small {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.course-profile-meta-card {
+  align-items: start;
+  background: #fffdf9;
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 16px;
+  display: grid;
+  gap: 2px;
+  min-width: 172px;
+  padding: 12px 14px;
+}
+
+.course-profile-meta-card span {
+  color: var(--green);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.course-profile-meta-card strong {
+  font-family: "Oxanium", sans-serif;
+  font-size: 1rem;
+}
+
+.course-profile-meta-card small {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+
+.course-elevation-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow-x: auto;
+  padding: 0;
+}
+
+.course-elevation-chart {
+  display: block;
+  min-height: 360px;
+  width: 100%;
+}
+
+.course-baseline {
+  stroke: rgba(20, 22, 24, 0.22);
+  stroke-width: 1.5;
+}
+
+.course-marker-line {
+  stroke: rgba(190, 126, 37, 0.58);
+  stroke-width: 1.5;
+}
+
+.course-marker-line.selected {
+  stroke: rgba(166, 95, 15, 0.85);
+  stroke-width: 2;
+}
+
+.course-marker-pill {
+  fill: rgba(255, 253, 249, 0.94);
+  filter: drop-shadow(0 4px 8px rgba(15, 18, 15, 0.08));
+  stroke: rgba(20, 22, 24, 0.12);
+}
+
+.course-marker-pill.selected {
+  fill: rgba(255, 251, 241, 1);
+  stroke: rgba(8, 108, 74, 0.34);
+}
+
+.course-marker-pill-km,
+.course-marker-pill-name {
+  fill: #353535;
+  font-family: "Rubik", sans-serif;
+}
+
+.course-marker-pill-km {
+  font-size: 0.55rem;
+  font-weight: 700;
+}
+
+.course-marker-pill-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.course-profile-footer {
+  align-items: center;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 108px minmax(0, 1fr);
+}
+
+.course-withdrawal-card {
+  align-items: center;
+  border: 1px solid rgba(236, 81, 74, 0.45);
+  border-radius: 14px;
+  color: #ec514a;
+  display: grid;
+  justify-items: center;
+  padding: 8px;
+}
+
+.course-withdrawal-card strong {
+  font-family: "Oxanium", sans-serif;
+  font-size: 1.15rem;
+}
+
+.course-withdrawal-card span {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.course-scale {
+  background: transparent;
+  border-top: 1px solid rgba(20, 22, 24, 0.08);
+  padding-top: 12px;
+}
+
+.course-legend-switch {
+  align-items: center;
+  display: inline-flex;
+  gap: 28px;
+  justify-content: center;
+}
+
+.course-switch-ghost,
+.course-switch-active {
+  background: transparent;
+  border: 0;
+  color: var(--ink-soft);
+  cursor: pointer;
+  font-family: "Rubik", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0 0 8px;
+}
+
+.course-switch-active {
+  border-bottom: 3px solid var(--green);
+  color: var(--green);
+}
+
+.course-map-card {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 320px;
+  overflow: hidden;
+}
+
+.course-map-copy {
+  align-content: center;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82) 48%, rgba(255, 255, 255, 0.06) 100%);
+  padding: 24px 20px;
+}
+
+.course-map-copy strong {
+  font-family: "Oxanium", sans-serif;
+  font-size: 1.25rem;
+}
+
+.course-map-copy p {
+  max-width: 180px;
+}
+
+.course-map-visual {
+  min-height: 320px;
+}
+
+.course-map-svg {
+  display: block;
+  height: 100%;
+  min-height: 320px;
+  width: 100%;
+}
+
+.control-grid {
+  display: grid;
+  gap: 22px;
+}
+
+.livetrail-ranking-panel {
+  padding: 18px 22px 20px;
+}
+
+.panel-head {
+  align-items: end;
+}
+
+.livetrail-ranking-panel .panel-head {
+  margin-bottom: 14px;
+}
+
+.ranking-toolbar {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ranking-filters {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.ranking-toolbar-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.ranking-toolbar-label select,
+.rows-per-page select {
+  min-width: 180px;
+}
+
+.ranking-column-head.livetrail-column-head {
+  align-items: center;
+  border-bottom: 1px solid rgba(20, 22, 24, 0.08);
+  border-top: 1px solid rgba(20, 22, 24, 0.08);
+  min-height: 76px;
+  padding: 0 18px;
+}
+
+.full-ranking-list.full-ranking-table {
+  background: #fffdf9;
+  border-radius: 0 0 24px 24px;
+  overflow: hidden;
+}
+
+.full-ranking-row.race-ranking-row {
+  padding: 0 18px;
+}
+
+.ranking-block strong {
+  font-size: 2rem;
+}
+
+.ranking-submeta span {
+  color: #111;
+  font-size: 0.88rem;
+}
+
+.ranking-submeta small {
+  font-size: 0.78rem;
+}
+
+.runner-main-cell {
+  gap: 14px;
+}
+
+.bib-tile {
+  align-items: center;
+  background: #fffef9;
+  border-color: rgba(184, 122, 32, 0.54);
+  box-shadow: inset 0 0 0 1px rgba(236, 169, 70, 0.12);
+  min-height: 46px;
+}
+
+.runner-cell strong {
+  font-size: 0.98rem;
+}
+
+.runner-cell span {
+  font-size: 0.82rem;
+}
+
+.runner-status-pill {
+  align-self: start;
+}
+
+.race-inline-cell {
+  gap: 4px;
+}
+
+.race-inline-cell strong {
+  font-size: 0.95rem;
+}
+
+.race-inline-cell span {
+  font-size: 0.78rem;
+}
+
+.pager-button {
+  font-size: 0;
+  font-weight: 700;
+}
+
+.pager-actions.compact .pager-button::before {
+  font-size: 0.88rem;
+  line-height: 1;
+}
+
+.pager-actions.compact .pager-button:nth-child(1)::before {
+  content: "<<";
+}
+
+.pager-actions.compact .pager-button:nth-child(2)::before {
+  content: "<";
+}
+
+.pager-actions.compact .pager-button:nth-child(3)::before {
+  content: ">";
+}
+
+.pager-actions.compact .pager-button:nth-child(4)::before {
+  content: ">>";
+}
+
+.spectator-promo-panel {
+  margin-top: 6px;
+}
+
 @media (max-width: 1280px) {
   .live-trail-shell {
     grid-template-columns: 128px minmax(0, 1fr) 210px;
@@ -3461,6 +3916,10 @@ body {
 
   .spectator-promo-phone {
     display: none;
+  }
+
+  .race-stat-strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -3479,6 +3938,13 @@ body {
   }
 
   .topbar-center {
+    grid-template-columns: 1fr;
+  }
+
+  .course-command-panel.livetrail-course-toolbar,
+  .course-map-card,
+  .course-profile-headline,
+  .course-profile-footer {
     grid-template-columns: 1fr;
   }
 
