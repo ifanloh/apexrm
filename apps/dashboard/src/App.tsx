@@ -2161,196 +2161,220 @@ export default function App() {
 
       <aside className="dashboard-rail live-ranking-rail">
         <div className="rail">
-          <article className="panel rail-panel rail-ranking-panel" id="race-leaders">
-            <div className="rail-panel-head">
-              <span>Ranking</span>
-              <h3>Overall</h3>
-            </div>
-            <div className="mini-leaderboard livetrail-mini-leaderboard">
-              {sidebarOverallRows.length ? (
-                sidebarOverallRows.map((entry) => (
-                  <div className="mini-leaderboard-row live" key={`rail-overall-${entry.bib}`}>
-                    <strong>{entry.rank}</strong>
-                    <div>
-                      <span>{entry.name}</span>
-                      <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
-                    </div>
-                    <div className="rail-rank-time">
-                      <small>{getNationalityCode(entry.bib)}</small>
-                      <time>{formatGapFromLeader(entry.scannedAt, sidebarOverallLeaderTime, entry.rank)}</time>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="empty-compact">No runner in the overall ranking yet.</div>
-              )}
-            </div>
-            <button className="sidebar-more" onClick={() => focusRanking("overall")} type="button">
-              See More
-            </button>
-          </article>
-
-          <article className="panel rail-panel rail-ranking-panel">
-            <div className="rail-panel-head">
-              <span>Ranking</span>
-              <h3>Woman</h3>
-            </div>
-            <div className="mini-leaderboard livetrail-mini-leaderboard">
-              {sidebarWomenRows.length ? (
-                sidebarWomenRows.map((entry) => (
-                  <div className="mini-leaderboard-row live" key={`rail-women-${entry.bib}`}>
-                    <strong>{entry.rank}</strong>
-                    <div>
-                      <span>{entry.name}</span>
-                      <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
-                    </div>
-                    <div className="rail-rank-time">
-                      <small>{getNationalityCode(entry.bib)}</small>
-                      <time>{formatGapFromLeader(entry.scannedAt, sidebarWomenLeaderTime, entry.rank)}</time>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="empty-compact">No woman ranking data available yet.</div>
-              )}
-            </div>
-            <button className="sidebar-more" onClick={() => focusRanking("women")} type="button">
-              See More
-            </button>
-          </article>
-
-          {organizerSessionActive ? (
-          <article className="panel rail-panel" id="recent-passings-sidebar">
-            <div className="panel-head">
-              <div>
-                <p className="section-label">Race Pulse</p>
-                <h3>Recent Passings</h3>
-              </div>
-              <div className="panel-badge compact-badge">
-                <span>Source</span>
-                <strong>{recentPassingSummary}</strong>
-                <span>{recentPassingsMode === "server" ? "live feed" : "fallback feed"}</span>
-              </div>
-            </div>
-            {latestPassing ? (
-              <div className="pulse-card">
-                <span className="broadcast-tag">Latest passing</span>
-                <strong>
-                  {latestPassing.name} | {formatCheckpointLabel({
-                    code: latestPassing.checkpointCode,
-                    kmMarker: latestPassing.checkpointKmMarker
-                  })}
-                </strong>
-                <p>
-                  BIB {latestPassing.bib} | Posisi #{latestPassing.position} | {formatRelativeTime(latestPassing.scannedAt)}
-                </p>
-              </div>
-            ) : (
-              <div className="empty-compact">Belum ada passing resmi yang masuk.</div>
-            )}
-            <ul className="feed-list compact-feed-list">
-              {recentPassings.slice(0, 8).map((passing) => (
-                <li key={`${passing.bib}-${passing.checkpointId}-${passing.scannedAt}`}>
-                  <strong>{passing.name}</strong>
-                  <span>
-                    {formatCheckpointLabel({
-                      code: passing.checkpointCode,
-                      kmMarker: passing.checkpointKmMarker
-                    })}{" "}
-                    | Pos #{passing.position}
-                  </span>
-                  <span>
-                    Crew {passing.crewId} | {passing.deviceId}
-                  </span>
-                  <time>{formatRelativeTime(passing.scannedAt)}</time>
-                </li>
-              ))}
-            </ul>
-          </article>
-          ) : null}
-
-          {organizerSessionActive ? (
-            <article className="panel rail-panel" id="signals-sidebar">
-              <div className="panel-head">
-                <div>
-                  <p className="section-label">Signals</p>
-                  <h3>Broadcast & Audit</h3>
-                </div>
-              </div>
-              <div className="signal-stack">
-                <section className="signal-section">
-                  <div className="signal-head">
-                    <span className="detail-label">Top 5 Broadcast</span>
-                    <strong>{notifications.length}</strong>
-                  </div>
-                  {lastBroadcast ? (
-                    <div className="broadcast-card compact">
-                      <span className="broadcast-tag">Telegram Ready</span>
-                      <strong>BIB {lastBroadcast.bib} masuk posisi #{lastBroadcast.position}</strong>
-                      <p>
-                        Checkpoint {lastBroadcast.checkpointId} pada {formatScanTime(lastBroadcast.createdAt)}.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="empty-compact">Belum ada event Top 5 yang perlu dibroadcast.</div>
-                  )}
-                  <ul className="feed-list compact-feed-list">
-                    {notifications.slice(0, 4).map((notification) => (
-                      <li key={notification.id}>
-                        <strong>BIB {notification.bib}</strong>
-                        <span>{notification.checkpointId} | posisi #{notification.position}</span>
-                        <time>{formatScanTime(notification.createdAt)}</time>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-
-                <section className="signal-section">
-                  <div className="signal-head">
-                    <span className="detail-label">Duplicate Audit</span>
-                    <strong>{duplicates.length}</strong>
-                  </div>
-                  <ul className="feed-list compact-feed-list">
-                    {duplicates.slice(0, 4).map((duplicate) => (
-                      <li key={duplicate.clientScanId}>
-                        <strong>BIB {duplicate.bib}</strong>
-                        <span>{duplicate.checkpointId} | first scan {duplicate.firstAcceptedClientScanId}</span>
-                        <time>{formatScanTime(duplicate.serverReceivedAt)}</time>
-                      </li>
-                    ))}
-                  </ul>
-                  {duplicates.length === 0 ? (
-                    <div className="empty-compact">Belum ada duplikat yang perlu diaudit.</div>
-                  ) : null}
-                </section>
-              </div>
-            </article>
-          ) : (
-            <article className="panel rail-panel observer-teaser" id="signals-sidebar">
-              <div className="panel-head">
-                <div>
-                  <p className="section-label">Organizer Access</p>
-                  <h3>Login untuk Tools</h3>
-                </div>
+          {isEditionHome ? (
+            <article className="panel rail-panel edition-rail-placeholder">
+              <div className="rail-panel-head">
+                <span>Race Selection</span>
+                <h3>Choose A Category</h3>
               </div>
               <div className="signal-stack">
                 <div className="broadcast-card compact">
-                  <span className="broadcast-tag">Public View</span>
-                  <strong>Penonton tetap bisa menikmati live race tanpa login.</strong>
-                  <p>Masuk sebagai organizer untuk audit duplicate, monitor broadcast, dan kontrol operasional event day.</p>
+                  <span className="broadcast-tag">Edition Home</span>
+                  <strong>Ranking hanya tersedia setelah salah satu kategori race dibuka.</strong>
+                  <p>
+                    Pilih race seperti Grand Trail, Boffi Fifty, atau kategori lain untuk melihat overall ranking,
+                    woman ranking, course profile, dan hasil live detail.
+                  </p>
                 </div>
-                <button
-                  className="auth-trigger"
-                  onClick={() => {
-                    setLoginError(null);
-                    setIsLoginModalOpen(true);
-                  }}
-                  type="button"
-                >
-                  Login Organizer
+                <button className="sidebar-more" onClick={() => openRaceView(demoCourse.slug)} type="button">
+                  Open Featured Race
                 </button>
               </div>
             </article>
+          ) : (
+            <>
+              <article className="panel rail-panel rail-ranking-panel" id="race-leaders">
+                <div className="rail-panel-head">
+                  <span>Ranking</span>
+                  <h3>Overall</h3>
+                </div>
+                <div className="mini-leaderboard livetrail-mini-leaderboard">
+                  {sidebarOverallRows.length ? (
+                    sidebarOverallRows.map((entry) => (
+                      <div className="mini-leaderboard-row live" key={`rail-overall-${entry.bib}`}>
+                        <strong>{entry.rank}</strong>
+                        <div>
+                          <span>{entry.name}</span>
+                          <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
+                        </div>
+                        <div className="rail-rank-time">
+                          <small>{getNationalityCode(entry.bib)}</small>
+                          <time>{formatGapFromLeader(entry.scannedAt, sidebarOverallLeaderTime, entry.rank)}</time>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-compact">No runner in the overall ranking yet.</div>
+                  )}
+                </div>
+                <button className="sidebar-more" onClick={() => focusRanking("overall")} type="button">
+                  See More
+                </button>
+              </article>
+
+              <article className="panel rail-panel rail-ranking-panel">
+                <div className="rail-panel-head">
+                  <span>Ranking</span>
+                  <h3>Woman</h3>
+                </div>
+                <div className="mini-leaderboard livetrail-mini-leaderboard">
+                  {sidebarWomenRows.length ? (
+                    sidebarWomenRows.map((entry) => (
+                      <div className="mini-leaderboard-row live" key={`rail-women-${entry.bib}`}>
+                        <strong>{entry.rank}</strong>
+                        <div>
+                          <span>{entry.name}</span>
+                          <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
+                        </div>
+                        <div className="rail-rank-time">
+                          <small>{getNationalityCode(entry.bib)}</small>
+                          <time>{formatGapFromLeader(entry.scannedAt, sidebarWomenLeaderTime, entry.rank)}</time>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="empty-compact">No woman ranking data available yet.</div>
+                  )}
+                </div>
+                <button className="sidebar-more" onClick={() => focusRanking("women")} type="button">
+                  See More
+                </button>
+              </article>
+
+              {organizerSessionActive ? (
+              <article className="panel rail-panel" id="recent-passings-sidebar">
+                <div className="panel-head">
+                  <div>
+                    <p className="section-label">Race Pulse</p>
+                    <h3>Recent Passings</h3>
+                  </div>
+                  <div className="panel-badge compact-badge">
+                    <span>Source</span>
+                    <strong>{recentPassingSummary}</strong>
+                    <span>{recentPassingsMode === "server" ? "live feed" : "fallback feed"}</span>
+                  </div>
+                </div>
+                {latestPassing ? (
+                  <div className="pulse-card">
+                    <span className="broadcast-tag">Latest passing</span>
+                    <strong>
+                      {latestPassing.name} | {formatCheckpointLabel({
+                        code: latestPassing.checkpointCode,
+                        kmMarker: latestPassing.checkpointKmMarker
+                      })}
+                    </strong>
+                    <p>
+                      BIB {latestPassing.bib} | Posisi #{latestPassing.position} | {formatRelativeTime(latestPassing.scannedAt)}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="empty-compact">Belum ada passing resmi yang masuk.</div>
+                )}
+                <ul className="feed-list compact-feed-list">
+                  {recentPassings.slice(0, 8).map((passing) => (
+                    <li key={`${passing.bib}-${passing.checkpointId}-${passing.scannedAt}`}>
+                      <strong>{passing.name}</strong>
+                      <span>
+                        {formatCheckpointLabel({
+                          code: passing.checkpointCode,
+                          kmMarker: passing.checkpointKmMarker
+                        })}{" "}
+                        | Pos #{passing.position}
+                      </span>
+                      <span>
+                        Crew {passing.crewId} | {passing.deviceId}
+                      </span>
+                      <time>{formatRelativeTime(passing.scannedAt)}</time>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+              ) : null}
+
+              {organizerSessionActive ? (
+                <article className="panel rail-panel" id="signals-sidebar">
+                  <div className="panel-head">
+                    <div>
+                      <p className="section-label">Signals</p>
+                      <h3>Broadcast & Audit</h3>
+                    </div>
+                  </div>
+                  <div className="signal-stack">
+                    <section className="signal-section">
+                      <div className="signal-head">
+                        <span className="detail-label">Top 5 Broadcast</span>
+                        <strong>{notifications.length}</strong>
+                      </div>
+                      {lastBroadcast ? (
+                        <div className="broadcast-card compact">
+                          <span className="broadcast-tag">Telegram Ready</span>
+                          <strong>BIB {lastBroadcast.bib} masuk posisi #{lastBroadcast.position}</strong>
+                          <p>
+                            Checkpoint {lastBroadcast.checkpointId} pada {formatScanTime(lastBroadcast.createdAt)}.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="empty-compact">Belum ada event Top 5 yang perlu dibroadcast.</div>
+                      )}
+                      <ul className="feed-list compact-feed-list">
+                        {notifications.slice(0, 4).map((notification) => (
+                          <li key={notification.id}>
+                            <strong>BIB {notification.bib}</strong>
+                            <span>{notification.checkpointId} | posisi #{notification.position}</span>
+                            <time>{formatScanTime(notification.createdAt)}</time>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+
+                    <section className="signal-section">
+                      <div className="signal-head">
+                        <span className="detail-label">Duplicate Audit</span>
+                        <strong>{duplicates.length}</strong>
+                      </div>
+                      <ul className="feed-list compact-feed-list">
+                        {duplicates.slice(0, 4).map((duplicate) => (
+                          <li key={duplicate.clientScanId}>
+                            <strong>BIB {duplicate.bib}</strong>
+                            <span>{duplicate.checkpointId} | first scan {duplicate.firstAcceptedClientScanId}</span>
+                            <time>{formatScanTime(duplicate.serverReceivedAt)}</time>
+                          </li>
+                        ))}
+                      </ul>
+                      {duplicates.length === 0 ? (
+                        <div className="empty-compact">Belum ada duplikat yang perlu diaudit.</div>
+                      ) : null}
+                    </section>
+                  </div>
+                </article>
+              ) : (
+                <article className="panel rail-panel observer-teaser" id="signals-sidebar">
+                  <div className="panel-head">
+                    <div>
+                      <p className="section-label">Organizer Access</p>
+                      <h3>Login untuk Tools</h3>
+                    </div>
+                  </div>
+                  <div className="signal-stack">
+                    <div className="broadcast-card compact">
+                      <span className="broadcast-tag">Public View</span>
+                      <strong>Penonton tetap bisa menikmati live race tanpa login.</strong>
+                      <p>Masuk sebagai organizer untuk audit duplicate, monitor broadcast, dan kontrol operasional event day.</p>
+                    </div>
+                    <button
+                      className="auth-trigger"
+                      onClick={() => {
+                        setLoginError(null);
+                        setIsLoginModalOpen(true);
+                      }}
+                      type="button"
+                    >
+                      Login Organizer
+                    </button>
+                  </div>
+                </article>
+              )}
+            </>
           )}
         </div>
       </aside>
