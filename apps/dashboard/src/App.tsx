@@ -1246,9 +1246,7 @@ export default function App() {
               <span className="word-live">LIVE</span>
               <span className="word-trail">TRAIL</span>
             </div>
-            {demoRaceFestival.brandStack.map((line) => (
-              <strong key={line}>{line}</strong>
-            ))}
+            <strong>{demoRaceFestival.brandName}</strong>
           </div>
 
           <div className="topbar-center">

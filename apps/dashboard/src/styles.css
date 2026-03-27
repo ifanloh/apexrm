@@ -2713,6 +2713,23 @@ body {
   padding-top: 6px;
 }
 
+.live-sidebar-nav .nav-link,
+.live-sidebar-nav .nav-link-primary,
+.live-sidebar-nav .nav-link-footer {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.live-sidebar-nav .nav-link:hover,
+.live-sidebar-nav .nav-link-primary:hover,
+.live-sidebar-nav .nav-link-footer:hover {
+  background: transparent;
+  border-color: transparent;
+  color: #121212;
+}
+
 .live-sidebar-nav .nav-group {
   gap: 8px;
 }
@@ -2830,19 +2847,20 @@ body {
 }
 
 .topbar-race-lockup {
-  align-items: flex-start;
+  align-items: center;
   color: var(--green);
-  display: grid;
+  display: flex;
   font-size: 1.08rem;
-  gap: 4px;
+  gap: 10px;
   line-height: 1.04;
   text-transform: uppercase;
 }
 
 .topbar-race-lockup strong {
-  display: grid;
-  font-size: 0.98rem;
-  gap: 2px;
+  display: block;
+  font-size: 0.92rem;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .live-trail-shell.edition-home-mode .dashboard-main.dashboard-main-scroll {
