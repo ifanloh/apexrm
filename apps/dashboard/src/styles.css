@@ -2886,6 +2886,11 @@ body {
   width: 100%;
 }
 
+.topbar-search {
+  max-width: 100%;
+  min-width: 0;
+}
+
 .topbar-select-shell,
 .topbar-search-shell {
   background: #ffffff;
@@ -2899,9 +2904,14 @@ body {
 }
 
 .topbar-search-shell {
+  align-items: center;
   border: 3px solid var(--green);
+  display: flex;
+  gap: 12px;
   max-width: none;
   min-width: 0;
+  padding-left: 14px;
+  padding-right: 8px;
 }
 
 :root[data-theme="dark"] .topbar-select-shell,
@@ -2923,7 +2933,10 @@ body {
 }
 
 .topbar-search-shell input {
+  flex: 1 1 auto;
   min-height: 48px;
+  min-width: 0;
+  width: 100%;
 }
 
 .topbar-runner-icon {
@@ -2980,6 +2993,40 @@ body {
   flex: 0 0 auto;
   gap: 5px;
   min-width: max-content;
+}
+
+.live-trail-shell.race-detail-mode .live-topbar {
+  grid-template-columns: 136px minmax(0, 1fr) auto;
+}
+
+.live-trail-shell.race-detail-mode .topbar-race-lockup {
+  max-width: 126px;
+}
+
+.live-trail-shell.race-detail-mode .topbar-race-lockup strong {
+  font-size: 0.96rem;
+}
+
+.live-trail-shell.race-detail-mode .topbar-center {
+  gap: 10px;
+  grid-template-columns: 188px minmax(160px, 1fr);
+}
+
+.live-trail-shell.race-detail-mode .topbar-select-shell {
+  max-width: 188px;
+}
+
+.live-trail-shell.race-detail-mode .topbar-search-button {
+  height: 40px;
+  min-width: 40px;
+}
+
+.live-trail-shell.race-detail-mode .topbar-login-link,
+.live-trail-shell.race-detail-mode .topbar-icon-button,
+.live-trail-shell.race-detail-mode .topbar-locale-pill {
+  font-size: 0.76rem;
+  gap: 6px;
+  padding: 0 8px;
 }
 
 .topbar-login-link,
