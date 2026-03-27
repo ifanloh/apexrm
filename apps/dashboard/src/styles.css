@@ -3550,9 +3550,13 @@ body {
 
 .race-detail-hero {
   margin-top: 6px;
+  padding: 14px 18px 18px;
 }
 
 .race-detail-hero-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -3560,11 +3564,12 @@ body {
   align-items: start;
   border-bottom: 1px solid rgba(20, 22, 24, 0.08);
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  padding: 6px 0 18px;
+  padding: 12px 0 8px;
 }
 
 .race-stat-strip-item {
   gap: 6px;
+  min-height: 64px;
 }
 
 .race-stat-strip-item span {
@@ -3583,23 +3588,24 @@ body {
 
 .course-command-panel.livetrail-course-toolbar {
   display: grid;
-  gap: 18px;
-  grid-template-columns: 1.2fr auto auto;
+  gap: 14px;
+  grid-template-columns: minmax(260px, 1.15fr) auto auto;
+  padding: 16px 18px;
 }
 
 .course-command-meta {
   align-items: center;
   display: flex;
-  gap: 18px;
+  gap: 14px;
 }
 
 .course-legend {
-  min-width: 124px;
+  min-width: 108px;
 }
 
 .course-beacon strong {
   font-family: "Oxanium", sans-serif;
-  font-size: 0.96rem;
+  font-size: 0.88rem;
 }
 
 .course-beacon span {
@@ -3618,19 +3624,19 @@ body {
 }
 
 .course-profile-card {
-  gap: 24px;
-  padding: 22px 22px 28px;
+  gap: 16px;
+  padding: 18px 18px 22px;
 }
 
 .course-profile-stage {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .course-profile-headline {
   align-items: end;
   display: flex;
-  gap: 18px;
+  gap: 14px;
   justify-content: space-between;
 }
 
@@ -3642,24 +3648,24 @@ body {
 .course-profile-title strong {
   color: #111;
   font-family: "Oxanium", sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.16rem;
   text-transform: uppercase;
 }
 
 .course-profile-title small {
   color: var(--ink-soft);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
 }
 
 .course-profile-meta-card {
   align-items: start;
   background: #fffdf9;
   border: 1px solid rgba(20, 22, 24, 0.08);
-  border-radius: 16px;
+  border-radius: 14px;
   display: grid;
   gap: 2px;
-  min-width: 172px;
-  padding: 12px 14px;
+  min-width: 156px;
+  padding: 10px 12px;
 }
 
 .course-profile-meta-card span {
@@ -3690,7 +3696,7 @@ body {
 
 .course-elevation-chart {
   display: block;
-  min-height: 360px;
+  min-height: 320px;
   width: 100%;
 }
 
@@ -3739,7 +3745,7 @@ body {
 .course-profile-footer {
   align-items: center;
   display: grid;
-  gap: 18px;
+  gap: 14px;
   grid-template-columns: 108px minmax(0, 1fr);
 }
 
@@ -3796,8 +3802,8 @@ body {
 
 .course-map-card {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  min-height: 320px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 300px;
   overflow: hidden;
 }
 
@@ -3805,48 +3811,49 @@ body {
   align-content: center;
   background:
     linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82) 48%, rgba(255, 255, 255, 0.06) 100%);
-  padding: 24px 20px;
+  padding: 18px 18px;
 }
 
 .course-map-copy strong {
   font-family: "Oxanium", sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.12rem;
 }
 
 .course-map-copy p {
-  max-width: 180px;
+  font-size: 0.84rem;
+  max-width: 168px;
 }
 
 .course-map-visual {
-  min-height: 320px;
+  min-height: 300px;
 }
 
 .course-map-svg {
   display: block;
   height: 100%;
-  min-height: 320px;
+  min-height: 300px;
   width: 100%;
 }
 
 .control-grid {
   display: grid;
-  gap: 22px;
+  gap: 16px;
 }
 
 .livetrail-ranking-panel {
-  padding: 18px 22px 20px;
+  padding: 16px 18px 18px;
 }
 
-.panel-head {
-  align-items: end;
-}
-
-.livetrail-ranking-panel .panel-head {
-  margin-bottom: 14px;
+.ranking-title-shell {
+  align-items: center;
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 10px;
 }
 
 .ranking-toolbar {
   align-items: center;
+  gap: 12px;
   justify-content: space-between;
 }
 
@@ -3877,15 +3884,15 @@ body {
 
 .ranking-toolbar-label select,
 .rows-per-page select {
-  min-width: 180px;
+  min-width: 160px;
 }
 
 .ranking-column-head.livetrail-column-head {
   align-items: center;
   border-bottom: 1px solid rgba(20, 22, 24, 0.08);
   border-top: 1px solid rgba(20, 22, 24, 0.08);
-  min-height: 76px;
-  padding: 0 18px;
+  min-height: 64px;
+  padding: 0 14px;
 }
 
 .ranking-range-text {
@@ -3896,16 +3903,17 @@ body {
 
 .full-ranking-list.full-ranking-table {
   background: #fffdf9;
-  border-radius: 0 0 24px 24px;
+  border-radius: 0 0 20px 20px;
   overflow: hidden;
 }
 
 .full-ranking-row.race-ranking-row {
-  padding: 0 18px;
+  min-height: 102px;
+  padding: 0 14px;
 }
 
 .ranking-block strong {
-  font-size: 2rem;
+  font-size: 1.78rem;
 }
 
 .ranking-submeta span {
@@ -3930,11 +3938,11 @@ body {
 }
 
 .runner-cell strong {
-  font-size: 0.98rem;
+  font-size: 0.94rem;
 }
 
 .runner-cell span {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 .runner-status-pill {
@@ -3946,11 +3954,11 @@ body {
 }
 
 .race-inline-cell strong {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .race-inline-cell span {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 .mini-leaderboard {

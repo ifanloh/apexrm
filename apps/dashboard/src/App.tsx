@@ -1437,24 +1437,14 @@ export default function App() {
 
       <section className="control-grid">
         <article className="panel leaderboard-panel full-ranking-panel livetrail-ranking-panel" id="full-ranking">
-          <div className="panel-head">
-            <div>
-              <p className="section-label">Ranking</p>
-              <h3>{fullRankingView === "women" ? "Woman ranking" : "Official full ranking"}</h3>
-            </div>
-            <div className="panel-badge">
-              <span>{fullRankingView === "women" ? "Women ranked" : "Ranked runners"}</span>
-              <strong>{fullRankingEntries.length}</strong>
-            </div>
+          <div className="ranking-title-shell">
+            <span className="detail-label">Ranking</span>
           </div>
           <div className="ranking-toolbar livetrail-ranking-topline">
             <div className="ranking-mode-switch">
               <span className="detail-label">See</span>
               <button className={`route-tab ${fullRankingView === "overall" ? "active" : ""}`} onClick={() => setFullRankingView("overall")} type="button">
                 Ranking
-              </button>
-              <button className={`route-tab ${fullRankingView === "women" ? "active" : ""}`} onClick={() => setFullRankingView("women")} type="button">
-                Woman
               </button>
               <button className="route-tab ghost" type="button">
                 Terrain
