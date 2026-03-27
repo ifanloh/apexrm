@@ -1193,7 +1193,7 @@ export default function App() {
 
           <div className={`nav-group ${runnerNavOpen ? "open" : ""}`}>
             <button className="nav-toggle" onClick={() => setRunnerNavOpen((current) => !current)} type="button">
-              <span>The Runners</span>
+              <span>THE RUNNERS</span>
               <span className={`nav-chevron ${runnerNavOpen ? "open" : ""}`}>⌄</span>
             </button>
             <div className="nav-links">
@@ -1222,7 +1222,7 @@ export default function App() {
 
           <div className={`nav-group ${raceNavOpen ? "open" : ""}`}>
             <button className="nav-toggle" onClick={() => setRaceNavOpen((current) => !current)} type="button">
-              <span>Follow The Race</span>
+              <span>FOLLOW THE RACE</span>
               <span className={`nav-chevron ${raceNavOpen ? "open" : ""}`}>⌄</span>
             </button>
             <div className="nav-links">

@@ -4110,3 +4110,156 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Final clone tightening */
+
+.live-sidebar-nav .nav-group {
+  gap: 10px;
+}
+
+.live-sidebar-nav .nav-toggle {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  padding: 0 2px 10px;
+}
+
+.live-sidebar-nav .nav-links {
+  gap: 10px;
+}
+
+.nav-link-icon {
+  gap: 8px;
+  font-size: 0.8rem;
+  line-height: 1.15;
+  min-height: 20px;
+}
+
+.topbar-login-link {
+  font-size: 0.84rem;
+}
+
+.rail-panel-head {
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.rail-panel-head h3 {
+  font-size: 1.08rem;
+}
+
+.mini-leaderboard-row.live {
+  gap: 8px;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+}
+
+.mini-leaderboard-row.live strong {
+  font-size: 1.34rem;
+}
+
+.mini-leaderboard-row.live span {
+  font-size: 0.84rem;
+}
+
+.mini-leaderboard-row.live small,
+.rail-rank-time small {
+  font-size: 0.72rem;
+}
+
+.rail-rank-time time {
+  font-size: 0.82rem;
+}
+
+.sidebar-more {
+  border-radius: 10px;
+  font-size: 0.78rem;
+  min-height: 36px;
+}
+
+.ranking-column-head.livetrail-column-head {
+  grid-template-columns: 160px minmax(290px, 1.35fr) 86px 92px 132px;
+  letter-spacing: 0.1em;
+  min-height: 58px;
+  padding: 0 12px;
+}
+
+.full-ranking-list.full-ranking-table {
+  border-radius: 0 0 18px 18px;
+}
+
+.full-ranking-row.race-ranking-row {
+  border-bottom: 1px solid rgba(20, 22, 24, 0.06);
+  grid-template-columns: 160px minmax(290px, 1.35fr) 86px 92px 132px;
+  min-height: 96px;
+  padding: 0 12px;
+}
+
+.full-ranking-row.race-ranking-row:nth-child(even) {
+  background: rgba(20, 22, 24, 0.018);
+}
+
+.full-ranking-row.race-ranking-row:last-child {
+  border-bottom: 0;
+}
+
+.ranking-block {
+  gap: 4px;
+}
+
+.ranking-block strong {
+  font-size: 1.56rem;
+  letter-spacing: -0.06em;
+}
+
+.ranking-submeta span {
+  font-size: 0.84rem;
+}
+
+.ranking-submeta small {
+  font-size: 0.74rem;
+  line-height: 1.1;
+}
+
+.runner-main-cell {
+  gap: 12px;
+  grid-template-columns: 58px minmax(0, 1fr);
+}
+
+.bib-tile {
+  border-radius: 4px;
+  font-family: "Oxanium", sans-serif;
+  font-size: 1.05rem;
+  min-height: 42px;
+}
+
+.runner-cell {
+  gap: 10px;
+}
+
+.runner-avatar-live {
+  font-size: 0.86rem;
+  height: 46px;
+  width: 46px;
+}
+
+.runner-cell strong {
+  font-size: 0.92rem;
+  letter-spacing: -0.01em;
+}
+
+.runner-cell span {
+  font-size: 0.75rem;
+}
+
+.runner-status-pill {
+  font-size: 0.68rem;
+  min-height: 22px;
+  padding: 0 8px;
+}
+
+.race-inline-cell strong {
+  font-size: 0.84rem;
+}
+
+.race-inline-cell span {
+  font-size: 0.71rem;
+}
