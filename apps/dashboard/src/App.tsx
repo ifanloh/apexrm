@@ -27,7 +27,6 @@ import { CourseProfilePanel } from "./CourseProfilePanel";
 import { demoCourse } from "./demoCourse";
 import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
-import { SpectatorPromoPanel } from "./SpectatorPromoPanel";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -1498,7 +1497,6 @@ export default function App() {
               locationRibbon={demoRaceFestival.locationRibbon}
               onOpenRace={(slug) => openRaceView(slug, "race-hub")}
             />
-            <SpectatorPromoPanel />
           </>
         ) : (
           <>
@@ -1807,8 +1805,6 @@ export default function App() {
             </div>
           </div>
         </article>
-
-        <SpectatorPromoPanel />
 
         <aside className="dashboard-rail-marker">
           <article className="panel rail-panel" id="recent-passings">
@@ -2245,12 +2241,9 @@ export default function App() {
           </>
         )}
 
-      <footer className="spectator-footer" id="runtime-footer">
-        <div className="spectator-footer-brand">
-          <span className="word-live">LIVE</span>
-          <span className="word-trail">TRAIL</span>
-        </div>
-        <p>Powered by LiveTrail</p>
+      <footer className="runtime-footer" id="runtime-footer">
+        <span>API {apiHost}</span>
+        <span>Live {liveStatusLabel}</span>
       </footer>
 
       {isLoginModalOpen ? (
