@@ -1,4 +1,4 @@
-import { demoCourse } from "./demoCourse";
+﻿import { demoCourse } from "./demoCourse";
 
 export type DemoRaceRankingPreview = {
   rank: number;
@@ -30,7 +30,7 @@ export const demoRaceFestival = {
   brandName: "MANTRA116",
   editionLabel: "Edition 2025",
   dateRibbon: "Arjuno-Welirang Mountain Complex",
-  locationRibbon: "Kaliandra Resort � East Java",
+  locationRibbon: "Kaliandra Resort · East Java",
   homeTitle: "Race Categories",
   homeSubtitle:
     "Satu edition MANTRA116 dapat menayangkan beberapa kategori race sekaligus. Setiap kartu di bawah membuka live page spectator untuk kategori tersebut.",
@@ -63,7 +63,7 @@ export const demoRaceFestival = {
     {
       slug: "mantra-ultra-68",
       title: "Mantra Ultra 68",
-      editionLabel: "Preview",
+      editionLabel: "Finished",
       scheduleLabel: "Fri 05 Jul 23:59",
       startTown: "Kaliandra",
       distanceKm: 68,
@@ -85,7 +85,7 @@ export const demoRaceFestival = {
     {
       slug: "mantra-trail-38",
       title: "Mantra Trail 38 Welirang",
-      editionLabel: "Preview",
+      editionLabel: "Finished",
       scheduleLabel: "Sat 06 Jul 00:00",
       startTown: "Kaliandra",
       distanceKm: 38,
@@ -107,7 +107,7 @@ export const demoRaceFestival = {
     {
       slug: "mantra-trail-34",
       title: "Mantra Trail 34 Arjuno",
-      editionLabel: "Preview",
+      editionLabel: "Finished",
       scheduleLabel: "Sat 06 Jul 00:00",
       startTown: "Kaliandra",
       distanceKm: 34,
@@ -129,7 +129,7 @@ export const demoRaceFestival = {
     {
       slug: "mantra-fun-17",
       title: "Mantra Fun 17",
-      editionLabel: "Preview",
+      editionLabel: "Finished",
       scheduleLabel: "Sun 07 Jul 07:00",
       startTown: "Kaliandra",
       distanceKm: 17,
@@ -151,7 +151,7 @@ export const demoRaceFestival = {
     {
       slug: "mantra-fun-10",
       title: "Mantra Fun 10",
-      editionLabel: "Preview",
+      editionLabel: "Finished",
       scheduleLabel: "Sun 07 Jul 07:00",
       startTown: "Kaliandra",
       distanceKm: 10,
@@ -172,4 +172,5 @@ export const demoRaceFestival = {
     }
   ] satisfies DemoRaceCard[]
 };
+
 

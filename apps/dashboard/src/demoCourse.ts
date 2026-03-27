@@ -1,4 +1,4 @@
-export const demoCourse = {
+﻿export const demoCourse = {
   "slug": "mantra-116-ultra",
   "title": "Mantra 116 Ultra",
   "subtitle": "Signature ultra-trail preview across the Arjuno-Welirang mountain complex from Kaliandra Resort, East Java.",
@@ -604,3 +604,4 @@ export const demoCourse = {
     }
   ]
 } as const;
+

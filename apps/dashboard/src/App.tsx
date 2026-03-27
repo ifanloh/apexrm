@@ -929,8 +929,10 @@ export default function App() {
     () => buildPreviewLeaderboard(selectedRaceCard, "women"),
     [selectedRaceCard]
   );
-  const activeOverallLeaderboard = isFeaturedRace ? overallLeaderboard : previewOverallLeaderboard;
-  const activeWomenLeaderboard = isFeaturedRace ? womenLeaderboard : previewWomenLeaderboard;
+  const activeOverallLeaderboard =
+    isFeaturedRace && overallLeaderboard.topEntries.length > 0 ? overallLeaderboard : previewOverallLeaderboard;
+  const activeWomenLeaderboard =
+    isFeaturedRace && womenLeaderboard.topEntries.length > 0 ? womenLeaderboard : previewWomenLeaderboard;
   const activeMenLeaderboard = useMemo<OverallLeaderboard>(() => {
     const items = activeOverallLeaderboard.topEntries.filter((entry) => entry.category.toLowerCase() === "men");
     return {
@@ -1137,7 +1139,9 @@ export default function App() {
         ...race,
         finishers: finisherCount,
         dnf: dnfDnsCount,
-        rankingPreview: overallLeaderboard.topEntries.slice(0, 3).map((entry) => ({
+        rankingPreview: (overallLeaderboard.topEntries.length ? overallLeaderboard.topEntries : previewOverallLeaderboard.topEntries)
+          .slice(0, 3)
+          .map((entry) => ({
           rank: entry.rank,
           name: entry.name,
           bib: entry.bib,
@@ -1149,7 +1153,7 @@ export default function App() {
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
-  }, [dnfDnsCount, finisherCount, overallLeaderboard.topEntries, selectedRaceCard.slug]);
+  }, [dnfDnsCount, finisherCount, overallLeaderboard.topEntries, previewOverallLeaderboard.topEntries, selectedRaceCard.slug]);
   const eventTitle = isEditionHome ? demoRaceFestival.brandName : selectedRaceCard.title;
   const eventSubtitleText = isEditionHome
     ? `${demoCourse.location} | ${demoRaceFestival.editionLabel}`
@@ -1505,10 +1509,10 @@ export default function App() {
         </div>
 
         <section className="panel race-detail-hero" id="race-hub">
-          <div className="race-detail-hero-head">
-            <span className={`race-status-pill ${selectedRaceCard.editionLabel.toLowerCase() === "finished" ? "live" : ""}`}>
-              {selectedRaceCard.editionLabel}
-            </span>
+            <div className="race-detail-hero-head">
+              <span className={`race-status-pill ${selectedRaceCard.editionLabel.toLowerCase() === "live" ? "live" : ""}`}>
+                {selectedRaceCard.editionLabel}
+              </span>
             <h2>{eventTitle}</h2>
           </div>
 

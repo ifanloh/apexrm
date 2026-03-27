@@ -103,7 +103,7 @@ export function RaceEditionHome({
               style={cardStyle}
             >
               <div className="race-card-topline">
-                <span className={`race-status-pill ${card.isLive ? "live" : ""}`}>{card.isLive ? "Live" : card.editionLabel}</span>
+                <span className={`race-status-pill ${card.isLive ? "live" : ""}`}>{card.isLive ? "Live" : "Finished"}</span>
               </div>
 
               <div className="race-card-head">
@@ -172,7 +172,7 @@ export function RaceEditionHome({
               </div>
 
               <button className="race-card-cta" onClick={() => onOpenRace(card.slug)} type="button">
-                Open Race Live
+                {card.isLive ? "Open Race Live" : "View Results"}
               </button>
             </article>
           );
