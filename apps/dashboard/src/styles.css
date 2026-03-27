@@ -4778,6 +4778,18 @@ body {
   width: 100% !important;
 }
 
+.topbar-search-icon-runner {
+  background: var(--green) !important;
+  mask-image: var(--runner-icon);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-image: var(--runner-icon);
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
 .topbar-search-submit {
   align-items: center;
   background: var(--green) !important;

@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   authProfileSchema,
@@ -24,6 +25,7 @@ import {
   fetchRunnerSearch
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
+import runnerIcon from "./assets/runner.svg";
 import { getDemoCourseForRace } from "./demoCourseVariants";
 import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
@@ -1446,18 +1448,11 @@ export default function App() {
             </label>
 
             <div className="topbar-search topbar-search-shell">
-              <span className="topbar-search-icon" aria-hidden="true">
-                <svg viewBox="0 0 20 20">
-                  <path
-                    d="M5.2 16.2 8 11.9m1.9-4.8a1.65 1.65 0 1 1-3.3 0 1.65 1.65 0 0 1 3.3 0Zm-4.4 8.7 2-3.1 2.8-1.8 1.2-2.2 2.2 1.1-1.4 2.7 2.6 2.1m-5.5-3.7-2.2-2.3M9 8.8l1.9-1 1.5-2.7"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.8"
-                  />
-                </svg>
-              </span>
+              <span
+                className="topbar-search-icon topbar-search-icon-runner"
+                aria-hidden="true"
+                style={{ "--runner-icon": `url(${runnerIcon})` } as CSSProperties}
+              />
               <label className="sr-only" htmlFor="topbar-runner-search">
                 Search a runner
               </label>
