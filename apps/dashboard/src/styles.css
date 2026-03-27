@@ -1832,7 +1832,7 @@ a {
   color: var(--ink-muted);
   display: grid;
   gap: 16px;
-  grid-template-columns: 180px minmax(280px, 1.35fr) 110px 110px;
+  grid-template-columns: 180px minmax(280px, 1.35fr) 90px 110px 110px;
   padding: 0 8px;
   text-transform: uppercase;
   font-size: 0.76rem;
@@ -1865,7 +1865,7 @@ a {
 
 .race-ranking-row {
   background: rgba(255, 255, 255, 0.04);
-  grid-template-columns: 180px minmax(280px, 1.35fr) 110px 110px;
+  grid-template-columns: 180px minmax(280px, 1.35fr) 90px 110px 110px;
   padding: 16px 18px;
 }
 
@@ -2007,6 +2007,27 @@ a {
 .race-inline-cell {
   display: grid;
   gap: 6px;
+}
+
+.gender-cell strong {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.gender-dot {
+  border-radius: 999px;
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+
+.gender-dot.men {
+  background: #46c7e8;
+}
+
+.gender-dot.women {
+  background: #ff6b74;
 }
 
 .runner-status-pill {
@@ -4305,7 +4326,7 @@ body {
 }
 
 .ranking-column-head.livetrail-column-head {
-  grid-template-columns: 150px minmax(270px, 1.35fr) 88px 124px;
+  grid-template-columns: 150px minmax(270px, 1.35fr) 84px 88px 124px;
   letter-spacing: 0.1em;
   min-height: 58px;
   padding: 0 12px;
@@ -4317,7 +4338,7 @@ body {
 
 .full-ranking-row.race-ranking-row {
   border-bottom: 1px solid rgba(20, 22, 24, 0.06);
-  grid-template-columns: 150px minmax(270px, 1.35fr) 88px 124px;
+  grid-template-columns: 150px minmax(270px, 1.35fr) 84px 88px 124px;
   min-height: 90px;
   padding: 0 12px;
 }

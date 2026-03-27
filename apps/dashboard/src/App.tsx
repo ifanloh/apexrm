@@ -1674,6 +1674,7 @@ export default function App() {
           <div className="ranking-column-head livetrail-column-head">
             <span>Ranking</span>
             <span>Runner / Team</span>
+            <span>Gender</span>
             <span>Nationality</span>
             <span>Race Time</span>
           </div>
@@ -1705,6 +1706,12 @@ export default function App() {
                           </div>
                         </div>
                       </div>
+                    </div>
+                    <div className="race-inline-cell gender-cell">
+                      <strong>
+                        <span className={`gender-dot ${entry.category.toLowerCase() === "women" ? "women" : "men"}`} />
+                        {entry.category.toLowerCase() === "women" ? "Woman" : "Man"}
+                      </strong>
                     </div>
                     <div className="race-inline-cell nationality-cell">
                       <strong aria-label={getNationalityCode(entry.bib)}>
