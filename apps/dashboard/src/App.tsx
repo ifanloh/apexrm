@@ -126,10 +126,8 @@ function getNationalityCode(bib: string) {
   return COUNTRY_CODES[getStableIndex(bib, COUNTRY_CODES.length)];
 }
 
-function getFlagEmoji(countryCode: string) {
-  return countryCode
-    .toUpperCase()
-    .replace(/./g, (character) => String.fromCodePoint(127397 + character.charCodeAt(0)));
+function getFlagIconUrl(countryCode: string) {
+  return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
 }
 
 function getRunnerTeamName(bib: string) {
@@ -1712,7 +1710,16 @@ export default function App() {
                       <span>{formatCategoryLabel(entry.category)}</span>
                     </div>
                     <div className="race-inline-cell nationality-cell">
-                      <strong aria-label={getNationalityCode(entry.bib)}>{getFlagEmoji(getNationalityCode(entry.bib))}</strong>
+                      <strong aria-label={getNationalityCode(entry.bib)}>
+                        <img
+                          alt={getNationalityCode(entry.bib)}
+                          className="flag-icon"
+                          height="18"
+                          loading="lazy"
+                          src={getFlagIconUrl(getNationalityCode(entry.bib))}
+                          width="24"
+                        />
+                      </strong>
                     </div>
                     <div className="race-inline-cell race-time-cell">
                       <strong>{formatScanTime(entry.scannedAt)}</strong>
@@ -2295,7 +2302,16 @@ export default function App() {
                           <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
                         </div>
                         <div className="rail-rank-time">
-                          <small aria-label={getNationalityCode(entry.bib)}>{getFlagEmoji(getNationalityCode(entry.bib))}</small>
+                          <small aria-label={getNationalityCode(entry.bib)}>
+                            <img
+                              alt={getNationalityCode(entry.bib)}
+                              className="flag-icon rail-flag-icon"
+                              height="14"
+                              loading="lazy"
+                              src={getFlagIconUrl(getNationalityCode(entry.bib))}
+                              width="20"
+                            />
+                          </small>
                           <time>{formatGapFromLeader(entry.scannedAt, sidebarOverallLeaderTime, entry.rank)}</time>
                         </div>
                       </div>
@@ -2324,7 +2340,16 @@ export default function App() {
                           <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
                         </div>
                         <div className="rail-rank-time">
-                          <small aria-label={getNationalityCode(entry.bib)}>{getFlagEmoji(getNationalityCode(entry.bib))}</small>
+                          <small aria-label={getNationalityCode(entry.bib)}>
+                            <img
+                              alt={getNationalityCode(entry.bib)}
+                              className="flag-icon rail-flag-icon"
+                              height="14"
+                              loading="lazy"
+                              src={getFlagIconUrl(getNationalityCode(entry.bib))}
+                              width="20"
+                            />
+                          </small>
                           <time>{formatGapFromLeader(entry.scannedAt, sidebarWomenLeaderTime, entry.rank)}</time>
                         </div>
                       </div>

@@ -2840,8 +2840,9 @@ body {
 .live-topbar {
   background: rgba(250, 247, 241, 0.94);
   border-bottom: 1px solid rgba(20, 22, 24, 0.08);
-  gap: 10px;
-  grid-template-columns: 130px minmax(0, 1fr) auto;
+  align-items: center;
+  display: flex;
+  gap: 12px;
   padding: 8px 0 10px;
   position: sticky;
   top: 0;
@@ -2856,17 +2857,18 @@ body {
   align-items: start;
   color: var(--green);
   display: grid;
+  flex: 0 0 98px;
   font-size: 1rem;
   gap: 0;
   line-height: 0.88;
-  max-width: 116px;
+  max-width: 98px;
   overflow: hidden;
   text-transform: uppercase;
 }
 
 .topbar-race-lockup strong {
   display: block;
-  font-size: 0.96rem;
+  font-size: 0.84rem;
   line-height: 0.88;
   white-space: normal;
 }
@@ -2877,17 +2879,23 @@ body {
 
 .topbar-center {
   align-items: center;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: minmax(160px, 190px) minmax(220px, 420px);
-  justify-content: start;
-  max-width: 620px;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 12px;
+  justify-content: flex-start;
+  max-width: none;
   min-width: 0;
-  width: auto;
+  width: 100%;
+}
+
+.topbar-select {
+  flex: 0 0 180px;
+  min-width: 0;
 }
 
 .topbar-search {
-  max-width: 420px;
+  flex: 1 1 320px;
+  max-width: 520px;
   min-width: 0;
   width: 100%;
 }
@@ -2901,7 +2909,7 @@ body {
 
 .topbar-select-shell {
   border: 3px solid #131313;
-  max-width: 190px;
+  max-width: 180px;
 }
 
 .topbar-search-shell {
@@ -2991,38 +2999,47 @@ body {
 }
 
 .live-trail-shell.race-detail-mode .live-topbar {
-  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 8px;
 }
 
 .live-trail-shell.race-detail-mode .topbar-race-lockup {
-  max-width: 102px;
+  flex-basis: 84px;
+  max-width: 84px;
 }
 
 .live-trail-shell.race-detail-mode .topbar-race-lockup strong {
-  font-size: 0.88rem;
+  font-size: 0.76rem;
 }
 
 .live-trail-shell.race-detail-mode .topbar-center {
   gap: 8px;
-  grid-template-columns: 160px minmax(180px, 340px);
-  max-width: 510px;
+  min-width: 0;
+}
+
+.live-trail-shell.race-detail-mode .topbar-select {
+  flex-basis: 150px;
 }
 
 .live-trail-shell.race-detail-mode .topbar-select-shell {
-  max-width: 160px;
+  max-width: 150px;
+}
+
+.live-trail-shell.race-detail-mode .topbar-search {
+  flex-basis: 220px;
+  max-width: 360px;
 }
 
 .live-trail-shell.race-detail-mode .topbar-search-button {
-  height: 40px;
-  min-width: 40px;
+  height: 36px;
+  min-width: 36px;
 }
 
 .live-trail-shell.race-detail-mode .topbar-login-link,
 .live-trail-shell.race-detail-mode .topbar-icon-button,
 .live-trail-shell.race-detail-mode .topbar-locale-pill {
-  font-size: 0.76rem;
-  gap: 6px;
-  padding: 0 8px;
+  font-size: 0.72rem;
+  gap: 5px;
+  padding: 0 7px;
 }
 
 .topbar-login-link,
@@ -3034,13 +3051,13 @@ body {
   border-radius: 999px;
   color: var(--ink);
   display: inline-flex;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 600;
   gap: 8px;
-  height: 33px;
+  height: 31px;
   justify-content: center;
-  min-width: 33px;
-  padding: 0 9px;
+  min-width: 31px;
+  padding: 0 8px;
 }
 
 .topbar-login-link-active {
@@ -3379,6 +3396,19 @@ body {
 .race-inline-cell strong {
   color: #161616;
   font-size: 1rem;
+}
+
+.flag-icon {
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(20, 22, 24, 0.08);
+  display: block;
+  height: auto;
+  object-fit: cover;
+  width: 24px;
+}
+
+.rail-flag-icon {
+  width: 20px;
 }
 
 .race-time-cell strong {
