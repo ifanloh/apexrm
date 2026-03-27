@@ -2825,7 +2825,7 @@ body {
   background: rgba(250, 247, 241, 0.94);
   border-bottom: 1px solid rgba(20, 22, 24, 0.08);
   gap: 12px;
-  grid-template-columns: 236px minmax(0, 1fr) auto;
+  grid-template-columns: 246px minmax(0, 1fr) auto;
   padding: 10px 0 12px;
   position: sticky;
   top: 0;
@@ -2837,19 +2837,19 @@ body {
 }
 
 .topbar-race-lockup {
-  align-items: center;
+  align-items: start;
   color: var(--green);
-  display: flex;
+  display: grid;
   font-size: 1rem;
-  gap: 8px;
-  line-height: 1.04;
+  gap: 2px;
+  line-height: 0.92;
   text-transform: uppercase;
 }
 
 .topbar-race-lockup strong {
   display: block;
-  font-size: 0.84rem;
-  line-height: 1;
+  font-size: 1.1rem;
+  line-height: 0.96;
   white-space: nowrap;
 }
 
@@ -2861,17 +2861,25 @@ body {
   align-items: center;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(170px, 240px) minmax(240px, 400px);
+  grid-template-columns: minmax(170px, 220px) minmax(320px, 520px);
   justify-content: start;
-  max-width: 660px;
+  max-width: 780px;
 }
 
 .topbar-select-shell,
 .topbar-search-shell {
   background: #ffffff;
-  border: 2px solid #131313;
   border-radius: 999px;
-  min-height: 46px;
+  border-radius: 999px;
+  min-height: 52px;
+}
+
+.topbar-select-shell {
+  border: 3px solid #131313;
+}
+
+.topbar-search-shell {
+  border: 3px solid var(--green);
 }
 
 :root[data-theme="dark"] .topbar-select-shell,
@@ -2883,27 +2891,28 @@ body {
 .topbar-search-shell input {
   color: var(--ink);
   font-family: "Rubik", sans-serif;
-  font-size: 0.86rem;
+  font-size: 0.92rem;
 }
 
 .topbar-select-shell select {
-  min-height: 44px;
-  padding-right: 34px;
+  min-height: 50px;
+  padding-left: 22px;
+  padding-right: 40px;
 }
 
 .topbar-search-shell input {
-  min-height: 44px;
+  min-height: 50px;
 }
 
 .topbar-runner-icon {
   border: 3px solid var(--green);
   border-radius: 999px;
   display: inline-block;
-  height: 18px;
-  margin-left: 2px;
+  height: 16px;
+  margin-left: 6px;
   position: relative;
   transform: rotate(42deg);
-  width: 18px;
+  width: 16px;
 }
 
 .topbar-runner-icon::after {
@@ -2920,8 +2929,8 @@ body {
   background: #0a6d4b;
   border-radius: 999px;
   box-shadow: 0 10px 20px rgba(8, 108, 74, 0.22);
-  height: 34px;
-  min-width: 34px;
+  height: 46px;
+  min-width: 46px;
   padding: 0;
 }
 

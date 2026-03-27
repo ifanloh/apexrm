@@ -1323,11 +1323,9 @@ export default function App() {
       <div className="dashboard-main dashboard-main-scroll live-main">
         <header className="topbar topbar-hub live-topbar">
           <div className="topbar-race-lockup">
-            <div className="livetrail-wordmark topbar-wordmark" aria-label="LiveTrail style wordmark">
-              <span className="word-live">LIVE</span>
-              <span className="word-trail">TRAIL</span>
-            </div>
-            <strong>{demoRaceFestival.brandName}</strong>
+            {demoRaceFestival.brandStack.map((line) => (
+              <strong key={line}>{line}</strong>
+            ))}
           </div>
 
           <div className="topbar-center">
