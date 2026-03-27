@@ -1382,7 +1382,7 @@ export default function App() {
             </button>
 
             <button className="topbar-locale-pill" type="button">
-              EN <span aria-hidden="true">v</span>
+              EN <span aria-hidden="true">▾</span>
             </button>
           </div>
         </header>

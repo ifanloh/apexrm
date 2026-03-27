@@ -2824,9 +2824,9 @@ body {
 .live-topbar {
   background: rgba(250, 247, 241, 0.94);
   border-bottom: 1px solid rgba(20, 22, 24, 0.08);
-  gap: 14px;
-  grid-template-columns: 264px minmax(0, 1fr) auto;
-  padding: 12px 0 14px;
+  gap: 12px;
+  grid-template-columns: 236px minmax(0, 1fr) auto;
+  padding: 10px 0 12px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -2840,15 +2840,15 @@ body {
   align-items: center;
   color: var(--green);
   display: flex;
-  font-size: 1.08rem;
-  gap: 10px;
+  font-size: 1rem;
+  gap: 8px;
   line-height: 1.04;
   text-transform: uppercase;
 }
 
 .topbar-race-lockup strong {
   display: block;
-  font-size: 0.92rem;
+  font-size: 0.84rem;
   line-height: 1;
   white-space: nowrap;
 }
@@ -2860,10 +2860,10 @@ body {
 .topbar-center {
   align-items: center;
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(200px, 280px) minmax(260px, 460px);
+  gap: 12px;
+  grid-template-columns: minmax(170px, 240px) minmax(240px, 400px);
   justify-content: start;
-  max-width: 760px;
+  max-width: 660px;
 }
 
 .topbar-select-shell,
@@ -2871,7 +2871,7 @@ body {
   background: #ffffff;
   border: 2px solid #131313;
   border-radius: 999px;
-  min-height: 48px;
+  min-height: 46px;
 }
 
 :root[data-theme="dark"] .topbar-select-shell,
@@ -2883,16 +2883,16 @@ body {
 .topbar-search-shell input {
   color: var(--ink);
   font-family: "Rubik", sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
 }
 
 .topbar-select-shell select {
-  min-height: 46px;
-  padding-right: 36px;
+  min-height: 44px;
+  padding-right: 34px;
 }
 
 .topbar-search-shell input {
-  min-height: 46px;
+  min-height: 44px;
 }
 
 .topbar-runner-icon {
@@ -2920,8 +2920,8 @@ body {
   background: #0a6d4b;
   border-radius: 999px;
   box-shadow: 0 10px 20px rgba(8, 108, 74, 0.22);
-  height: 36px;
-  min-width: 36px;
+  height: 34px;
+  min-width: 34px;
   padding: 0;
 }
 
@@ -3580,7 +3580,7 @@ body {
 .live-main > .edition-home-shell {
   margin-left: auto;
   margin-right: auto;
-  max-width: 1160px;
+  max-width: 1100px;
   width: 100%;
 }
 
@@ -3609,26 +3609,26 @@ body {
 
 .race-detail-hero {
   margin-top: 6px;
-  padding: 14px 18px 18px;
+  padding: 10px 14px 14px;
 }
 
 .race-detail-hero-head {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .race-stat-strip {
   align-items: start;
   border-bottom: 1px solid rgba(20, 22, 24, 0.08);
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  padding: 12px 0 8px;
+  padding: 10px 0 6px;
 }
 
 .race-stat-strip-item {
-  gap: 6px;
-  min-height: 64px;
+  gap: 5px;
+  min-height: 58px;
 }
 
 .race-stat-strip-item span {
@@ -3647,9 +3647,9 @@ body {
 
 .course-command-panel.livetrail-course-toolbar {
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(260px, 1.15fr) auto auto;
-  padding: 16px 18px;
+  gap: 12px;
+  grid-template-columns: minmax(240px, 1.15fr) auto auto;
+  padding: 14px 16px;
 }
 
 .course-command-meta {
@@ -4215,7 +4215,7 @@ body {
 }
 
 .ranking-column-head.livetrail-column-head {
-  grid-template-columns: 160px minmax(290px, 1.35fr) 86px 92px 132px;
+  grid-template-columns: 150px minmax(270px, 1.35fr) 84px 88px 124px;
   letter-spacing: 0.1em;
   min-height: 58px;
   padding: 0 12px;
@@ -4227,8 +4227,8 @@ body {
 
 .full-ranking-row.race-ranking-row {
   border-bottom: 1px solid rgba(20, 22, 24, 0.06);
-  grid-template-columns: 160px minmax(290px, 1.35fr) 86px 92px 132px;
-  min-height: 96px;
+  grid-template-columns: 150px minmax(270px, 1.35fr) 84px 88px 124px;
+  min-height: 90px;
   padding: 0 12px;
 }
 
