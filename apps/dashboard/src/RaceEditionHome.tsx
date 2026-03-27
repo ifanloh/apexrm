@@ -89,6 +89,7 @@ export function RaceEditionHome({
 
       <div className="race-card-grid" role="list" aria-label="Race categories">
         {cards.map((card) => {
+          const isLiveCard = card.editionLabel.toLowerCase() === "live";
           const sparkline = buildSparkline(card.profileSeed);
           const cardStyle = {
             "--race-accent": card.accent,
@@ -97,13 +98,13 @@ export function RaceEditionHome({
 
           return (
             <article
-              className={`race-card ${card.isSelected ? "selected" : ""}`}
+              className={`race-card ${card.isSelected ? "selected" : ""} ${isLiveCard ? "race-card-live" : "race-card-finished"}`}
               key={card.slug}
               role="listitem"
               style={cardStyle}
             >
               <div className="race-card-topline">
-                <span className={`race-status-pill ${card.isLive ? "live" : ""}`}>{card.isLive ? "Live" : "Finished"}</span>
+                <span className={`race-status-pill ${isLiveCard ? "live-card" : "finished-card"}`}>{isLiveCard ? "LIVE" : "FINISHED"}</span>
               </div>
 
               <div className="race-card-head">
@@ -146,7 +147,7 @@ export function RaceEditionHome({
 
               <div className="race-card-ranking">
                 <div className="race-card-ranking-head">
-                  <strong>{card.isLive ? "Leading" : "Ranking"}</strong>
+                  <strong>{isLiveCard ? "Leading" : "Ranking"}</strong>
                   <div className="race-card-segments">
                     <span className="active">Overall</span>
                     <span>Women</span>
@@ -172,7 +173,7 @@ export function RaceEditionHome({
               </div>
 
               <button className="race-card-cta" onClick={() => onOpenRace(card.slug)} type="button">
-                {card.isLive ? "Open Race Live" : "View Results"}
+                {isLiveCard ? "Open Race Live" : "View Results"}
               </button>
             </article>
           );

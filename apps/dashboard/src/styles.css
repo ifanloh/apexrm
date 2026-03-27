@@ -1030,10 +1030,16 @@ a {
   justify-content: center;
 }
 
-.race-card .race-status-pill.live {
+.race-card-live .race-status-pill.live-card {
   background: rgba(224, 72, 72, 0.16);
-  border-color: rgba(224, 72, 72, 0.26);
+  border-color: rgba(224, 72, 72, 0.28);
   color: #c62b2b;
+}
+
+.race-card-finished .race-status-pill.finished-card {
+  background: rgba(31, 209, 122, 0.16);
+  border-color: rgba(31, 209, 122, 0.28);
+  color: var(--green);
 }
 
 .race-status-pill {
