@@ -1687,20 +1687,7 @@ export default function App() {
                       <span>{entry.checkpointName}</span>
                     </div>
                     <div className="race-inline-cell race-time-cell">
-                        <strong>
-                          {formatGapFromLeader(
-                            entry.scannedAt,
-                            fullRankingView === "women" ? activeWomenLeaderboard.topEntries[0]?.scannedAt ?? null : overallLeaderTime,
-                            entry.rank
-                          )}
-                        </strong>
-                      <span>
-                        {formatCheckpointLabel({
-                          code: entry.checkpointCode,
-                          kmMarker: entry.checkpointKmMarker
-                        })}{" "}
-                        - {entry.checkpointName}
-                      </span>
+                      <strong>{formatScanTime(entry.scannedAt)}</strong>
                     </div>
                   </div>
                 );
