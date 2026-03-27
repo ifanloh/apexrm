@@ -1562,20 +1562,6 @@ export default function App() {
           <div className="ranking-title-shell">
             <span className="detail-label">Ranking</span>
           </div>
-          <div className="ranking-toolbar livetrail-ranking-topline">
-            <div className="ranking-mode-switch">
-              <span className="detail-label">See</span>
-              <button className={`route-tab ${fullRankingView === "overall" ? "active" : ""}`} onClick={() => setFullRankingView("overall")} type="button">
-                Ranking
-              </button>
-              <button className="route-tab ghost" type="button">
-                Terrain
-              </button>
-              <button className="route-tab ghost" type="button">
-                Points
-              </button>
-            </div>
-          </div>
           <div className="ranking-toolbar">
             <div className="ranking-filters">
               <label className="ranking-toolbar-label">
