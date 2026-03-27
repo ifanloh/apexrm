@@ -2940,25 +2940,19 @@ body {
   width: 100%;
 }
 
-.topbar-runner-icon {
-  border: 3px solid var(--green);
-  border-radius: 999px;
-  display: inline-block;
-  height: 16px;
-  margin-left: 4px;
-  position: relative;
-  transform: rotate(42deg);
-  width: 16px;
+.topbar-search-icon {
+  color: var(--green);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 22px;
+  margin-left: 2px;
+  width: 22px;
 }
 
-.topbar-runner-icon::after {
-  background: var(--green);
-  content: "";
-  height: 3px;
-  left: 10px;
-  position: absolute;
-  top: 14px;
-  width: 12px;
+.topbar-search-icon svg {
+  display: block;
+  height: 100%;
+  width: 100%;
 }
 
 .topbar-search-button {

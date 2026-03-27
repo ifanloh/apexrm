@@ -1455,7 +1455,12 @@ export default function App() {
             </label>
 
             <label className="topbar-search topbar-search-shell">
-              <span className="topbar-runner-icon" aria-hidden="true" />
+              <span className="topbar-search-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20">
+                  <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="2.8" />
+                  <path d="M12.8 12.8 17 17" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2.8" />
+                </svg>
+              </span>
               <span className="sr-only">Search a runner</span>
               <input
                 placeholder={topbarSearchPlaceholder}
