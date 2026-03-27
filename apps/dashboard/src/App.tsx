@@ -1199,7 +1199,6 @@ export default function App() {
     { label: "Finishers", value: `${activeFinisherCount}` },
     { label: "DNF / DNS", value: `${activeDnfCount}` }
   ];
-  const courseActionSummary = "My followed runners";
   const topbarSearchPlaceholder = "Search a runner ...";
   const overallLeaderTime = fullRankingEntries[0]?.scannedAt ?? null;
   const sidebarOverallLeaderTime = sidebarOverallRows[0]?.scannedAt ?? null;
@@ -1545,42 +1544,6 @@ export default function App() {
             </article>
           </div>
         </section>
-
-      <section className="panel course-command-panel livetrail-course-toolbar">
-        <div className="course-command-meta">
-          <div className="course-legend">
-            <span className="legend-item women">Woman</span>
-            <span className="legend-item men">Man</span>
-          </div>
-          <div className="course-beacon">
-            <strong>equipped with a GPS beacon</strong>
-            <span>Realtime timing, checkpoint passings, and spectator visibility.</span>
-          </div>
-        </div>
-
-        <div className="course-command-tabs">
-          <span className="detail-label">Outline</span>
-          <button className="route-tab active" type="button">Race</button>
-          <button className="route-tab ghost" type="button">Terrain</button>
-          <button className="route-tab ghost" type="button">Slope</button>
-        </div>
-
-        <div className="course-command-actions">
-          <span className="detail-label">See</span>
-          <button className="route-tab" onClick={() => focusRanking("overall")} type="button">
-            Leaders
-          </button>
-          <button className="route-tab" onClick={focusMyRunners} type="button">
-            {courseActionSummary}
-          </button>
-        </div>
-
-        <div className="course-downloads">
-          <span className="detail-label">Download</span>
-          <button className="download-pill" type="button">GPX</button>
-          <button className="download-pill" type="button">PNG</button>
-        </div>
-      </section>
 
       <section className="spotlight-grid" id="course-profile">
         <CourseProfilePanel
