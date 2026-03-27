@@ -4640,7 +4640,7 @@ body {
   max-width: 220px;
 }
 
-/* Final enforced spectator topbar + race-card status */
+/* Final spectator topbar + race-card status */
 .race-card-live .race-status-pill.live-card {
   background: rgba(231, 62, 62, 0.16) !important;
   border-color: rgba(231, 62, 62, 0.34) !important;
@@ -4655,12 +4655,12 @@ body {
 
 .live-topbar {
   align-items: center !important;
-  column-gap: 14px !important;
+  column-gap: 16px !important;
   display: grid !important;
-  grid-template-columns: minmax(108px, 132px) minmax(0, 1fr) auto !important;
-  min-height: 58px !important;
+  grid-template-columns: minmax(96px, 124px) minmax(0, 1fr) auto !important;
+  min-height: 70px !important;
   overflow: visible !important;
-  padding: 8px 14px 10px !important;
+  padding: 12px 18px !important;
   row-gap: 0 !important;
 }
 
@@ -4671,15 +4671,15 @@ body {
   display: grid !important;
   gap: 0 !important;
   justify-items: start !important;
-  max-width: 132px !important;
-  min-width: 108px !important;
+  max-width: 124px !important;
+  min-width: 96px !important;
   overflow: hidden !important;
   width: 100% !important;
 }
 
 .topbar-race-lockup strong,
 .live-trail-shell.race-detail-mode .topbar-race-lockup strong {
-  font-size: 0.84rem !important;
+  font-size: 0.9rem !important;
   font-weight: 800 !important;
   letter-spacing: 0.02em !important;
   line-height: 0.88 !important;
@@ -4689,11 +4689,8 @@ body {
 .live-trail-shell.race-detail-mode .topbar-center {
   align-items: center !important;
   display: flex !important;
-  flex: 1 1 auto !important;
-  flex-direction: row !important;
   flex-wrap: nowrap !important;
-  gap: 12px !important;
-  justify-content: flex-start !important;
+  gap: 16px !important;
   min-width: 0 !important;
   overflow: hidden !important;
   width: 100% !important;
@@ -4701,54 +4698,113 @@ body {
 
 .topbar-select,
 .live-trail-shell.race-detail-mode .topbar-select {
-  flex: 0 0 156px !important;
-  max-width: 156px !important;
-  min-width: 156px !important;
-  width: 156px !important;
+  flex: 0 0 176px !important;
+  max-width: 176px !important;
+  min-width: 176px !important;
+  width: 176px !important;
 }
 
 .topbar-search,
 .live-trail-shell.race-detail-mode .topbar-search {
-  flex: 1 1 320px !important;
-  max-width: 360px !important;
-  min-width: 220px !important;
+  flex: 1 1 auto !important;
+  max-width: 520px !important;
+  min-width: 0 !important;
   width: 100% !important;
 }
 
 .topbar-select-shell,
 .topbar-search-shell {
-  min-height: 42px !important;
+  align-items: center !important;
+  background: #ffffff !important;
+  border-radius: 999px !important;
+  min-height: 48px !important;
+}
+
+:root[data-theme="dark"] .topbar-select-shell,
+:root[data-theme="dark"] .topbar-search-shell {
+  background: #262420 !important;
 }
 
 .topbar-select-shell {
-  max-width: 156px !important;
+  border: 3px solid #161616 !important;
+  max-width: 176px !important;
 }
 
 .topbar-search-shell {
-  max-width: 360px !important;
-  padding-left: 14px !important;
-  padding-right: 14px !important;
+  border: 3px solid var(--green) !important;
+  display: grid !important;
+  gap: 12px !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  max-width: 520px !important;
+  padding: 0 10px 0 14px !important;
 }
 
 .topbar-select-shell select,
 .topbar-search-shell input {
-  font-size: 0.78rem !important;
+  color: var(--ink) !important;
+  font-family: "Rubik", sans-serif !important;
+  font-size: 0.92rem !important;
 }
 
 .topbar-select-shell select {
-  min-height: 34px !important;
-  padding-left: 12px !important;
-  padding-right: 24px !important;
+  min-height: 40px !important;
+  padding-left: 14px !important;
+  padding-right: 28px !important;
 }
 
 .topbar-search-shell input {
-  min-height: 34px !important;
+  flex: 1 1 auto !important;
+  min-height: 40px !important;
   min-width: 0 !important;
+  width: 100% !important;
+}
+
+.topbar-search-shell input::placeholder {
+  color: rgba(30, 38, 35, 0.45) !important;
+  font-style: italic !important;
 }
 
 .topbar-search-icon {
-  height: 18px !important;
-  width: 18px !important;
+  color: var(--green) !important;
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  height: 22px !important;
+  width: 22px !important;
+}
+
+.topbar-search-icon svg {
+  display: block !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.topbar-search-submit {
+  align-items: center;
+  background: var(--green) !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  flex: 0 0 42px !important;
+  height: 42px !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  transition:
+    transform 160ms ease,
+    filter 160ms ease !important;
+  width: 42px !important;
+}
+
+.topbar-search-submit:hover {
+  filter: brightness(0.96) !important;
+  transform: translateY(-1px) !important;
+}
+
+.topbar-search-submit svg {
+  display: block !important;
+  height: 20px !important;
+  width: 20px !important;
 }
 
 .live-topbar-actions {
@@ -4756,7 +4812,7 @@ body {
   display: flex !important;
   flex: 0 0 auto !important;
   flex-wrap: nowrap !important;
-  gap: 8px !important;
+  gap: 10px !important;
   justify-content: flex-end !important;
   margin-left: 0 !important;
   min-width: max-content !important;
@@ -4765,63 +4821,134 @@ body {
 .topbar-login-link,
 .topbar-icon-button,
 .topbar-locale-pill {
-  font-size: 0.72rem !important;
-  min-height: 34px !important;
-  padding: 0 10px !important;
+  font-size: 0.76rem !important;
+  min-height: 42px !important;
+  padding: 0 14px !important;
 }
 
 .theme-switch-track {
-  height: 18px !important;
-  width: 38px !important;
+  height: 20px !important;
+  width: 42px !important;
 }
 
 .theme-switch-thumb {
-  height: 14px !important;
-  width: 14px !important;
+  height: 16px !important;
+  width: 16px !important;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1320px) {
   .live-topbar {
-    column-gap: 10px !important;
-    grid-template-columns: 98px minmax(0, 1fr) auto !important;
+    column-gap: 12px !important;
+    grid-template-columns: 104px minmax(0, 1fr) auto !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 
   .topbar-race-lockup,
   .live-trail-shell.race-detail-mode .topbar-race-lockup {
-    max-width: 98px !important;
-    min-width: 98px !important;
+    max-width: 104px !important;
+    min-width: 104px !important;
   }
 
   .topbar-race-lockup strong,
   .live-trail-shell.race-detail-mode .topbar-race-lockup strong {
-    font-size: 0.74rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .topbar-center,
+  .live-trail-shell.race-detail-mode .topbar-center {
+    gap: 12px !important;
   }
 
   .topbar-select,
   .live-trail-shell.race-detail-mode .topbar-select {
-    flex-basis: 144px !important;
-    max-width: 144px !important;
-    min-width: 144px !important;
-    width: 144px !important;
+    flex-basis: 160px !important;
+    max-width: 160px !important;
+    min-width: 160px !important;
+    width: 160px !important;
+  }
+
+  .topbar-select-shell {
+    max-width: 160px !important;
   }
 
   .topbar-search,
   .live-trail-shell.race-detail-mode .topbar-search {
-    flex-basis: 260px !important;
-    max-width: 300px !important;
-    min-width: 180px !important;
-  }
-
-  .topbar-select-shell {
-    max-width: 144px !important;
+    max-width: 420px !important;
   }
 
   .topbar-search-shell {
-    max-width: 300px !important;
+    max-width: 420px !important;
+  }
+
+  .topbar-login-link,
+  .topbar-icon-button,
+  .topbar-locale-pill {
+    min-height: 40px !important;
+    padding: 0 12px !important;
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1080px) {
+  .live-topbar {
+    grid-template-columns: 92px minmax(0, 1fr) auto !important;
+    min-height: 64px !important;
+    padding-bottom: 10px !important;
+    padding-top: 10px !important;
+  }
+
+  .topbar-race-lockup,
+  .live-trail-shell.race-detail-mode .topbar-race-lockup {
+    max-width: 92px !important;
+    min-width: 92px !important;
+  }
+
+  .topbar-race-lockup strong,
+  .live-trail-shell.race-detail-mode .topbar-race-lockup strong {
+    font-size: 0.72rem !important;
+  }
+
+  .topbar-select,
+  .live-trail-shell.race-detail-mode .topbar-select {
+    flex-basis: 146px !important;
+    max-width: 146px !important;
+    min-width: 146px !important;
+    width: 146px !important;
+  }
+
+  .topbar-select-shell {
+    max-width: 146px !important;
+  }
+
+  .topbar-search,
+  .live-trail-shell.race-detail-mode .topbar-search {
+    max-width: 320px !important;
+  }
+
+  .topbar-search-shell {
+    gap: 10px !important;
+    max-width: 320px !important;
+    min-height: 44px !important;
+    padding-left: 12px !important;
+    padding-right: 8px !important;
+  }
+
+  .topbar-search-submit {
+    flex-basis: 38px !important;
+    height: 38px !important;
+    width: 38px !important;
+  }
+
+  .topbar-login-link,
+  .topbar-icon-button,
+  .topbar-locale-pill {
+    font-size: 0.72rem !important;
+    min-height: 38px !important;
+    padding: 0 10px !important;
+  }
+}
+
+@media (max-width: 780px) {
   .live-topbar {
     grid-template-columns: 1fr !important;
     row-gap: 10px !important;
@@ -4836,5 +4963,9 @@ body {
   .topbar-center,
   .live-trail-shell.race-detail-mode .topbar-center {
     flex-wrap: wrap !important;
+  }
+
+  .live-topbar-actions {
+    justify-content: flex-start !important;
   }
 }

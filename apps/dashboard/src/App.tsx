@@ -1445,7 +1445,7 @@ export default function App() {
               </select>
             </label>
 
-            <label className="topbar-search topbar-search-shell">
+            <div className="topbar-search topbar-search-shell">
               <span className="topbar-search-icon" aria-hidden="true">
                 <svg viewBox="0 0 20 20">
                   <path
@@ -1458,8 +1458,11 @@ export default function App() {
                   />
                 </svg>
               </span>
-              <span className="sr-only">Search a runner</span>
+              <label className="sr-only" htmlFor="topbar-runner-search">
+                Search a runner
+              </label>
               <input
+                id="topbar-runner-search"
                 placeholder={topbarSearchPlaceholder}
                 value={runnerQuery}
                 onChange={(event) => setRunnerQuery(event.target.value)}
@@ -1470,7 +1473,18 @@ export default function App() {
                   }
                 }}
               />
-            </label>
+              <button
+                aria-label="Open runner search"
+                className="topbar-search-submit"
+                onClick={focusRunnerSearch}
+                type="button"
+              >
+                <svg viewBox="0 0 20 20">
+                  <circle cx="8.1" cy="8.1" fill="none" r="5.1" stroke="currentColor" strokeWidth="2" />
+                  <path d="m11.9 11.9 4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div className="topbar-actions live-topbar-actions">
