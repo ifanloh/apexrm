@@ -1332,14 +1332,9 @@ export default function App() {
 
           <div className="topbar-center">
             <label className="topbar-select topbar-select-shell">
-              <span className="sr-only">Race selector</span>
-              <select onChange={(event) => handleRaceSelection(event.target.value)} value={selectedRaceSlug}>
+              <span className="sr-only">Edition selector</span>
+              <select onChange={() => handleRaceSelection(EDITION_HOME_VALUE)} value={EDITION_HOME_VALUE}>
                 <option value={EDITION_HOME_VALUE}>{demoRaceFestival.editionLabel}</option>
-                {demoRaceFestival.races.map((race) => (
-                  <option key={race.slug} value={race.slug}>
-                    {race.title}
-                  </option>
-                ))}
               </select>
             </label>
 

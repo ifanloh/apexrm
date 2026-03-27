@@ -2861,7 +2861,9 @@ body {
   align-items: center;
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(260px, 400px) minmax(320px, 1fr);
+  grid-template-columns: minmax(200px, 280px) minmax(260px, 460px);
+  justify-content: start;
+  max-width: 760px;
 }
 
 .topbar-select-shell,
@@ -2869,7 +2871,7 @@ body {
   background: #ffffff;
   border: 2px solid #131313;
   border-radius: 999px;
-  min-height: 56px;
+  min-height: 48px;
 }
 
 :root[data-theme="dark"] .topbar-select-shell,
@@ -2881,7 +2883,16 @@ body {
 .topbar-search-shell input {
   color: var(--ink);
   font-family: "Rubik", sans-serif;
-  font-size: 0.94rem;
+  font-size: 0.9rem;
+}
+
+.topbar-select-shell select {
+  min-height: 46px;
+  padding-right: 36px;
+}
+
+.topbar-search-shell input {
+  min-height: 46px;
 }
 
 .topbar-runner-icon {
@@ -2909,8 +2920,8 @@ body {
   background: #0a6d4b;
   border-radius: 999px;
   box-shadow: 0 10px 20px rgba(8, 108, 74, 0.22);
-  height: 40px;
-  min-width: 40px;
+  height: 36px;
+  min-width: 36px;
   padding: 0;
 }
 
