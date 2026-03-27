@@ -1251,13 +1251,20 @@ export default function App() {
   }
 
   return (
-    <main className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"}`}>
-      <aside className="dashboard-sidebar live-sidebar">
-        <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
-          <button className="nav-link nav-link-primary nav-link-icon" onClick={focusHome} type="button">
-            <NavIcon name="home" />
-            <span>Home</span>
-          </button>
+      <main className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"}`}>
+        <aside className="dashboard-sidebar live-sidebar">
+          <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
+            <button className="live-sidebar-logo" onClick={focusHome} type="button" aria-label="Back to edition home">
+              <span className="livetrail-wordmark">
+                <span className="word-live">Live</span>
+                <span className="word-trail">Trail</span>
+              </span>
+            </button>
+
+            <button className="nav-link nav-link-primary nav-link-icon" onClick={focusHome} type="button">
+              <NavIcon name="home" />
+              <span>Home</span>
+            </button>
 
           <div className={`nav-group ${runnerNavOpen ? "open" : ""}`}>
             <button className="nav-toggle" onClick={() => setRunnerNavOpen((current) => !current)} type="button">

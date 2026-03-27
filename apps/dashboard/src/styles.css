@@ -2716,6 +2716,22 @@ body {
   padding-top: 6px;
 }
 
+.live-sidebar-logo {
+  align-items: center;
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  margin: -2px 0 14px;
+  padding: 0 4px;
+}
+
+.live-sidebar-logo .livetrail-wordmark {
+  font-size: 1.2rem;
+  padding: 0;
+}
+
 .live-sidebar-nav .nav-link,
 .live-sidebar-nav .nav-link-primary,
 .live-sidebar-nav .nav-link-footer {
