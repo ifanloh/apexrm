@@ -2819,9 +2819,9 @@ body {
 .live-topbar {
   background: rgba(250, 247, 241, 0.94);
   border-bottom: 1px solid rgba(20, 22, 24, 0.08);
-  gap: 18px;
+  gap: 14px;
   grid-template-columns: 220px minmax(0, 1fr) auto;
-  padding: 14px 0 16px;
+  padding: 12px 0 14px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -2843,16 +2843,16 @@ body {
 .topbar-center {
   align-items: center;
   display: grid;
-  gap: 18px;
+  gap: 14px;
   grid-template-columns: minmax(260px, 400px) minmax(320px, 1fr);
 }
 
 .topbar-select-shell,
 .topbar-search-shell {
   background: #ffffff;
-  border: 3px solid #131313;
+  border: 2px solid #131313;
   border-radius: 999px;
-  min-height: 64px;
+  min-height: 56px;
 }
 
 :root[data-theme="dark"] .topbar-select-shell,
@@ -2864,7 +2864,7 @@ body {
 .topbar-search-shell input {
   color: var(--ink);
   font-family: "Rubik", sans-serif;
-  font-size: 1rem;
+  font-size: 0.94rem;
 }
 
 .topbar-runner-icon {
@@ -2892,8 +2892,8 @@ body {
   background: #0a6d4b;
   border-radius: 999px;
   box-shadow: 0 10px 20px rgba(8, 108, 74, 0.22);
-  height: 46px;
-  min-width: 46px;
+  height: 40px;
+  min-width: 40px;
   padding: 0;
 }
 
@@ -2917,7 +2917,7 @@ body {
 }
 
 .live-topbar-actions {
-  gap: 8px;
+  gap: 6px;
 }
 
 .topbar-login-link,
@@ -2929,13 +2929,13 @@ body {
   border-radius: 999px;
   color: var(--ink);
   display: inline-flex;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 600;
   gap: 8px;
-  height: 38px;
+  height: 34px;
   justify-content: center;
-  min-width: 38px;
-  padding: 0 12px;
+  min-width: 34px;
+  padding: 0 10px;
 }
 
 .topbar-login-link-active {
@@ -2987,14 +2987,14 @@ body {
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  padding: 8px 0 0;
+  padding: 6px 0 0;
 }
 
 .race-detail-hero-head {
   display: grid;
-  gap: 12px;
+  gap: 8px;
   justify-items: center;
-  padding: 8px 0 12px;
+  padding: 6px 0 10px;
 }
 
 .race-status-pill {
@@ -3012,7 +3012,7 @@ body {
 
 .race-detail-hero-head h2 {
   color: var(--green);
-  font-size: clamp(2.1rem, 4vw, 3.15rem);
+  font-size: clamp(2rem, 4vw, 2.9rem);
   letter-spacing: -0.05em;
   line-height: 0.92;
   margin: 0;
@@ -3023,20 +3023,20 @@ body {
 .race-stat-strip {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .race-stat-strip-item {
   border-top: 1px solid rgba(22, 22, 22, 0.08);
   display: grid;
-  gap: 6px;
-  min-height: 86px;
-  padding: 16px 10px 10px;
+  gap: 4px;
+  min-height: 76px;
+  padding: 14px 10px 8px;
 }
 
 .race-stat-strip-item span {
   color: var(--green);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -3044,7 +3044,7 @@ body {
 
 .race-stat-strip-item strong {
   font-family: "Oxanium", sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.02rem;
   line-height: 1.05;
 }
 
@@ -3054,9 +3054,9 @@ body {
 
 .course-command-panel.livetrail-course-toolbar {
   background: var(--surface);
-  border-radius: 26px;
+  border-radius: 22px;
   box-shadow: none;
-  padding: 18px 22px;
+  padding: 16px 18px;
 }
 
 .route-tab,
@@ -4013,7 +4013,7 @@ body {
 }
 
 .spectator-promo-panel {
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .spectator-promo-copy {
@@ -4026,6 +4026,7 @@ body {
 
 .spectator-promo-copy h3 {
   max-width: 420px;
+  text-transform: uppercase;
 }
 
 @media (max-width: 1280px) {

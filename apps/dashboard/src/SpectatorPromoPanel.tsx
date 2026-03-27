@@ -9,8 +9,8 @@ export function SpectatorPromoPanel() {
         <span className="spectator-promo-kicker">LiveTrail App</span>
         <h3>An essential app for runners and support crew</h3>
         <p>
-          All the information to optimize your race experience and share the adventure with followers thanks to real-time
-          rankings, passings, course views, and event-day updates.
+          All the information to optimize your race management and share the adventure with your followers thanks to
+          real-time tracking and numerous predictions. Be ready to experience the event as intensely as possible!
         </p>
         <div className="spectator-promo-actions">
           <button className="store-button" type="button">

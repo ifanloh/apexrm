@@ -100,7 +100,7 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
       <div className="course-profile-stage">
         <div className="course-profile-headline">
           <div className="course-profile-title">
-            <span className="detail-label">Race Profile</span>
+            <span className="detail-label">Outline</span>
             <strong>{demoCourse.title}</strong>
             <small>
               {demoCourse.distanceKm.toFixed(1)} km | +{demoCourse.ascentM}m | -{demoCourse.descentM}m
@@ -109,7 +109,7 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
           <div className="course-profile-meta-card">
             <span>{selectedStop.code}</span>
             <strong>{selectedStop.name}</strong>
-            <small>{selectedStop.totalOfficialScans} official scan</small>
+            <small>{selectedStop.totalOfficialScans} official passings</small>
           </div>
         </div>
 
@@ -192,9 +192,9 @@ export function CourseProfilePanel({ courseStops, selectedCheckpointId, onSelect
 
       <div className="course-map-card">
         <div className="course-map-copy">
-          <span className="detail-label">Route Map</span>
+          <span className="detail-label">Map</span>
           <strong>Open the map</strong>
-          <p>Satellite preview, route outline, and checkpoint anchors for spectators and organizers.</p>
+          <p>Satellite preview with route outline and checkpoint anchors.</p>
           <button className="download-pill map-cta" type="button">
             Open the Map
           </button>
