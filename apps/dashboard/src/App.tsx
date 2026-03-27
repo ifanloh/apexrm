@@ -126,6 +126,12 @@ function getNationalityCode(bib: string) {
   return COUNTRY_CODES[getStableIndex(bib, COUNTRY_CODES.length)];
 }
 
+function getFlagEmoji(countryCode: string) {
+  return countryCode
+    .toUpperCase()
+    .replace(/./g, (character) => String.fromCodePoint(127397 + character.charCodeAt(0)));
+}
+
 function getRunnerTeamName(bib: string) {
   return TEAM_NAMES[getStableIndex(bib, TEAM_NAMES.length)];
 }
@@ -1683,8 +1689,7 @@ export default function App() {
                       <span>{formatCategoryLabel(entry.category)}</span>
                     </div>
                     <div className="race-inline-cell nationality-cell">
-                      <strong>{getNationalityCode(entry.bib)}</strong>
-                      <span>{entry.checkpointName}</span>
+                      <strong aria-label={getNationalityCode(entry.bib)}>{getFlagEmoji(getNationalityCode(entry.bib))}</strong>
                     </div>
                     <div className="race-inline-cell race-time-cell">
                       <strong>{formatScanTime(entry.scannedAt)}</strong>
@@ -2267,7 +2272,7 @@ export default function App() {
                           <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
                         </div>
                         <div className="rail-rank-time">
-                          <small>{getNationalityCode(entry.bib)}</small>
+                          <small aria-label={getNationalityCode(entry.bib)}>{getFlagEmoji(getNationalityCode(entry.bib))}</small>
                           <time>{formatGapFromLeader(entry.scannedAt, sidebarOverallLeaderTime, entry.rank)}</time>
                         </div>
                       </div>
@@ -2296,7 +2301,7 @@ export default function App() {
                           <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
                         </div>
                         <div className="rail-rank-time">
-                          <small>{getNationalityCode(entry.bib)}</small>
+                          <small aria-label={getNationalityCode(entry.bib)}>{getFlagEmoji(getNationalityCode(entry.bib))}</small>
                           <time>{formatGapFromLeader(entry.scannedAt, sidebarWomenLeaderTime, entry.rank)}</time>
                         </div>
                       </div>
