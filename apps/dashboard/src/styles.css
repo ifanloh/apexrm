@@ -4617,98 +4617,146 @@ body {
   max-width: 220px;
 }
 
-/* Hard-stop topbar layout */
+/* Final enforced spectator topbar + race-card status */
+.race-card-live .race-status-pill.live-card {
+  background: rgba(231, 62, 62, 0.16) !important;
+  border-color: rgba(231, 62, 62, 0.34) !important;
+  color: #c91e1e !important;
+}
+
+.race-card-finished .race-status-pill.finished-card {
+  background: rgba(31, 209, 122, 0.16) !important;
+  border-color: rgba(31, 209, 122, 0.3) !important;
+  color: #0c8754 !important;
+}
+
 .live-topbar {
   align-items: center !important;
-  column-gap: 10px !important;
-  display: grid !important;
-  grid-template-columns: 78px minmax(0, 1fr) auto !important;
-  min-height: 58px !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 10px !important;
+  min-height: 56px !important;
+  overflow: hidden !important;
   padding: 6px 12px 8px !important;
 }
 
-.topbar-race-lockup {
+.topbar-race-lockup,
+.live-trail-shell.race-detail-mode .topbar-race-lockup {
+  align-content: center !important;
+  align-items: center !important;
   display: grid !important;
+  flex: 0 0 68px !important;
   gap: 0 !important;
-  max-width: 78px !important;
-  min-width: 78px !important;
+  justify-items: start !important;
+  max-width: 68px !important;
+  min-width: 68px !important;
+  overflow: hidden !important;
 }
 
-.topbar-race-lockup strong {
-  font-size: 0.52rem !important;
+.topbar-race-lockup strong,
+.live-trail-shell.race-detail-mode .topbar-race-lockup strong {
+  font-size: 0.5rem !important;
   line-height: 0.84 !important;
 }
 
-.topbar-center {
+.topbar-center,
+.live-trail-shell.race-detail-mode .topbar-center {
   align-items: center !important;
-  column-gap: 8px !important;
-  display: grid !important;
-  grid-template-columns: 132px minmax(180px, 240px) !important;
-  justify-content: start !important;
+  display: flex !important;
+  flex: 0 1 auto !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
   min-width: 0 !important;
+  overflow: hidden !important;
 }
 
 .topbar-select,
 .live-trail-shell.race-detail-mode .topbar-select {
-  max-width: 132px !important;
-  min-width: 132px !important;
-  width: 132px !important;
+  flex: 0 0 118px !important;
+  max-width: 118px !important;
+  min-width: 118px !important;
+  width: 118px !important;
 }
 
 .topbar-search,
 .live-trail-shell.race-detail-mode .topbar-search {
-  max-width: 240px !important;
-  min-width: 180px !important;
-  width: 240px !important;
+  flex: 0 1 210px !important;
+  max-width: 210px !important;
+  min-width: 150px !important;
+  width: 210px !important;
 }
 
 .topbar-select-shell,
 .topbar-search-shell {
-  min-height: 36px !important;
+  min-height: 34px !important;
 }
 
 .topbar-select-shell {
-  max-width: 132px !important;
+  max-width: 118px !important;
 }
 
 .topbar-search-shell {
-  max-width: 240px !important;
+  max-width: 210px !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
 }
 
 .topbar-select-shell select,
 .topbar-search-shell input {
-  font-size: 0.72rem !important;
+  font-size: 0.7rem !important;
+}
+
+.topbar-select-shell select {
+  min-height: 28px !important;
+  padding-left: 10px !important;
+  padding-right: 20px !important;
 }
 
 .topbar-search-shell input {
+  min-height: 28px !important;
   min-width: 0 !important;
+}
+
+.topbar-search-icon {
+  height: 15px !important;
+  width: 15px !important;
 }
 
 .live-topbar-actions {
   align-items: center !important;
   display: flex !important;
+  flex: 0 0 auto !important;
+  flex-wrap: nowrap !important;
   gap: 6px !important;
-  justify-self: end !important;
-  margin-left: 0 !important;
+  margin-left: auto !important;
   min-width: max-content !important;
 }
 
 .topbar-login-link,
 .topbar-icon-button,
 .topbar-locale-pill {
-  font-size: 0.66rem !important;
-  min-height: 32px !important;
+  font-size: 0.64rem !important;
+  min-height: 30px !important;
   padding: 0 8px !important;
 }
 
-@media (max-width: 1100px) {
+.theme-switch-track {
+  height: 16px !important;
+  width: 34px !important;
+}
+
+.theme-switch-thumb {
+  height: 12px !important;
+  width: 12px !important;
+}
+
+@media (max-width: 900px) {
   .live-topbar {
-    display: flex !important;
     flex-wrap: wrap !important;
   }
 
   .topbar-center {
-    display: flex !important;
     flex-wrap: wrap !important;
   }
 }
