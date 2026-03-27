@@ -146,7 +146,7 @@ export function RaceEditionHome({
 
               <div className="race-card-ranking">
                 <div className="race-card-ranking-head">
-                  <strong>Ranking</strong>
+                  <strong>{card.isLive ? "Leading" : "Ranking"}</strong>
                   <div className="race-card-segments">
                     <span className="active">Overall</span>
                     <span>Women</span>

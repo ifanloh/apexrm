@@ -1030,6 +1030,12 @@ a {
   justify-content: center;
 }
 
+.race-card .race-status-pill.live {
+  background: rgba(224, 72, 72, 0.16);
+  border-color: rgba(224, 72, 72, 0.26);
+  color: #c62b2b;
+}
+
 .race-status-pill {
   align-items: center;
   background: rgba(255, 255, 255, 0.08);
