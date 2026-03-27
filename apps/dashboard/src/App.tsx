@@ -1674,7 +1674,6 @@ export default function App() {
           <div className="ranking-column-head livetrail-column-head">
             <span>Ranking</span>
             <span>Runner / Team</span>
-            <span>Categ.</span>
             <span>Nationality</span>
             <span>Race Time</span>
           </div>
@@ -1706,10 +1705,6 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="race-inline-cell">
-                      <strong>{getDivisionCode(entry.category)}</strong>
-                      <span>{formatCategoryLabel(entry.category)}</span>
                     </div>
                     <div className="race-inline-cell nationality-cell">
                       <strong aria-label={getNationalityCode(entry.bib)}>
