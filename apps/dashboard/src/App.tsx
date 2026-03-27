@@ -1455,8 +1455,14 @@ export default function App() {
             <label className="topbar-search topbar-search-shell">
               <span className="topbar-search-icon" aria-hidden="true">
                 <svg viewBox="0 0 20 20">
-                  <circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" strokeWidth="2.8" />
-                  <path d="M12.8 12.8 17 17" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2.8" />
+                  <path
+                    d="M5.2 16.2 8 11.9m1.9-4.8a1.65 1.65 0 1 1-3.3 0 1.65 1.65 0 0 1 3.3 0Zm-4.4 8.7 2-3.1 2.8-1.8 1.2-2.2 2.2 1.1-1.4 2.7 2.6 2.1m-5.5-3.7-2.2-2.3M9 8.8l1.9-1 1.5-2.7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.8"
+                  />
                 </svg>
               </span>
               <span className="sr-only">Search a runner</span>
@@ -1464,10 +1470,13 @@ export default function App() {
                 placeholder={topbarSearchPlaceholder}
                 value={runnerQuery}
                 onChange={(event) => setRunnerQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    focusRunnerSearch();
+                  }
+                }}
               />
-              <button className="topbar-search-button" onClick={focusRunnerSearch} type="button" aria-label="Search runner">
-                <span className="search-button-lens" aria-hidden="true" />
-              </button>
             </label>
           </div>
 

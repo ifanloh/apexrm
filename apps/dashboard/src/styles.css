@@ -2920,7 +2920,7 @@ body {
   max-width: none;
   min-width: 0;
   padding-left: 14px;
-  padding-right: 8px;
+  padding-right: 16px;
 }
 
 :root[data-theme="dark"] .topbar-select-shell,
@@ -2963,34 +2963,6 @@ body {
   width: 100%;
 }
 
-.topbar-search-button {
-  background: #0a6d4b;
-  border-radius: 999px;
-  box-shadow: 0 10px 20px rgba(8, 108, 74, 0.22);
-  height: 44px;
-  min-width: 44px;
-  padding: 0;
-}
-
-.search-button-lens {
-  border: 3px solid #ffffff;
-  border-radius: 999px;
-  display: inline-block;
-  height: 18px;
-  position: relative;
-  width: 18px;
-}
-
-.search-button-lens::after {
-  background: #ffffff;
-  content: "";
-  height: 3px;
-  left: 12px;
-  position: absolute;
-  top: 14px;
-  width: 10px;
-}
-
 .live-topbar-actions {
   align-items: center;
   flex: 0 0 auto;
@@ -3027,11 +2999,6 @@ body {
 .live-trail-shell.race-detail-mode .topbar-search {
   flex-basis: 220px;
   max-width: 360px;
-}
-
-.live-trail-shell.race-detail-mode .topbar-search-button {
-  height: 36px;
-  min-width: 36px;
 }
 
 .live-trail-shell.race-detail-mode .topbar-login-link,
