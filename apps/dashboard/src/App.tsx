@@ -139,6 +139,87 @@ function getRunnerStatusLabel(checkpointId: string) {
   return checkpointId === "finish" ? "Finisher" : "In race";
 }
 
+function NavIcon({ name }: { name: "home" | "search" | "runners" | "favorite" | "heart" | "compare" | "podium" | "passings" | "leaders" | "stats" | "contact" }) {
+  switch (name) {
+    case "home":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M2.5 7.2 8 2.7l5.5 4.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+          <path d="M3.7 6.7v6.1h8.6V6.7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+        </svg>
+      );
+    case "search":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="3.8" fill="none" stroke="currentColor" strokeWidth="1.7" />
+          <path d="m9.4 9.4 4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+        </svg>
+      );
+    case "runners":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 4.2h8M4 8h8M4 11.8h8" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+          <circle cx="2.2" cy="4.2" r="0.9" fill="currentColor" />
+          <circle cx="2.2" cy="8" r="0.9" fill="currentColor" />
+          <circle cx="2.2" cy="11.8" r="0.9" fill="currentColor" />
+        </svg>
+      );
+    case "favorite":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="m8 2.3 1.7 3.4 3.8.6-2.8 2.6.7 3.8L8 10.8 4.6 12.7l.7-3.8L2.5 6.3l3.8-.6L8 2.3Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" />
+        </svg>
+      );
+    case "heart":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 13.2 3.2 8.5A3.1 3.1 0 0 1 7.6 4l.4.4.4-.4a3.1 3.1 0 0 1 4.4 4.4L8 13.2Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" />
+        </svg>
+      );
+    case "compare":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M3 4h8.8M8.8 1.8 11.8 4l-3 2.2M13 12H4.2M7.2 9.8 4.2 12l3 2.2" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+        </svg>
+      );
+    case "podium":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M2.5 13.2h11M3.5 13.2V8.9h2.5v4.3M6.8 13.2V6.5h2.5v6.7M10.1 13.2V9.9h2.4v3.3" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+        </svg>
+      );
+    case "passings":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="4.9" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M8 5.3v3.1l2 1.4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+        </svg>
+      );
+    case "leaders":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M5 3.2h6l-1.1 3.1L8 7.4 6.1 6.3 5 3.2Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" />
+          <path d="M8 7.4v3.8M5.8 13h4.4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+          <path d="M5 3.4H3.1a1 1 0 0 0 0 2h2M11 3.4h1.9a1 1 0 0 1 0 2h-2" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+        </svg>
+      );
+    case "stats":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M2.5 12.8h11" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
+          <path d="M4 12.8V8.2M8 12.8V5.6M12 12.8V3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
+        </svg>
+      );
+    case "contact":
+      return (
+        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 13.3c3.3 0 6-2.2 6-5s-2.7-5-6-5-6 2.2-6 5 2.7 5 6 5Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          <path d="m5.4 12.5-1.3 1.7.2-2.6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+        </svg>
+      );
+  }
+}
+
 function formatGapFromLeader(scannedAt: string, leaderScannedAt: string | null, rank: number) {
   if (!leaderScannedAt || rank === 1) {
     return formatScanTime(scannedAt);
@@ -1174,34 +1255,34 @@ export default function App() {
       <aside className="dashboard-sidebar live-sidebar">
         <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
           <button className="nav-link nav-link-primary nav-link-icon" onClick={focusHome} type="button">
-            <span className="nav-icon home" aria-hidden="true" />
+            <NavIcon name="home" />
             <span>Home</span>
           </button>
 
           <div className={`nav-group ${runnerNavOpen ? "open" : ""}`}>
             <button className="nav-toggle" onClick={() => setRunnerNavOpen((current) => !current)} type="button">
               <span>THE RUNNERS</span>
-              <span className={`nav-chevron ${runnerNavOpen ? "open" : ""}`}>⌄</span>
+              <span className={`nav-chevron ${runnerNavOpen ? "open" : ""}`} aria-hidden="true" />
             </button>
             <div className="nav-links">
               <button className="nav-link nav-link-icon" onClick={focusRunnerSearch} type="button">
-                <span className="nav-icon search" aria-hidden="true" />
+                <NavIcon name="search" />
                 <span>Search for a runner</span>
               </button>
               <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
-                <span className="nav-icon runners" aria-hidden="true" />
+                <NavIcon name="runners" />
                 <span>Runners list</span>
               </button>
               <button className="nav-link nav-link-icon" onClick={focusMyRunners} type="button">
-                <span className="nav-icon favorite" aria-hidden="true" />
+                <NavIcon name="favorite" />
                 <span>Favorites list</span>
               </button>
               <button className="nav-link nav-link-icon" onClick={focusMyRunners} type="button">
-                <span className="nav-icon heart" aria-hidden="true" />
+                <NavIcon name="heart" />
                 <span>My runners</span>
               </button>
               <button className="nav-link nav-link-icon" onClick={focusRunnerSearch} type="button">
-                <span className="nav-icon compare" aria-hidden="true" />
+                <NavIcon name="compare" />
                 <span>Comparison</span>
               </button>
             </div>
@@ -1210,30 +1291,30 @@ export default function App() {
           <div className={`nav-group ${raceNavOpen ? "open" : ""}`}>
             <button className="nav-toggle" onClick={() => setRaceNavOpen((current) => !current)} type="button">
               <span>FOLLOW THE RACE</span>
-              <span className={`nav-chevron ${raceNavOpen ? "open" : ""}`}>⌄</span>
+              <span className={`nav-chevron ${raceNavOpen ? "open" : ""}`} aria-hidden="true" />
             </button>
             <div className="nav-links">
               <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
-                <span className="nav-icon podium" aria-hidden="true" />
+                <NavIcon name="podium" />
                 <span>Ranking</span>
               </button>
               <button className="nav-link nav-link-icon" onClick={focusPassingsTable} type="button">
-                <span className="nav-icon passings" aria-hidden="true" />
+                <NavIcon name="passings" />
                 <span>Passings table</span>
               </button>
               <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
-                <span className="nav-icon leaders" aria-hidden="true" />
+                <NavIcon name="leaders" />
                 <span>Race leaders</span>
               </button>
               <button className="nav-link nav-link-icon" onClick={focusStatistics} type="button">
-                <span className="nav-icon stats" aria-hidden="true" />
+                <NavIcon name="stats" />
                 <span>Statistics</span>
               </button>
             </div>
           </div>
 
           <button className="nav-link nav-link-icon nav-link-footer" onClick={() => jumpToSection("runtime-footer")} type="button">
-            <span className="nav-icon contact" aria-hidden="true" />
+            <NavIcon name="contact" />
             <span>Contact</span>
           </button>
         </nav>
