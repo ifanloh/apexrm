@@ -2824,9 +2824,9 @@ body {
 .live-topbar {
   background: rgba(250, 247, 241, 0.94);
   border-bottom: 1px solid rgba(20, 22, 24, 0.08);
-  gap: 12px;
-  grid-template-columns: 246px minmax(0, 1fr) auto;
-  padding: 10px 0 12px;
+  gap: 10px;
+  grid-template-columns: 258px minmax(0, 1fr) auto;
+  padding: 8px 0 10px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -2841,15 +2841,15 @@ body {
   color: var(--green);
   display: grid;
   font-size: 1rem;
-  gap: 2px;
-  line-height: 0.92;
+  gap: 0;
+  line-height: 0.88;
   text-transform: uppercase;
 }
 
 .topbar-race-lockup strong {
   display: block;
-  font-size: 1.1rem;
-  line-height: 0.96;
+  font-size: 1.18rem;
+  line-height: 0.88;
   white-space: nowrap;
 }
 
@@ -2860,26 +2860,28 @@ body {
 .topbar-center {
   align-items: center;
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(170px, 220px) minmax(320px, 520px);
+  gap: 14px;
+  grid-template-columns: 248px minmax(420px, 640px);
   justify-content: start;
-  max-width: 780px;
+  max-width: 920px;
+  width: 100%;
 }
 
 .topbar-select-shell,
 .topbar-search-shell {
   background: #ffffff;
   border-radius: 999px;
-  border-radius: 999px;
-  min-height: 52px;
+  min-height: 50px;
 }
 
 .topbar-select-shell {
   border: 3px solid #131313;
+  max-width: 248px;
 }
 
 .topbar-search-shell {
   border: 3px solid var(--green);
+  max-width: 640px;
 }
 
 :root[data-theme="dark"] .topbar-select-shell,
@@ -2895,13 +2897,13 @@ body {
 }
 
 .topbar-select-shell select {
-  min-height: 50px;
-  padding-left: 22px;
-  padding-right: 40px;
+  min-height: 48px;
+  padding-left: 18px;
+  padding-right: 36px;
 }
 
 .topbar-search-shell input {
-  min-height: 50px;
+  min-height: 48px;
 }
 
 .topbar-runner-icon {
@@ -2909,7 +2911,7 @@ body {
   border-radius: 999px;
   display: inline-block;
   height: 16px;
-  margin-left: 6px;
+  margin-left: 4px;
   position: relative;
   transform: rotate(42deg);
   width: 16px;
@@ -2929,8 +2931,8 @@ body {
   background: #0a6d4b;
   border-radius: 999px;
   box-shadow: 0 10px 20px rgba(8, 108, 74, 0.22);
-  height: 46px;
-  min-width: 46px;
+  height: 44px;
+  min-width: 44px;
   padding: 0;
 }
 
@@ -2954,7 +2956,7 @@ body {
 }
 
 .live-topbar-actions {
-  gap: 6px;
+  gap: 5px;
 }
 
 .topbar-login-link,
@@ -2969,10 +2971,10 @@ body {
   font-size: 0.8rem;
   font-weight: 600;
   gap: 8px;
-  height: 34px;
+  height: 33px;
   justify-content: center;
-  min-width: 34px;
-  padding: 0 10px;
+  min-width: 33px;
+  padding: 0 9px;
 }
 
 .topbar-login-link-active {
