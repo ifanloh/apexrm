@@ -14,6 +14,7 @@ export type DemoRaceCard = {
   title: string;
   editionLabel: string;
   scheduleLabel: string;
+  startAt: string;
   startTown: string;
   distanceKm: number;
   ascentM: number;
@@ -41,6 +42,7 @@ export const demoRaceFestival = {
       title: "Mantra 116 Ultra",
       editionLabel: "Live",
       scheduleLabel: "Fri 05 Jul 23:59",
+      startAt: "2025-07-05T23:59:00+07:00",
       startTown: "Kaliandra",
       distanceKm: 116,
       ascentM: 7400,
@@ -65,6 +67,7 @@ export const demoRaceFestival = {
       title: "Mantra Ultra 68",
       editionLabel: "Finished",
       scheduleLabel: "Fri 05 Jul 23:59",
+      startAt: "2025-07-05T23:59:00+07:00",
       startTown: "Kaliandra",
       distanceKm: 68,
       ascentM: 4300,
@@ -87,6 +90,7 @@ export const demoRaceFestival = {
       title: "Mantra Trail 38 Welirang",
       editionLabel: "Finished",
       scheduleLabel: "Sat 06 Jul 00:00",
+      startAt: "2025-07-06T00:00:00+07:00",
       startTown: "Kaliandra",
       distanceKm: 38,
       ascentM: 2750,
@@ -109,6 +113,7 @@ export const demoRaceFestival = {
       title: "Mantra Trail 34 Arjuno",
       editionLabel: "Finished",
       scheduleLabel: "Sat 06 Jul 00:00",
+      startAt: "2025-07-06T00:00:00+07:00",
       startTown: "Kaliandra",
       distanceKm: 34,
       ascentM: 3050,
@@ -131,6 +136,7 @@ export const demoRaceFestival = {
       title: "Mantra Fun 17",
       editionLabel: "Finished",
       scheduleLabel: "Sun 07 Jul 07:00",
+      startAt: "2025-07-07T07:00:00+07:00",
       startTown: "Kaliandra",
       distanceKm: 17,
       ascentM: 1250,
@@ -153,6 +159,7 @@ export const demoRaceFestival = {
       title: "Mantra Fun 10",
       editionLabel: "Finished",
       scheduleLabel: "Sun 07 Jul 07:00",
+      startAt: "2025-07-07T07:00:00+07:00",
       startTown: "Kaliandra",
       distanceKm: 10,
       ascentM: 700,

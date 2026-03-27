@@ -93,6 +93,25 @@ function formatScanTime(value: string) {
   });
 }
 
+function formatElapsedRaceTime(scannedAt: string, raceStartAt: string | null) {
+  if (!raceStartAt) {
+    return formatScanTime(scannedAt);
+  }
+
+  const diffMs = new Date(scannedAt).getTime() - new Date(raceStartAt).getTime();
+
+  if (!Number.isFinite(diffMs) || diffMs < 0 || diffMs > 7 * 24 * 60 * 60 * 1000) {
+    return formatScanTime(scannedAt);
+  }
+
+  const totalSeconds = Math.floor(diffMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 function formatCheckpointProgress(entry: {
   checkpointCode: string;
   checkpointKmMarker: number;
@@ -239,24 +258,6 @@ function NavIcon({ name }: { name: "home" | "search" | "runners" | "favorite" | 
   }
 }
 
-function formatGapFromLeader(scannedAt: string, leaderScannedAt: string | null, rank: number) {
-  if (!leaderScannedAt || rank === 1) {
-    return formatScanTime(scannedAt);
-  }
-
-  const diffMs = Math.max(0, new Date(scannedAt).getTime() - new Date(leaderScannedAt).getTime());
-  const totalSeconds = Math.floor(diffMs / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `+${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
-
-  return `+${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
 function formatRelativeTime(value: string) {
   const deltaMs = Math.max(0, Date.now() - new Date(value).getTime());
   const seconds = Math.floor(deltaMs / 1000);
@@ -335,7 +336,7 @@ function buildPreviewLeaderboard(race: DemoRaceCard, category?: "women" | "men")
     return emptyOverallLeaderboard;
   }
 
-  const startedAt = new Date("2025-07-05T23:59:00+07:00").getTime();
+  const startedAt = new Date(race.startAt).getTime();
 
   return {
     totalRankedRunners: source.length,
@@ -1164,7 +1165,7 @@ export default function App() {
           rank: entry.rank,
           name: entry.name,
           bib: entry.bib,
-          gap: entry.rank === 1 ? formatScanTime(entry.scannedAt) : `+${entry.rank - 1}:${String(entry.rank * 7).padStart(2, "0")}`,
+          gap: formatElapsedRaceTime(entry.scannedAt, race.startAt),
           status: "Finisher" as const,
           category: (entry.category.toLowerCase() === "women" ? "women" : "men") as "women" | "men"
         })),
@@ -1220,9 +1221,7 @@ export default function App() {
     { label: "DNF / DNS", value: `${activeDnfCount}` }
   ];
   const topbarSearchPlaceholder = "Search a runner ...";
-  const overallLeaderTime = fullRankingEntries[0]?.scannedAt ?? null;
-  const sidebarOverallLeaderTime = sidebarOverallRows[0]?.scannedAt ?? null;
-  const sidebarWomenLeaderTime = sidebarWomenRows[0]?.scannedAt ?? null;
+  const activeRaceStartAt = selectedRaceCard.startAt;
   function toggleFavoriteBib(bib: string) {
     setFavoriteBibs((current) =>
       current.includes(bib) ? current.filter((item) => item !== bib) : [...current, bib].sort((left, right) => left.localeCompare(right))
@@ -1731,7 +1730,7 @@ export default function App() {
                       </strong>
                     </div>
                     <div className="race-inline-cell race-time-cell">
-                      <strong>{formatScanTime(entry.scannedAt)}</strong>
+                      <strong>{formatElapsedRaceTime(entry.scannedAt, activeRaceStartAt)}</strong>
                     </div>
                   </div>
                 );
@@ -2321,7 +2320,7 @@ export default function App() {
                               width="20"
                             />
                           </small>
-                          <time>{formatGapFromLeader(entry.scannedAt, sidebarOverallLeaderTime, entry.rank)}</time>
+                          <time>{formatElapsedRaceTime(entry.scannedAt, activeRaceStartAt)}</time>
                         </div>
                       </div>
                     ))
@@ -2359,7 +2358,7 @@ export default function App() {
                               width="20"
                             />
                           </small>
-                          <time>{formatGapFromLeader(entry.scannedAt, sidebarWomenLeaderTime, entry.rank)}</time>
+                          <time>{formatElapsedRaceTime(entry.scannedAt, activeRaceStartAt)}</time>
                         </div>
                       </div>
                     ))
