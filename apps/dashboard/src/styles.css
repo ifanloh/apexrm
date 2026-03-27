@@ -4410,3 +4410,61 @@ body {
 .race-inline-cell span {
   font-size: 0.71rem;
 }
+
+.course-map-card {
+  background: #eef2e7;
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 22px;
+  min-height: 420px;
+  overflow: hidden;
+  padding: 0;
+}
+
+.course-inline-map {
+  height: 420px;
+  width: 100%;
+}
+
+.course-inline-map .leaflet-container {
+  font-family: "Rubik", "Roboto", sans-serif;
+  height: 100%;
+  width: 100%;
+}
+
+.course-inline-map .leaflet-control-zoom {
+  border: 0;
+  box-shadow: 0 10px 26px rgba(20, 22, 24, 0.14);
+}
+
+.course-inline-map .leaflet-control-zoom a {
+  color: #12714d;
+  height: 32px;
+  line-height: 32px;
+  width: 32px;
+}
+
+.course-inline-map .leaflet-control-attribution {
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 8px 0 0 0;
+  font-size: 0.62rem;
+}
+
+.course-map-tooltip {
+  background: rgba(24, 26, 22, 0.88);
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(20, 22, 24, 0.18);
+  color: #fff;
+  font-family: "Rubik", "Roboto", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 9px;
+}
+
+.course-map-tooltip::before {
+  display: none;
+}
+
+.course-map-tooltip.selected {
+  background: rgba(18, 124, 85, 0.95);
+}

@@ -24,7 +24,7 @@ import {
   fetchRunnerSearch
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
-import { demoCourse } from "./demoCourse";
+import { getDemoCourseForRace } from "./demoCourseVariants";
 import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
 import { supabase } from "./supabase";
@@ -579,12 +579,15 @@ export default function App() {
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
+  const featuredRace =
+    demoRaceFestival.races.find((race) => race.editionLabel.toLowerCase() === "live") ?? demoRaceFestival.races[0];
   const selectedRaceCard =
     demoRaceFestival.races.find((race) => race.slug === selectedRaceSlug) ??
-    demoRaceFestival.races.find((race) => race.slug === demoCourse.slug) ??
+    demoRaceFestival.races.find((race) => race.slug === featuredRace.slug) ??
     demoRaceFestival.races[0];
   const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
-  const isFeaturedRace = selectedRaceCard.slug === demoCourse.slug;
+  const isFeaturedRace = selectedRaceCard.slug === featuredRace.slug;
+  const activeCourse = useMemo(() => getDemoCourseForRace(selectedRaceCard), [selectedRaceCard]);
 
   useEffect(() => {
     if (!supabase) {
@@ -1081,7 +1084,7 @@ export default function App() {
   const dnfDnsCount = Math.max(starterCount - finisherCount, 0);
 
   const courseProfileStops = useMemo(() => {
-    return demoCourse.checkpoints.map((checkpoint) => {
+    return activeCourse.checkpoints.map((checkpoint) => {
       const board = leaderboards.find((item) => item.checkpointId === checkpoint.id);
       const leader = board?.topEntries[0] ?? null;
       const isLeaderHere = overallLeader?.checkpointId === checkpoint.id;
@@ -1093,7 +1096,7 @@ export default function App() {
         isLeaderHere
       };
     });
-  }, [leaderboards, overallLeader]);
+  }, [activeCourse.checkpoints, leaderboards, overallLeader]);
 
   const sidebarOverallRows = activeOverallLeaderboard.topEntries.slice(0, 5);
   const sidebarWomenRows = activeWomenLeaderboard.topEntries.slice(0, 5);
@@ -1147,7 +1150,7 @@ export default function App() {
     : "0-0 of 0";
   const raceHomeCards = useMemo(() => {
     return demoRaceFestival.races.map((race) => {
-      if (race.slug !== demoCourse.slug) {
+      if (race.slug !== featuredRace.slug) {
         return {
           ...race,
           isLive: false,
@@ -1173,10 +1176,10 @@ export default function App() {
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
-  }, [dnfDnsCount, finisherCount, overallLeaderboard.topEntries, previewOverallLeaderboard.topEntries, selectedRaceCard.slug]);
+  }, [dnfDnsCount, featuredRace.slug, finisherCount, overallLeaderboard.topEntries, previewOverallLeaderboard.topEntries, selectedRaceCard.slug]);
   const eventTitle = isEditionHome ? demoRaceFestival.brandName : selectedRaceCard.title;
   const eventSubtitleText = isEditionHome
-    ? `${demoCourse.location} | ${demoRaceFestival.editionLabel}`
+    ? `${featuredRace.startTown} | ${demoRaceFestival.editionLabel}`
     : `${selectedRaceCard.startTown} | ${demoRaceFestival.brandName} spectator preview`;
   const liveStatusLabel =
     liveStatus === "live"
@@ -1279,7 +1282,7 @@ export default function App() {
 
   function focusTopbarSearch() {
     if (isEditionHome) {
-      openRaceView(demoCourse.slug, "full-ranking");
+      openRaceView(featuredRace.slug, "full-ranking");
     }
 
     window.setTimeout(() => {
@@ -1291,7 +1294,7 @@ export default function App() {
   function focusRanking(view: "overall" | "women") {
     setFullRankingView(view);
     if (isEditionHome) {
-      openRaceView(demoCourse.slug, "full-ranking");
+      openRaceView(featuredRace.slug, "full-ranking");
       return;
     }
 
@@ -1351,7 +1354,7 @@ export default function App() {
 
   function focusStatistics() {
     if (isEditionHome) {
-      openRaceView(demoCourse.slug, "race-statistics");
+      openRaceView(featuredRace.slug, "race-statistics");
       return;
     }
 
@@ -1557,11 +1560,11 @@ export default function App() {
             </article>
             <article className="race-stat-strip-item">
               <span>Start</span>
-              <strong>{demoCourse.location} 7°C</strong>
+              <strong>{activeCourse.location} 7°C</strong>
             </article>
             <article className="race-stat-strip-item">
               <span>Finish</span>
-              <strong>{demoCourse.location} 7°C</strong>
+              <strong>{activeCourse.location} 7°C</strong>
             </article>
             <article className="race-stat-strip-item">
               <span>Start Date</span>
@@ -1580,10 +1583,10 @@ export default function App() {
 
       <section className="spotlight-grid" id="course-profile">
         <CourseProfilePanel
+          course={activeCourse}
           courseStops={courseProfileStops}
           selectedCheckpointId={selectedCheckpointId}
           onSelectCheckpoint={setSelectedCheckpointId}
-          finisherCount={finisherCount}
           dnfCount={dnfDnsCount}
         />
       </section>
