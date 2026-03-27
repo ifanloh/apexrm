@@ -1170,21 +1170,8 @@ export default function App() {
   }
 
   return (
-    <main className="dashboard-shell dashboard-hub-shell live-trail-shell">
+    <main className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"}`}>
       <aside className="dashboard-sidebar live-sidebar">
-        <div className="livetrail-wordmark" aria-label="LiveTrail style wordmark">
-          <span className="word-live">LIVE</span>
-          <span className="word-trail">TRAIL</span>
-        </div>
-
-        <div className="sidebar-event-lockup">
-          <h1>
-            {demoRaceFestival.brandStack.map((line) => (
-              <span key={line}>{line}</span>
-            ))}
-          </h1>
-        </div>
-
         <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
           <button className="nav-link nav-link-primary nav-link-icon" onClick={focusHome} type="button">
             <span className="nav-icon home" aria-hidden="true" />
@@ -1255,6 +1242,10 @@ export default function App() {
       <div className="dashboard-main dashboard-main-scroll live-main">
         <header className="topbar topbar-hub live-topbar">
           <div className="topbar-race-lockup">
+            <div className="livetrail-wordmark topbar-wordmark" aria-label="LiveTrail style wordmark">
+              <span className="word-live">LIVE</span>
+              <span className="word-trail">TRAIL</span>
+            </div>
             {demoRaceFestival.brandStack.map((line) => (
               <strong key={line}>{line}</strong>
             ))}
@@ -2159,30 +2150,9 @@ export default function App() {
       ) : null}
       </div>
 
+      {!isEditionHome ? (
       <aside className="dashboard-rail live-ranking-rail">
         <div className="rail">
-          {isEditionHome ? (
-            <article className="panel rail-panel edition-rail-placeholder">
-              <div className="rail-panel-head">
-                <span>Race Selection</span>
-                <h3>Choose A Category</h3>
-              </div>
-              <div className="signal-stack">
-                <div className="broadcast-card compact">
-                  <span className="broadcast-tag">Edition Home</span>
-                  <strong>Ranking hanya tersedia setelah salah satu kategori race dibuka.</strong>
-                  <p>
-                    Pilih race seperti Grand Trail, Boffi Fifty, atau kategori lain untuk melihat overall ranking,
-                    woman ranking, course profile, dan hasil live detail.
-                  </p>
-                </div>
-                <button className="sidebar-more" onClick={() => openRaceView(demoCourse.slug)} type="button">
-                  Open Featured Race
-                </button>
-              </div>
-            </article>
-          ) : (
-            <>
               <article className="panel rail-panel rail-ranking-panel" id="race-leaders">
                 <div className="rail-panel-head">
                   <span>Ranking</span>
@@ -2374,10 +2344,9 @@ export default function App() {
                   </div>
                 </article>
               )}
-            </>
-          )}
         </div>
       </aside>
+      ) : null}
     </main>
   );
 }
