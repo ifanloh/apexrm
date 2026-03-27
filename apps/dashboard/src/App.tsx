@@ -76,15 +76,6 @@ function getNextTheme(theme: DashboardTheme): DashboardTheme {
   return theme === "dark" ? "light" : "dark";
 }
 
-function getInitials(value: string) {
-  return value
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
 function formatScanTime(value: string) {
   return new Date(value).toLocaleTimeString([], {
     hour: "2-digit",
@@ -1706,7 +1697,7 @@ export default function App() {
                     <div className="runner-main-cell">
                       <div className="bib-tile">{entry.bib}</div>
                       <div className="runner-cell">
-                        <div className="runner-avatar runner-avatar-live">{getInitials(entry.name)}</div>
+                        <div aria-hidden="true" className="runner-avatar runner-avatar-live" />
                         <div>
                           <strong>{entry.name}</strong>
                           <span>{getRunnerTeamName(entry.bib)}</span>
@@ -1974,7 +1965,7 @@ export default function App() {
                     <strong>#{entry.position}</strong>
                   </div>
                   <div className="runner-cell">
-                    <div className="runner-avatar">{getInitials(runnerLabel)}</div>
+                    <div aria-hidden="true" className="runner-avatar" />
                     <div>
                       <strong>{runnerLabel}</strong>
                       <span>BIB #{entry.bib}</span>
@@ -2070,7 +2061,7 @@ export default function App() {
                   <article className={`runner-search-card ${isSelected ? "selected" : ""}`} key={`${entry.rank}-${entry.bib}`}>
                     <div className="runner-card-head">
                       <div className="runner-cell">
-                        <div className="runner-avatar">{getInitials(entry.name)}</div>
+                        <div aria-hidden="true" className="runner-avatar" />
                         <div>
                           <strong>{entry.name}</strong>
                           <span>BIB #{entry.bib}</span>
@@ -2146,7 +2137,7 @@ export default function App() {
               <>
                 <div className="runner-detail-summary">
                   <div className="runner-cell">
-                    <div className="runner-avatar">{getInitials(runnerDetail.name)}</div>
+                    <div aria-hidden="true" className="runner-avatar" />
                     <div>
                       <strong>{runnerDetail.name}</strong>
                       <span>BIB #{runnerDetail.bib}</span>
