@@ -3950,10 +3950,10 @@ body {
 }
 
 .course-map-card {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  display: block;
   min-height: 300px;
   overflow: hidden;
+  width: 100%;
 }
 
 .course-map-copy {
@@ -4434,12 +4434,14 @@ body {
 
 .course-inline-map {
   height: 420px;
+  min-width: 0;
   width: 100%;
 }
 
 .course-inline-map .leaflet-container {
   font-family: "Rubik", "Roboto", sans-serif;
   height: 100%;
+  min-width: 0;
   width: 100%;
 }
 

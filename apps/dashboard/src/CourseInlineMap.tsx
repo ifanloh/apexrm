@@ -19,6 +19,7 @@ function findClosestWaypoint(course: DemoCourse, targetKm: number) {
 
 export function CourseInlineMap({ course, selectedCheckpointId, onSelectCheckpoint }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   const routeLatLngs = useMemo(
     () => course.waypoints.map((point) => [point.lat, point.lon] as [number, number]),
@@ -35,6 +36,7 @@ export function CourseInlineMap({ course, selectedCheckpointId, onSelectCheckpoi
       scrollWheelZoom: false,
       zoomControl: false
     });
+    mapRef.current = map;
 
     L.control.zoom({ position: "topright" }).addTo(map);
 
@@ -76,9 +78,22 @@ export function CourseInlineMap({ course, selectedCheckpointId, onSelectCheckpoi
       marker.on("click", () => onSelectCheckpoint(checkpoint.id));
     });
 
-    map.fitBounds(L.latLngBounds(routeLatLngs).pad(0.1), { animate: false });
+    const bounds = L.latLngBounds(routeLatLngs).pad(0.1);
+    map.fitBounds(bounds, { animate: false });
+    window.setTimeout(() => {
+      map.invalidateSize(false);
+      map.fitBounds(bounds, { animate: false });
+    }, 0);
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize(false);
+      map.fitBounds(bounds, { animate: false });
+    });
+    resizeObserver.observe(containerRef.current);
 
     return () => {
+      resizeObserver.disconnect();
+      mapRef.current = null;
       map.remove();
     };
   }, [course, onSelectCheckpoint, routeLatLngs, selectedCheckpointId]);
