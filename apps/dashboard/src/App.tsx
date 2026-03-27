@@ -25,7 +25,7 @@ import {
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
 import { demoCourse } from "./demoCourse";
-import { demoRaceFestival } from "./demoRaceFestival";
+import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
 import { SpectatorPromoPanel } from "./SpectatorPromoPanel";
 import { supabase } from "./supabase";
@@ -41,18 +41,18 @@ const THEME_STORAGE_KEY = "arm:dashboard-theme";
 const FULL_RANKING_PAGE_SIZE = 12;
 const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
 const EDITION_HOME_VALUE = "__edition-home";
-const COUNTRY_CODES = ["FR", "FI", "ES", "IT", "GB", "BE", "CH", "PT", "US", "DE", "SE", "NO"] as const;
+const COUNTRY_CODES = ["ID", "MY", "SG", "AU", "JP", "TH", "PH", "KR", "CN", "VN", "US", "FR"] as const;
 const TEAM_NAMES = [
-  "Team Hoka",
-  "Salomon International",
-  "Wise Ultra Running",
-  "Apex Trail Crew",
-  "Millau Running Lab",
-  "Grand Causses Trail",
-  "Team Ascent",
-  "North Ridge Collective",
-  "Altitude Motion",
-  "Ultra Nomads"
+  "Mantra Trail Team",
+  "Arjuno Runners",
+  "Welirang Collective",
+  "Kaliandra Endurance",
+  "East Java Mountain Crew",
+  "Nusantara Trail Lab",
+  "Merah Putih Ultra",
+  "Summit Seeker Project",
+  "Garuda Trail Society",
+  "Tropic Alpine Club"
 ] as const;
 
 type DashboardTheme = "dark" | "light";
@@ -303,6 +303,45 @@ function mergeCheckpointBoards(existing: CheckpointLeaderboard[], incoming: Chec
   });
 }
 
+function buildPreviewLeaderboard(race: DemoRaceCard, category?: "women" | "men"): OverallLeaderboard {
+  const source = race.rankingPreview.filter((entry) => {
+    if (!category) {
+      return true;
+    }
+
+    return (entry.category ?? "men") === category;
+  });
+
+  if (!source.length) {
+    return emptyOverallLeaderboard;
+  }
+
+  const startedAt = new Date("2025-07-05T23:59:00+07:00").getTime();
+
+  return {
+    totalRankedRunners: source.length,
+    topEntries: source.map((entry, index) => {
+      const statusCheckpointId = entry.status === "Finisher" ? "finish" : "cp-30";
+      const previewRank = category ? index + 1 : entry.rank;
+
+      return {
+        bib: entry.bib.toUpperCase(),
+        name: entry.name,
+        category: entry.category ?? "men",
+        rank: previewRank,
+        checkpointId: statusCheckpointId,
+        checkpointCode: entry.status === "Finisher" ? "FIN" : "CP",
+        checkpointName: entry.status === "Finisher" ? "Finish" : "On Course",
+        checkpointKmMarker: entry.status === "Finisher" ? race.distanceKm : Number((race.distanceKm * 0.82).toFixed(1)),
+        checkpointOrder: entry.status === "Finisher" ? 4 : 3,
+        scannedAt: new Date(startedAt + index * 79_000).toISOString(),
+        crewId: "preview-seed",
+        deviceId: race.slug
+      };
+    })
+  };
+}
+
 function normalizeWomenLeaderboard(
   overallBoard: OverallLeaderboard,
   womenBoard: OverallLeaderboard
@@ -520,6 +559,12 @@ export default function App() {
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const apiHost = getApiHost();
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
+  const selectedRaceCard =
+    demoRaceFestival.races.find((race) => race.slug === selectedRaceSlug) ??
+    demoRaceFestival.races.find((race) => race.slug === demoCourse.slug) ??
+    demoRaceFestival.races[0];
+  const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
+  const isFeaturedRace = selectedRaceCard.slug === demoCourse.slug;
 
   useEffect(() => {
     if (!supabase) {
@@ -805,6 +850,23 @@ export default function App() {
     let isMounted = true;
 
     async function loadRunnerSearch() {
+      if (!isFeaturedRace && !isEditionHome) {
+        const previewItems = buildRunnerFallbackResults(
+          buildPreviewLeaderboard(selectedRaceCard).topEntries,
+          deferredRunnerQuery,
+          runnerCheckpointFilter
+        );
+
+        if (isMounted) {
+          setRunnerResults(previewItems);
+          setRunnerSearchMode("fallback");
+          setRunnerSearchError(null);
+          setIsSearchingRunners(false);
+        }
+
+        return;
+      }
+
       try {
         if (isMounted) {
           setIsSearchingRunners(true);
@@ -845,22 +907,40 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [accessToken, deferredRunnerQuery, isBootstrapping, organizerSessionActive, lastUpdatedAt, overallLeaderboard.topEntries, runnerCheckpointFilter]);
+  }, [
+    accessToken,
+    deferredRunnerQuery,
+    isBootstrapping,
+    isEditionHome,
+    isFeaturedRace,
+    lastUpdatedAt,
+    organizerSessionActive,
+    overallLeaderboard.topEntries,
+    runnerCheckpointFilter,
+    selectedRaceCard
+  ]);
 
   useEffect(() => {
     window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteBibs));
   }, [favoriteBibs]);
 
-  const menLeaderboard = useMemo<OverallLeaderboard>(() => {
-    const items = overallLeaderboard.topEntries.filter((entry) => entry.category.toLowerCase() === "men");
+  const previewOverallLeaderboard = useMemo<OverallLeaderboard>(() => buildPreviewLeaderboard(selectedRaceCard), [selectedRaceCard]);
+  const previewWomenLeaderboard = useMemo<OverallLeaderboard>(
+    () => buildPreviewLeaderboard(selectedRaceCard, "women"),
+    [selectedRaceCard]
+  );
+  const activeOverallLeaderboard = isFeaturedRace ? overallLeaderboard : previewOverallLeaderboard;
+  const activeWomenLeaderboard = isFeaturedRace ? womenLeaderboard : previewWomenLeaderboard;
+  const activeMenLeaderboard = useMemo<OverallLeaderboard>(() => {
+    const items = activeOverallLeaderboard.topEntries.filter((entry) => entry.category.toLowerCase() === "men");
     return {
       totalRankedRunners: items.length,
       topEntries: items
     };
-  }, [overallLeaderboard]);
+  }, [activeOverallLeaderboard]);
 
   const fullRankingSource =
-    fullRankingView === "women" ? womenLeaderboard : fullRankingView === "men" ? menLeaderboard : overallLeaderboard;
+    fullRankingView === "women" ? activeWomenLeaderboard : fullRankingView === "men" ? activeMenLeaderboard : activeOverallLeaderboard;
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(fullRankingSource.topEntries.length / rankingRowsPerPage));
@@ -901,6 +981,18 @@ export default function App() {
     let isMounted = true;
 
     async function loadRunnerDetail() {
+      if (!isFeaturedRace && !isEditionHome) {
+        const fallbackDetail = buildRunnerDetailFallback(buildPreviewLeaderboard(selectedRaceCard).topEntries, runnerBib);
+
+        if (isMounted) {
+          setRunnerDetail(fallbackDetail);
+          setRunnerDetailError(null);
+          setIsLoadingRunnerDetail(false);
+        }
+
+        return;
+      }
+
       try {
         if (isMounted) {
           setIsLoadingRunnerDetail(true);
@@ -937,23 +1029,23 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [accessToken, isBootstrapping, organizerSessionActive, overallLeaderboard.topEntries, selectedRunnerBib]);
+  }, [accessToken, isBootstrapping, isEditionHome, isFeaturedRace, organizerSessionActive, overallLeaderboard.topEntries, selectedRaceCard, selectedRunnerBib]);
 
   const selectedBoard = useMemo(() => {
     return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
   }, [leaderboards, selectedCheckpointId]);
 
-  const overallLeader = overallLeaderboard.topEntries[0] ?? null;
+  const overallLeader = activeOverallLeaderboard.topEntries[0] ?? null;
   const nameByBib = useMemo(
-    () => new Map(overallLeaderboard.topEntries.map((entry) => [entry.bib.toUpperCase(), entry.name])),
-    [overallLeaderboard.topEntries]
+    () => new Map(activeOverallLeaderboard.topEntries.map((entry) => [entry.bib.toUpperCase(), entry.name])),
+    [activeOverallLeaderboard.topEntries]
   );
 
   const totalOfficialScans = useMemo(() => {
     return leaderboards.reduce((sum, item) => sum + item.totalOfficialScans, 0);
   }, [leaderboards]);
 
-  const totalRankedRunners = overallLeaderboard.totalRankedRunners;
+  const totalRankedRunners = activeOverallLeaderboard.totalRankedRunners;
 
   const activeCheckpointCount = useMemo(() => {
     return leaderboards.filter((item) => item.totalOfficialScans > 0).length;
@@ -981,8 +1073,8 @@ export default function App() {
     });
   }, [leaderboards, overallLeader]);
 
-  const sidebarOverallRows = overallLeaderboard.topEntries.slice(0, 5);
-  const sidebarWomenRows = womenLeaderboard.topEntries.slice(0, 5);
+  const sidebarOverallRows = activeOverallLeaderboard.topEntries.slice(0, 5);
+  const sidebarWomenRows = activeWomenLeaderboard.topEntries.slice(0, 5);
 
   const lastBroadcast = notifications[0] ?? null;
   const latestPassing = recentPassings[0] ?? null;
@@ -996,8 +1088,8 @@ export default function App() {
   }, [runnerCheckpointFilter, runnerQuery, runnerResults.length]);
   const favoriteRunnerResults = useMemo(() => {
     const favoriteSet = new Set(favoriteBibs);
-    return overallLeaderboard.topEntries.filter((entry) => favoriteSet.has(entry.bib));
-  }, [favoriteBibs, overallLeaderboard.topEntries]);
+    return activeOverallLeaderboard.topEntries.filter((entry) => favoriteSet.has(entry.bib));
+  }, [activeOverallLeaderboard.topEntries, favoriteBibs]);
   const recentPassingSummary = useMemo(() => {
     if (!recentPassings.length) {
       return "Belum ada passing";
@@ -1005,12 +1097,6 @@ export default function App() {
 
     return `${recentPassings.length} passing terbaru`;
   }, [recentPassings.length]);
-  const selectedRaceCard =
-    demoRaceFestival.races.find((race) => race.slug === selectedRaceSlug) ??
-    demoRaceFestival.races.find((race) => race.slug === demoCourse.slug) ??
-    demoRaceFestival.races[0];
-  const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
-  const isFeaturedRace = selectedRaceCard.slug === demoCourse.slug;
   const totalDistanceKm = selectedRaceCard.distanceKm;
   const activeAscentM = selectedRaceCard.ascentM;
   const activeFinisherCount = isFeaturedRace ? finisherCount : selectedRaceCard.finishers;
@@ -1051,22 +1137,23 @@ export default function App() {
         ...race,
         finishers: finisherCount,
         dnf: dnfDnsCount,
-        rankingPreview: sidebarOverallRows.slice(0, 3).map((entry) => ({
+        rankingPreview: overallLeaderboard.topEntries.slice(0, 3).map((entry) => ({
           rank: entry.rank,
           name: entry.name,
           bib: entry.bib,
           gap: entry.rank === 1 ? formatScanTime(entry.scannedAt) : `+${entry.rank - 1}:${String(entry.rank * 7).padStart(2, "0")}`,
-          status: "Finisher" as const
+          status: "Finisher" as const,
+          category: (entry.category.toLowerCase() === "women" ? "women" : "men") as "women" | "men"
         })),
         isLive: true,
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
-  }, [dnfDnsCount, finisherCount, selectedRaceCard.slug, sidebarOverallRows]);
+  }, [dnfDnsCount, finisherCount, overallLeaderboard.topEntries, selectedRaceCard.slug]);
   const eventTitle = isEditionHome ? demoRaceFestival.brandName : selectedRaceCard.title;
   const eventSubtitleText = isEditionHome
     ? `${demoCourse.location} | ${demoRaceFestival.editionLabel}`
-    : `${selectedRaceCard.startTown} | ${demoCourse.subtitle}`;
+    : `${selectedRaceCard.startTown} | ${demoRaceFestival.brandName} spectator preview`;
   const liveStatusLabel =
     liveStatus === "live"
       ? "Live Realtime"
@@ -1086,26 +1173,26 @@ export default function App() {
   const raceStatistics = [
     {
       label: "Starters",
-      value: `${starterCount}`,
+      value: `${isFeaturedRace ? starterCount : selectedRaceCard.finishers + selectedRaceCard.dnf}`,
       note: "Runner yang sudah tercatat mulai race."
     },
     {
       label: "DNF / DNS",
-      value: `${dnfDnsCount}`,
+      value: `${activeDnfCount}`,
       note: "Gabungan runner yang belum finish."
     },
     {
       label: "Finishers",
-      value: `${finisherCount}`,
+      value: `${activeFinisherCount}`,
       note: "Runner yang sudah mencapai finish."
     }
   ];
   const raceOverviewStats = [
     { label: "Distance", value: `${totalDistanceKm.toFixed(1)} KM` },
     { label: "Ascent", value: `${activeAscentM} M+` },
-    { label: "Start", value: `${demoCourse.location} 7°C` },
-    { label: "Finish", value: `${demoCourse.location} 7°C` },
-    { label: "Start Date", value: formatEventDateLabel("2025-10-19T05:12:00+02:00") },
+    { label: "Start", value: selectedRaceCard.startTown },
+    { label: "Finish", value: "Kaliandra Resort" },
+    { label: "Start Date", value: selectedRaceCard.scheduleLabel },
     { label: "Finishers", value: `${activeFinisherCount}` },
     { label: "DNF / DNS", value: `${activeDnfCount}` }
   ];
@@ -1649,13 +1736,13 @@ export default function App() {
                       <span>{entry.checkpointName}</span>
                     </div>
                     <div className="race-inline-cell race-time-cell">
-                      <strong>
-                        {formatGapFromLeader(
-                          entry.scannedAt,
-                          fullRankingView === "women" ? womenLeaderboard.topEntries[0]?.scannedAt ?? null : overallLeaderTime,
-                          entry.rank
-                        )}
-                      </strong>
+                        <strong>
+                          {formatGapFromLeader(
+                            entry.scannedAt,
+                            fullRankingView === "women" ? activeWomenLeaderboard.topEntries[0]?.scannedAt ?? null : overallLeaderTime,
+                            entry.rank
+                          )}
+                        </strong>
                       <span>
                         {formatCheckpointLabel({
                           code: entry.checkpointCode,
@@ -2429,3 +2516,4 @@ export default function App() {
     </main>
   );
 }
+

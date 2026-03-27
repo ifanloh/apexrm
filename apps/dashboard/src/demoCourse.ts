@@ -1,662 +1,606 @@
 export const demoCourse = {
-  "slug": "grand-trail-des-templiers",
-  "title": "Grand Trail des Templiers",
-  "subtitle": "Sample course dari GPX untuk dashboard live trial dan mini race.",
-  "location": "Millau, France",
-  "distanceKm": 80.6,
-  "ascentM": 3446,
-  "descentM": 3411,
+  "slug": "mantra-116-ultra",
+  "title": "Mantra 116 Ultra",
+  "subtitle": "Signature ultra-trail preview across the Arjuno-Welirang mountain complex from Kaliandra Resort, East Java.",
+  "location": "Kaliandra Resort, East Java",
+  "distanceKm": 116,
+  "ascentM": 7400,
+  "descentM": 7400,
   "checkpoints": [
     {
       "id": "cp-start",
       "code": "START",
-      "name": "Millau",
+      "name": "Kaliandra Resort",
       "kmMarker": 0,
       "order": 0
     },
     {
       "id": "cp-10",
       "code": "CP1",
-      "name": "Peyreleau",
-      "kmMarker": 23.3,
+      "name": "Welirang Hut",
+      "kmMarker": 28,
       "order": 1
     },
     {
       "id": "cp-21",
       "code": "CP2",
-      "name": "Roquesaltes",
-      "kmMarker": 44.4,
+      "name": "Cangar",
+      "kmMarker": 54,
       "order": 2
     },
     {
       "id": "cp-30",
       "code": "CP3",
-      "name": "La Salvage",
-      "kmMarker": 55.9,
+      "name": "Summit Arjuno",
+      "kmMarker": 86,
       "order": 3
     },
     {
       "id": "finish",
       "code": "FIN",
-      "name": "Arrivee Millau",
-      "kmMarker": 80.6,
+      "name": "Kaliandra Finish",
+      "kmMarker": 116,
       "order": 4
     }
   ],
   "waypoints": [
     {
-      "id": "millau",
-      "name": "Millau",
+      "id": "kaliandra-start",
+      "name": "Kaliandra Resort",
       "km": 0,
-      "ele": 360,
-      "lat": 44.1146,
-      "lon": 3.08683
+      "ele": 930,
+      "lat": -7.7118,
+      "lon": 112.6275
     },
     {
-      "id": "p10",
-      "name": "P10",
-      "km": 8.2,
-      "ele": 827,
-      "lat": 44.13555,
-      "lon": 3.1159
+      "id": "tretes-ridge",
+      "name": "Tretes Ridge",
+      "km": 12,
+      "ele": 1480,
+      "lat": -7.7184,
+      "lon": 112.6151
     },
     {
-      "id": "lauglanou-p14b",
-      "name": "Lauglanou (P14B)",
-      "km": 10.5,
-      "ele": 816,
-      "lat": 44.13625,
-      "lon": 3.13699
+      "id": "welirang-hut",
+      "name": "Welirang Hut",
+      "km": 28,
+      "ele": 2210,
+      "lat": -7.7284,
+      "lon": 112.5927
     },
     {
-      "id": "peyreleau",
-      "name": "Peyreleau",
-      "km": 23.3,
-      "ele": 425,
-      "lat": 44.18847,
-      "lon": 3.20717
+      "id": "summit-welirang",
+      "name": "Summit Welirang",
+      "km": 41,
+      "ele": 3156,
+      "lat": -7.7338,
+      "lon": 112.5768
     },
     {
-      "id": "massabiau",
-      "name": "Massabiau",
-      "km": 29.4,
-      "ele": 898,
-      "lat": 44.17959,
-      "lon": 3.24906
+      "id": "cangar",
+      "name": "Cangar",
+      "km": 54,
+      "ele": 1650,
+      "lat": -7.7376,
+      "lon": 112.5339
     },
     {
-      "id": "st-andree-de-vezines",
-      "name": "St Andree de Vezines",
-      "km": 36.8,
-      "ele": 870,
-      "lat": 44.15273,
-      "lon": 3.2589
+      "id": "kembar-saddle",
+      "name": "Kembar Saddle",
+      "km": 67,
+      "ele": 2430,
+      "lat": -7.7442,
+      "lon": 112.5524
     },
     {
-      "id": "roquesaltes",
-      "name": "Roquesaltes",
-      "km": 44.4,
-      "ele": 838,
-      "lat": 44.13923,
-      "lon": 3.22877
+      "id": "summit-arjuno",
+      "name": "Summit Arjuno",
+      "km": 86,
+      "ele": 3339,
+      "lat": -7.7254,
+      "lon": 112.5791
     },
     {
-      "id": "la-roque-ste-marguerite",
-      "name": "La Roque Ste Marguerite",
-      "km": 48.3,
-      "ele": 401,
-      "lat": 44.12329,
-      "lon": 3.22226
+      "id": "wonosari",
+      "name": "Wonosari",
+      "km": 101,
+      "ele": 1420,
+      "lat": -7.6991,
+      "lon": 112.6159
     },
     {
-      "id": "pierrefiche",
-      "name": "Pierrefiche",
-      "km": 50.8,
-      "ele": 680,
-      "lat": 44.1082,
-      "lon": 3.21477
-    },
-    {
-      "id": "la-salvage",
-      "name": "La Salvage",
-      "km": 55.9,
-      "ele": 732,
-      "lat": 44.09521,
-      "lon": 3.18955
-    },
-    {
-      "id": "la-clapade-dimanche",
-      "name": "La Clapade - dimanche",
-      "km": 60.2,
-      "ele": 635,
-      "lat": 44.10442,
-      "lon": 3.16396
-    },
-    {
-      "id": "mas-de-bru-p82",
-      "name": "Mas de Bru (P82)",
-      "km": 64.5,
-      "ele": 750,
-      "lat": 44.0866,
-      "lon": 3.14636
-    },
-    {
-      "id": "massebiau",
-      "name": "Massebiau",
-      "km": 70,
-      "ele": 367,
-      "lat": 44.10194,
-      "lon": 3.1271
-    },
-    {
-      "id": "le-cade",
-      "name": "Le Cade",
-      "km": 73.2,
-      "ele": 836,
-      "lat": 44.12088,
-      "lon": 3.11851
-    },
-    {
-      "id": "la-pouncho",
-      "name": "La Pouncho",
-      "km": 77.7,
-      "ele": 836,
-      "lat": 44.11034,
-      "lon": 3.10253
-    },
-    {
-      "id": "arrivee-millau",
-      "name": "Arrivee Millau",
-      "km": 80.6,
-      "ele": 394,
-      "lat": 44.11417,
-      "lon": 3.08963
+      "id": "kaliandra-finish",
+      "name": "Kaliandra Finish",
+      "km": 116,
+      "ele": 930,
+      "lat": -7.7118,
+      "lon": 112.6275
     }
   ],
   "profilePoints": [
     {
       "km": 0,
-      "ele": 360
+      "ele": 880
     },
     {
-      "km": 0.7,
-      "ele": 362
+      "km": 1,
+      "ele": 882
     },
     {
-      "km": 1.3,
-      "ele": 366
+      "km": 1.9,
+      "ele": 886
     },
     {
-      "km": 2,
-      "ele": 368
+      "km": 2.9,
+      "ele": 888
     },
     {
-      "km": 2.7,
-      "ele": 387
-    },
-    {
-      "km": 3.3,
-      "ele": 433
-    },
-    {
-      "km": 4,
-      "ele": 435
+      "km": 3.9,
+      "ele": 907
     },
     {
       "km": 4.7,
-      "ele": 445
+      "ele": 953
     },
     {
-      "km": 5.3,
-      "ele": 496
+      "km": 5.8,
+      "ele": 955
     },
     {
-      "km": 6,
-      "ele": 473
+      "km": 6.8,
+      "ele": 965
     },
     {
-      "km": 6.6,
-      "ele": 496
-    },
-    {
-      "km": 7.3,
-      "ele": 636
-    },
-    {
-      "km": 8,
-      "ele": 797
+      "km": 7.6,
+      "ele": 1016
     },
     {
       "km": 8.6,
-      "ele": 822
+      "ele": 993
     },
     {
-      "km": 9.3,
-      "ele": 838
+      "km": 9.5,
+      "ele": 1016
     },
     {
-      "km": 10,
-      "ele": 816
+      "km": 10.5,
+      "ele": 1156
     },
     {
-      "km": 10.6,
-      "ele": 826
+      "km": 11.5,
+      "ele": 1317
     },
     {
-      "km": 11.3,
-      "ele": 830
+      "km": 12.4,
+      "ele": 1342
     },
     {
-      "km": 12,
-      "ele": 841
+      "km": 13.4,
+      "ele": 1358
     },
     {
-      "km": 12.6,
-      "ele": 841
-    },
-    {
-      "km": 13.3,
-      "ele": 840
-    },
-    {
-      "km": 13.9,
-      "ele": 825
-    },
-    {
-      "km": 14.6,
-      "ele": 829
+      "km": 14.4,
+      "ele": 1336
     },
     {
       "km": 15.3,
-      "ele": 832
+      "ele": 1346
     },
     {
-      "km": 15.9,
-      "ele": 830
-    },
-    {
-      "km": 16.6,
-      "ele": 848
+      "km": 16.3,
+      "ele": 1350
     },
     {
       "km": 17.3,
-      "ele": 812
+      "ele": 1361
     },
     {
-      "km": 17.9,
-      "ele": 791
+      "km": 18.1,
+      "ele": 1361
     },
     {
-      "km": 18.6,
-      "ele": 774
+      "km": 19.1,
+      "ele": 1360
     },
     {
-      "km": 19.3,
-      "ele": 761
+      "km": 20,
+      "ele": 1345
     },
     {
-      "km": 19.9,
-      "ele": 758
+      "km": 21,
+      "ele": 1349
     },
     {
-      "km": 20.6,
-      "ele": 704
+      "km": 22,
+      "ele": 1352
     },
     {
-      "km": 21.3,
-      "ele": 678
-    },
-    {
-      "km": 21.9,
-      "ele": 598
-    },
-    {
-      "km": 22.6,
-      "ele": 512
-    },
-    {
-      "km": 23.2,
-      "ele": 416
+      "km": 22.9,
+      "ele": 1350
     },
     {
       "km": 23.9,
-      "ele": 427
+      "ele": 1368
     },
     {
-      "km": 24.6,
-      "ele": 407
+      "km": 24.9,
+      "ele": 1332
     },
     {
-      "km": 25.2,
-      "ele": 424
+      "km": 25.8,
+      "ele": 1311
     },
     {
-      "km": 25.9,
-      "ele": 445
+      "km": 26.8,
+      "ele": 1294
     },
     {
-      "km": 26.6,
-      "ele": 520
+      "km": 27.8,
+      "ele": 1281
     },
     {
-      "km": 27.2,
-      "ele": 690
+      "km": 28.6,
+      "ele": 1278
     },
     {
-      "km": 27.9,
-      "ele": 762
+      "km": 29.6,
+      "ele": 1224
     },
     {
-      "km": 28.5,
-      "ele": 843
+      "km": 30.7,
+      "ele": 1198
     },
     {
-      "km": 29.2,
-      "ele": 897
-    },
-    {
-      "km": 29.9,
-      "ele": 865
-    },
-    {
-      "km": 30.5,
-      "ele": 866
-    },
-    {
-      "km": 31.2,
-      "ele": 842
-    },
-    {
-      "km": 31.9,
-      "ele": 786
+      "km": 31.5,
+      "ele": 1118
     },
     {
       "km": 32.5,
-      "ele": 769
+      "ele": 1032
     },
     {
-      "km": 33.2,
-      "ele": 768
+      "km": 33.4,
+      "ele": 936
     },
     {
-      "km": 33.9,
-      "ele": 754
+      "km": 34.4,
+      "ele": 947
     },
     {
-      "km": 34.5,
-      "ele": 782
+      "km": 35.4,
+      "ele": 927
     },
     {
-      "km": 35.2,
-      "ele": 840
+      "km": 36.3,
+      "ele": 944
     },
     {
-      "km": 35.9,
-      "ele": 871
+      "km": 37.3,
+      "ele": 965
     },
     {
-      "km": 36.5,
-      "ele": 872
+      "km": 38.3,
+      "ele": 1040
     },
     {
-      "km": 37.2,
-      "ele": 852
+      "km": 39.1,
+      "ele": 1210
     },
     {
-      "km": 37.9,
-      "ele": 824
+      "km": 40.2,
+      "ele": 1282
     },
     {
-      "km": 38.5,
-      "ele": 785
+      "km": 41,
+      "ele": 1363
     },
     {
-      "km": 39.2,
-      "ele": 761
+      "km": 42,
+      "ele": 1417
     },
     {
-      "km": 39.8,
-      "ele": 714
+      "km": 43,
+      "ele": 1385
     },
     {
-      "km": 40.5,
-      "ele": 637
+      "km": 43.9,
+      "ele": 1386
     },
     {
-      "km": 41.2,
-      "ele": 692
+      "km": 44.9,
+      "ele": 1362
     },
     {
-      "km": 41.8,
-      "ele": 810
+      "km": 45.9,
+      "ele": 1306
     },
     {
-      "km": 42.5,
-      "ele": 842
-    },
-    {
-      "km": 43.2,
-      "ele": 854
-    },
-    {
-      "km": 43.8,
-      "ele": 836
-    },
-    {
-      "km": 44.5,
-      "ele": 794
-    },
-    {
-      "km": 45.2,
-      "ele": 701
-    },
-    {
-      "km": 45.8,
-      "ele": 578
-    },
-    {
-      "km": 46.5,
-      "ele": 493
-    },
-    {
-      "km": 47.1,
-      "ele": 436
+      "km": 46.8,
+      "ele": 1289
     },
     {
       "km": 47.8,
-      "ele": 401
+      "ele": 1288
     },
     {
-      "km": 48.5,
-      "ele": 442
+      "km": 48.8,
+      "ele": 1274
     },
     {
-      "km": 49.2,
-      "ele": 558
+      "km": 49.7,
+      "ele": 1302
     },
     {
-      "km": 49.8,
-      "ele": 654
+      "km": 50.7,
+      "ele": 1360
     },
     {
-      "km": 50.5,
-      "ele": 681
-    },
-    {
-      "km": 51.1,
-      "ele": 657
-    },
-    {
-      "km": 51.8,
-      "ele": 716
+      "km": 51.7,
+      "ele": 1391
     },
     {
       "km": 52.5,
-      "ele": 792
+      "ele": 1392
     },
     {
-      "km": 53.1,
-      "ele": 820
-    },
-    {
-      "km": 53.8,
-      "ele": 831
+      "km": 53.5,
+      "ele": 1372
     },
     {
       "km": 54.5,
-      "ele": 767
+      "ele": 1344
     },
     {
-      "km": 55.1,
-      "ele": 728
+      "km": 55.4,
+      "ele": 1305
     },
     {
-      "km": 55.8,
-      "ele": 723
+      "km": 56.4,
+      "ele": 1281
     },
     {
-      "km": 56.5,
-      "ele": 669
+      "km": 57.3,
+      "ele": 1234
     },
     {
-      "km": 57.1,
-      "ele": 611
+      "km": 58.3,
+      "ele": 1157
     },
     {
-      "km": 57.8,
-      "ele": 557
+      "km": 59.3,
+      "ele": 1212
     },
     {
-      "km": 58.4,
-      "ele": 480
+      "km": 60.2,
+      "ele": 1330
     },
     {
-      "km": 59.1,
-      "ele": 612
+      "km": 61.2,
+      "ele": 1362
     },
     {
-      "km": 59.8,
-      "ele": 634
+      "km": 62.2,
+      "ele": 1374
     },
     {
-      "km": 60.4,
-      "ele": 616
+      "km": 63,
+      "ele": 1356
     },
     {
-      "km": 61.1,
-      "ele": 540
-    },
-    {
-      "km": 61.7,
-      "ele": 605
-    },
-    {
-      "km": 62.4,
-      "ele": 660
-    },
-    {
-      "km": 63.1,
-      "ele": 719
-    },
-    {
-      "km": 63.7,
-      "ele": 740
-    },
-    {
-      "km": 64.4,
-      "ele": 761
+      "km": 64,
+      "ele": 1314
     },
     {
       "km": 65.1,
-      "ele": 726
+      "ele": 1221
     },
     {
-      "km": 65.8,
-      "ele": 692
+      "km": 65.9,
+      "ele": 1098
     },
     {
-      "km": 66.4,
-      "ele": 662
+      "km": 66.9,
+      "ele": 1013
     },
     {
-      "km": 67.1,
-      "ele": 569
+      "km": 67.8,
+      "ele": 956
     },
     {
-      "km": 67.7,
-      "ele": 465
+      "km": 68.8,
+      "ele": 921
     },
     {
-      "km": 68.4,
-      "ele": 396
+      "km": 69.8,
+      "ele": 962
     },
     {
-      "km": 69.1,
-      "ele": 374
-    },
-    {
-      "km": 69.7,
-      "ele": 421
-    },
-    {
-      "km": 70.4,
-      "ele": 620
-    },
-    {
-      "km": 71,
-      "ele": 761
+      "km": 70.8,
+      "ele": 1078
     },
     {
       "km": 71.7,
-      "ele": 821
+      "ele": 1174
     },
     {
-      "km": 72.4,
-      "ele": 830
+      "km": 72.7,
+      "ele": 1201
     },
     {
-      "km": 73,
-      "ele": 858
+      "km": 73.5,
+      "ele": 1177
     },
     {
-      "km": 73.7,
-      "ele": 815
+      "km": 74.6,
+      "ele": 1236
     },
     {
-      "km": 74.4,
-      "ele": 775
-    },
-    {
-      "km": 75,
-      "ele": 609
-    },
-    {
-      "km": 75.7,
-      "ele": 585
+      "km": 75.6,
+      "ele": 1312
     },
     {
       "km": 76.4,
-      "ele": 699
+      "ele": 1340
     },
     {
-      "km": 77,
-      "ele": 835
+      "km": 77.4,
+      "ele": 1351
     },
     {
-      "km": 77.7,
-      "ele": 683
+      "km": 78.4,
+      "ele": 1287
     },
     {
-      "km": 78.3,
-      "ele": 550
+      "km": 79.3,
+      "ele": 1248
     },
     {
-      "km": 79,
-      "ele": 464
+      "km": 80.3,
+      "ele": 1243
     },
     {
-      "km": 79.7,
-      "ele": 395
+      "km": 81.3,
+      "ele": 1189
+    },
+    {
+      "km": 82.2,
+      "ele": 1131
+    },
+    {
+      "km": 83.2,
+      "ele": 1077
+    },
+    {
+      "km": 84,
+      "ele": 1000
+    },
+    {
+      "km": 85.1,
+      "ele": 1132
+    },
+    {
+      "km": 86.1,
+      "ele": 1154
+    },
+    {
+      "km": 86.9,
+      "ele": 1136
+    },
+    {
+      "km": 87.9,
+      "ele": 1060
+    },
+    {
+      "km": 88.8,
+      "ele": 1125
+    },
+    {
+      "km": 89.8,
+      "ele": 1180
+    },
+    {
+      "km": 90.8,
+      "ele": 1239
+    },
+    {
+      "km": 91.7,
+      "ele": 1260
+    },
+    {
+      "km": 92.7,
+      "ele": 1281
+    },
+    {
+      "km": 93.7,
+      "ele": 1246
+    },
+    {
+      "km": 94.7,
+      "ele": 1212
+    },
+    {
+      "km": 95.6,
+      "ele": 1182
+    },
+    {
+      "km": 96.6,
+      "ele": 1089
+    },
+    {
+      "km": 97.4,
+      "ele": 985
+    },
+    {
+      "km": 98.4,
+      "ele": 916
+    },
+    {
+      "km": 99.4,
+      "ele": 894
+    },
+    {
+      "km": 100.3,
+      "ele": 941
+    },
+    {
+      "km": 101.3,
+      "ele": 1140
+    },
+    {
+      "km": 102.2,
+      "ele": 1281
+    },
+    {
+      "km": 103.2,
+      "ele": 1341
+    },
+    {
+      "km": 104.2,
+      "ele": 1350
+    },
+    {
+      "km": 105.1,
+      "ele": 1378
+    },
+    {
+      "km": 106.1,
+      "ele": 1335
+    },
+    {
+      "km": 107.1,
+      "ele": 1295
+    },
+    {
+      "km": 107.9,
+      "ele": 1129
+    },
+    {
+      "km": 108.9,
+      "ele": 1105
+    },
+    {
+      "km": 110,
+      "ele": 1219
+    },
+    {
+      "km": 110.8,
+      "ele": 1355
+    },
+    {
+      "km": 111.8,
+      "ele": 1203
+    },
+    {
+      "km": 112.7,
+      "ele": 1070
+    },
+    {
+      "km": 113.7,
+      "ele": 984
+    },
+    {
+      "km": 114.7,
+      "ele": 915
     }
   ]
 } as const;
