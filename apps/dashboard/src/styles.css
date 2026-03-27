@@ -4327,9 +4327,39 @@ body {
   gap: 4px;
 }
 
+.ranking-rankline {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
 .ranking-block strong {
   font-size: 1.56rem;
   letter-spacing: -0.06em;
+}
+
+.ranking-medal {
+  display: inline-flex;
+  height: 18px;
+  width: 18px;
+}
+
+.ranking-medal svg {
+  fill: currentColor;
+  height: 100%;
+  width: 100%;
+}
+
+.ranking-medal.gold {
+  color: #d4a83f;
+}
+
+.ranking-medal.silver {
+  color: #91adbe;
+}
+
+.ranking-medal.bronze {
+  color: #dc8b4d;
 }
 
 .ranking-submeta span {

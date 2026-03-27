@@ -144,6 +144,22 @@ function getRunnerStatusLabel(checkpointId: string) {
   return checkpointId === "finish" ? "Finisher" : "In race";
 }
 
+function RankingMedal({ rank }: { rank: number }) {
+  if (rank < 1 || rank > 3) {
+    return null;
+  }
+
+  const medalClass = rank === 1 ? "gold" : rank === 2 ? "silver" : "bronze";
+
+  return (
+    <span className={`ranking-medal ${medalClass}`} aria-hidden="true">
+      <svg viewBox="0 0 20 20">
+        <path d="M6 2.5h3.2l1 3.2H7.7L6 2.5Zm7.8 0H17l-1.7 3.2h-2.5l1-3.2ZM8.6 6.4h2.8l2.3 2.7-3.7 1.4-3.7-1.4 2.3-2.7Zm1.4 5.1a4.2 4.2 0 1 1 0 8.4 4.2 4.2 0 0 1 0-8.4Zm0 1.6a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2Z" />
+      </svg>
+    </span>
+  );
+}
+
 function NavIcon({ name }: { name: "home" | "search" | "runners" | "favorite" | "heart" | "compare" | "podium" | "passings" | "leaders" | "stats" | "contact" }) {
   switch (name) {
     case "home":
@@ -1664,7 +1680,10 @@ export default function App() {
                 return (
                   <div className="full-ranking-row race-ranking-row" key={`${entry.checkpointId}-${entry.bib}`} role="listitem">
                     <div className="ranking-block">
-                      <strong>{entry.rank}</strong>
+                      <div className="ranking-rankline">
+                        <strong>{entry.rank}</strong>
+                        <RankingMedal rank={entry.rank} />
+                      </div>
                       <div className="ranking-submeta">
                         <span>{fullRankingView === "women" ? "Woman" : "Overall"}</span>
                         <small>Sex {entry.rank}</small>
