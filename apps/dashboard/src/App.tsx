@@ -1668,7 +1668,6 @@ export default function App() {
                       <div className="ranking-submeta">
                         <span>{fullRankingView === "women" ? "Woman" : "Overall"}</span>
                         <small>Sex {entry.rank}</small>
-                        <small>Age Category {entry.rank}</small>
                       </div>
                     </div>
                     <div className="runner-main-cell">
