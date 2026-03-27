@@ -4610,3 +4610,99 @@ body {
 .live-trail-shell.race-detail-mode .topbar-search-shell {
   max-width: 220px;
 }
+
+/* Hard-stop topbar layout */
+.live-topbar {
+  align-items: center !important;
+  column-gap: 10px !important;
+  display: grid !important;
+  grid-template-columns: 78px minmax(0, 1fr) auto !important;
+  min-height: 58px !important;
+  padding: 6px 12px 8px !important;
+}
+
+.topbar-race-lockup {
+  display: grid !important;
+  gap: 0 !important;
+  max-width: 78px !important;
+  min-width: 78px !important;
+}
+
+.topbar-race-lockup strong {
+  font-size: 0.52rem !important;
+  line-height: 0.84 !important;
+}
+
+.topbar-center {
+  align-items: center !important;
+  column-gap: 8px !important;
+  display: grid !important;
+  grid-template-columns: 132px minmax(180px, 240px) !important;
+  justify-content: start !important;
+  min-width: 0 !important;
+}
+
+.topbar-select,
+.live-trail-shell.race-detail-mode .topbar-select {
+  max-width: 132px !important;
+  min-width: 132px !important;
+  width: 132px !important;
+}
+
+.topbar-search,
+.live-trail-shell.race-detail-mode .topbar-search {
+  max-width: 240px !important;
+  min-width: 180px !important;
+  width: 240px !important;
+}
+
+.topbar-select-shell,
+.topbar-search-shell {
+  min-height: 36px !important;
+}
+
+.topbar-select-shell {
+  max-width: 132px !important;
+}
+
+.topbar-search-shell {
+  max-width: 240px !important;
+}
+
+.topbar-select-shell select,
+.topbar-search-shell input {
+  font-size: 0.72rem !important;
+}
+
+.topbar-search-shell input {
+  min-width: 0 !important;
+}
+
+.live-topbar-actions {
+  align-items: center !important;
+  display: flex !important;
+  gap: 6px !important;
+  justify-self: end !important;
+  margin-left: 0 !important;
+  min-width: max-content !important;
+}
+
+.topbar-login-link,
+.topbar-icon-button,
+.topbar-locale-pill {
+  font-size: 0.66rem !important;
+  min-height: 32px !important;
+  padding: 0 8px !important;
+}
+
+@media (max-width: 1100px) {
+  .live-topbar {
+    display: flex !important;
+    flex-wrap: wrap !important;
+  }
+
+  .topbar-center {
+    display: flex !important;
+    flex-wrap: wrap !important;
+  }
+}
