@@ -4431,7 +4431,7 @@ body {
 }
 
 .runner-cell {
-  gap: 10px;
+  gap: 0;
 }
 
 .runner-avatar-live {

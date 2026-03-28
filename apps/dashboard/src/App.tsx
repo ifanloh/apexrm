@@ -107,6 +107,56 @@ function formatElapsedRaceTime(scannedAt: string, raceStartAt: string | null) {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function parseClockDuration(value: string) {
+  const normalized = value.trim().replace(/^\+/, "");
+  const parts = normalized.split(":").map((part) => Number.parseInt(part, 10));
+
+  if (!parts.length || parts.some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  }
+
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+
+  return null;
+}
+
+function formatClockDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function getPreviewRankingTime(preview: DemoRaceCard["rankingPreview"], bib: string) {
+  const targetIndex = preview.findIndex((entry) => entry.bib.toUpperCase() === bib.toUpperCase());
+
+  if (targetIndex === -1 || !preview.length) {
+    return null;
+  }
+
+  const leaderSeconds = parseClockDuration(preview[0].gap);
+  const entry = preview[targetIndex];
+
+  if (targetIndex === 0 || !entry.gap.startsWith("+") || leaderSeconds === null) {
+    return entry.gap.replace(/^\+/, "");
+  }
+
+  const deltaSeconds = parseClockDuration(entry.gap);
+
+  if (deltaSeconds === null) {
+    return entry.gap.replace(/^\+/, "");
+  }
+
+  return formatClockDuration(leaderSeconds + deltaSeconds);
+}
+
 function formatCheckpointProgress(entry: {
   checkpointCode: string;
   checkpointKmMarker: number;
@@ -957,6 +1007,26 @@ export default function App() {
       topEntries: items
     };
   }, [activeOverallLeaderboard]);
+  const genderRankByBib = useMemo(() => {
+    const next = new Map<string, number>();
+    let menRank = 0;
+    let womenRank = 0;
+
+    activeOverallLeaderboard.topEntries.forEach((entry) => {
+      const category = entry.category.toLowerCase() === "women" ? "women" : "men";
+
+      if (category === "women") {
+        womenRank += 1;
+        next.set(entry.bib, womenRank);
+        return;
+      }
+
+      menRank += 1;
+      next.set(entry.bib, menRank);
+    });
+
+    return next;
+  }, [activeOverallLeaderboard.topEntries]);
 
   const fullRankingSource =
     fullRankingView === "women" ? activeWomenLeaderboard : fullRankingView === "men" ? activeMenLeaderboard : activeOverallLeaderboard;
@@ -1136,6 +1206,10 @@ export default function App() {
     (fullRankingPage - 1) * rankingRowsPerPage,
     fullRankingPage * rankingRowsPerPage
   );
+  const getDisplayRaceTime = (bib: string, scannedAt: string) => {
+    const previewTime = getPreviewRankingTime(selectedRaceCard.rankingPreview, bib);
+    return previewTime ?? formatElapsedRaceTime(scannedAt, activeRaceStartAt);
+  };
   const fullRankingRangeLabel = fullRankingEntries.length
     ? `${(fullRankingPage - 1) * rankingRowsPerPage + 1}-${Math.min(
         fullRankingPage * rankingRowsPerPage,
@@ -1699,13 +1773,12 @@ export default function App() {
                       </div>
                       <div className="ranking-submeta">
                         <span>{fullRankingView === "women" ? "Woman" : "Overall"}</span>
-                        <small>Sex {entry.rank}</small>
+                        <small>Sex {genderRankByBib.get(entry.bib) ?? entry.rank}</small>
                       </div>
                     </div>
                     <div className="runner-main-cell">
                       <div className="bib-tile">{entry.bib}</div>
                       <div className="runner-cell">
-                        <div aria-hidden="true" className="runner-avatar runner-avatar-live" />
                         <div>
                           <strong>{entry.name}</strong>
                           <span>{getRunnerTeamName(entry.bib)}</span>
@@ -1734,7 +1807,7 @@ export default function App() {
                       </strong>
                     </div>
                     <div className="race-inline-cell race-time-cell">
-                      <strong>{formatElapsedRaceTime(entry.scannedAt, activeRaceStartAt)}</strong>
+                      <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
                     </div>
                   </div>
                 );
@@ -2324,7 +2397,7 @@ export default function App() {
                               width="20"
                             />
                           </small>
-                          <time>{formatElapsedRaceTime(entry.scannedAt, activeRaceStartAt)}</time>
+                          <time>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</time>
                         </div>
                       </div>
                     ))
@@ -2362,7 +2435,7 @@ export default function App() {
                               width="20"
                             />
                           </small>
-                          <time>{formatElapsedRaceTime(entry.scannedAt, activeRaceStartAt)}</time>
+                          <time>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</time>
                         </div>
                       </div>
                     ))

@@ -52,6 +52,49 @@ function buildSparkline(seed: number) {
   };
 }
 
+function parseClockDuration(value: string) {
+  const normalized = value.trim().replace(/^\+/, "");
+  const parts = normalized.split(":").map((part) => Number.parseInt(part, 10));
+
+  if (!parts.length || parts.some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  }
+
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+
+  return null;
+}
+
+function formatClockDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function getPreviewDisplayTime(entry: DemoRaceRankingPreview, index: number, preview: DemoRaceRankingPreview[]) {
+  const leaderSeconds = parseClockDuration(preview[0]?.gap ?? "");
+
+  if (index === 0 || !entry.gap.startsWith("+") || leaderSeconds === null) {
+    return entry.gap.replace(/^\+/, "");
+  }
+
+  const deltaSeconds = parseClockDuration(entry.gap);
+
+  if (deltaSeconds === null) {
+    return entry.gap.replace(/^\+/, "");
+  }
+
+  return formatClockDuration(leaderSeconds + deltaSeconds);
+}
+
 function PreviewPodium({ rank }: { rank: number }) {
   const icon = rank === 1 ? podium1stIcon : rank === 2 ? podium2ndIcon : rank === 3 ? podium3rdIcon : null;
 
@@ -173,7 +216,7 @@ export function RaceEditionHome({
 
                 {card.rankingPreview.length ? (
                   <div className="race-card-ranking-list">
-                    {card.rankingPreview.slice(0, 3).map((entry) => (
+                    {card.rankingPreview.slice(0, 3).map((entry, index) => (
                       <div className="race-card-ranking-row" key={`${card.slug}-${entry.rank}-${entry.bib}`}>
                         <strong>
                           {entry.rank}
@@ -183,7 +226,7 @@ export function RaceEditionHome({
                           <span>{entry.name}</span>
                           <small>{entry.status}</small>
                         </div>
-                        <time>{entry.gap}</time>
+                        <time>{getPreviewDisplayTime(entry, index, card.rankingPreview)}</time>
                       </div>
                     ))}
                   </div>
