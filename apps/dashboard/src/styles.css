@@ -4032,14 +4032,18 @@ body {
   font-size: 0.82rem;
 }
 
-.statistics-race-select {
+.statistics-race-context {
+  background: #fffdf9;
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 16px;
   display: grid;
   gap: 8px;
   justify-items: start;
-  min-width: 220px;
+  min-width: 260px;
+  padding: 12px 14px;
 }
 
-.statistics-race-select span {
+.statistics-race-context span {
   color: var(--ink-muted);
   font-size: 0.76rem;
   font-weight: 700;
@@ -4047,16 +4051,16 @@ body {
   text-transform: uppercase;
 }
 
-.statistics-race-select select {
-  appearance: none;
-  background: #fffdf9;
-  border: 1px solid rgba(20, 22, 24, 0.12);
-  border-radius: 14px;
+.statistics-race-context strong {
   color: var(--ink);
-  font: inherit;
-  min-height: 48px;
-  min-width: 220px;
-  padding: 0 42px 0 14px;
+  font-family: "Oxanium", sans-serif;
+  font-size: 1rem;
+}
+
+.statistics-race-context small {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .statistics-card-grid {

@@ -1885,16 +1885,11 @@ export default function App() {
             <small>Generated on {statsGeneratedLabel}</small>
           </div>
 
-          <label className="statistics-race-select">
-            <span>In which race ?</span>
-            <select onChange={(event) => handleRaceSelection(event.target.value)} value={selectedRaceCard.slug}>
-              {demoRaceFestival.races.map((race) => (
-                <option key={race.slug} value={race.slug}>
-                  {race.title}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="statistics-race-context">
+            <span>This statistics is for</span>
+            <strong>{selectedRaceCard.title}</strong>
+            <small>{activeStarterCount.toLocaleString()} registered participants in this race category</small>
+          </div>
         </div>
 
         <div className="statistics-card-grid">
