@@ -206,6 +206,32 @@ function getRunnerStatusLabel(checkpointId: string) {
   return checkpointId === "finish" ? "Finisher" : "In race";
 }
 
+function getLiveRunnerStatusLabel(
+  entry: {
+    checkpointId: string;
+    checkpointCode: string;
+  },
+  isLiveRace: boolean
+) {
+  if (entry.checkpointId === "finish") {
+    return "Finished";
+  }
+
+  if (isLiveRace) {
+    return entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointCode;
+  }
+
+  return getRunnerStatusLabel(entry.checkpointId);
+}
+
+function shouldShowLivePodium(rank: number, checkpointId: string, isLiveRace: boolean) {
+  if (rank < 1 || rank > 3) {
+    return false;
+  }
+
+  return !isLiveRace || checkpointId === "finish";
+}
+
 function RankingMedal({ rank }: { rank: number }) {
   if (rank < 1 || rank > 3) {
     return null;
@@ -403,11 +429,11 @@ function buildPreviewLeaderboard(race: DemoRaceCard, category?: "women" | "men")
         name: entry.name,
         category: entry.category ?? "men",
         rank: previewRank,
-        checkpointId: statusCheckpointId,
-        checkpointCode: entry.status === "Finisher" ? "FIN" : "CP",
-        checkpointName: entry.status === "Finisher" ? "Finish" : "On Course",
-        checkpointKmMarker: entry.status === "Finisher" ? race.distanceKm : Number((race.distanceKm * 0.82).toFixed(1)),
-        checkpointOrder: entry.status === "Finisher" ? 4 : 3,
+        checkpointId: entry.checkpointId ?? statusCheckpointId,
+        checkpointCode: entry.checkpointCode ?? (entry.status === "Finisher" ? "FIN" : "CP"),
+        checkpointName: entry.checkpointName ?? (entry.status === "Finisher" ? "Finish" : "On Course"),
+        checkpointKmMarker: entry.checkpointKmMarker ?? (entry.status === "Finisher" ? race.distanceKm : Number((race.distanceKm * 0.82).toFixed(1))),
+        checkpointOrder: entry.checkpointOrder ?? (entry.status === "Finisher" ? 4 : 3),
         scannedAt: new Date(startedAt + index * 79_000).toISOString(),
         crewId: "preview-seed",
         deviceId: race.slug
@@ -1828,7 +1854,9 @@ export default function App() {
                     <div className="ranking-block">
                       <div className="ranking-rankline">
                         <strong>{entry.rank}</strong>
-                        <RankingMedal rank={entry.rank} />
+                        {shouldShowLivePodium(entry.rank, entry.checkpointId, isActiveRaceLive) ? (
+                          <RankingMedal rank={entry.rank} />
+                        ) : null}
                       </div>
                       <div className="ranking-submeta">
                         <span>{fullRankingView === "women" ? "Woman" : "Overall"}</span>
@@ -1842,7 +1870,7 @@ export default function App() {
                           <strong>{entry.name}</strong>
                           <span>{getRunnerTeamName(entry.bib)}</span>
                           <div className={`runner-status-pill ${entry.checkpointId === "finish" ? "finished" : ""}`}>
-                            {getRunnerStatusLabel(entry.checkpointId)}
+                            {getLiveRunnerStatusLabel(entry, isActiveRaceLive)}
                           </div>
                         </div>
                       </div>
@@ -2611,7 +2639,9 @@ export default function App() {
                 >
                   <strong>
                     #{entry.rank}
-                    <RankingMedal rank={entry.rank} />
+                    {shouldShowLivePodium(entry.rank, entry.checkpointId, isActiveRaceLive) ? (
+                      <RankingMedal rank={entry.rank} />
+                    ) : null}
                   </strong>
                   <div>
                     <span>{entry.name}</span>
@@ -2644,7 +2674,9 @@ export default function App() {
                   >
                     <strong>
                       #{entry.rank}
-                      <RankingMedal rank={entry.rank} />
+                      {shouldShowLivePodium(entry.rank, entry.checkpointId, isActiveRaceLive) ? (
+                        <RankingMedal rank={entry.rank} />
+                      ) : null}
                     </strong>
                     <div>
                       <span>{entry.name}</span>

@@ -7,6 +7,11 @@ export type DemoRaceRankingPreview = {
   gap: string;
   status: "Finisher" | "In race" | "No ranking";
   category?: "men" | "women";
+  checkpointId?: string;
+  checkpointCode?: string;
+  checkpointName?: string;
+  checkpointKmMarker?: number;
+  checkpointOrder?: number;
 };
 
 export type DemoRaceCard = {
@@ -52,14 +57,110 @@ export const demoRaceFestival = {
       accentSoft: "rgba(214, 125, 47, 0.18)",
       profileSeed: 1,
       rankingPreview: [
-        { rank: 1, name: "Arif Nugroho", bib: "M116", gap: "20:58:14", status: "Finisher", category: "men" },
-        { rank: 2, name: "Bayu Pambudi", bib: "U241", gap: "+09:41", status: "Finisher", category: "men" },
-        { rank: 3, name: "Raka Wijaya", bib: "U017", gap: "+18:09", status: "Finisher", category: "men" },
-        { rank: 4, name: "Putri Maharani", bib: "W112", gap: "+42:27", status: "Finisher", category: "women" },
-        { rank: 5, name: "Dimas Saputra", bib: "U045", gap: "+54:12", status: "Finisher", category: "men" },
-        { rank: 6, name: "Siti Kurniawati", bib: "W018", gap: "+01:11:09", status: "Finisher", category: "women" },
-        { rank: 7, name: "Fajar Pratama", bib: "U073", gap: "+01:35:50", status: "Finisher", category: "men" },
-        { rank: 8, name: "Ayu Lestari", bib: "W101", gap: "+01:48:22", status: "Finisher", category: "women" }
+        {
+          rank: 1,
+          name: "Arif Nugroho",
+          bib: "M116",
+          gap: "20:58:14",
+          status: "In race",
+          category: "men",
+          checkpointId: "cp-30",
+          checkpointCode: "CP3",
+          checkpointName: "Summit Arjuno",
+          checkpointKmMarker: 86,
+          checkpointOrder: 3
+        },
+        {
+          rank: 2,
+          name: "Bayu Pambudi",
+          bib: "U241",
+          gap: "+09:41",
+          status: "In race",
+          category: "men",
+          checkpointId: "cp-30",
+          checkpointCode: "CP3",
+          checkpointName: "Summit Arjuno",
+          checkpointKmMarker: 86,
+          checkpointOrder: 3
+        },
+        {
+          rank: 3,
+          name: "Raka Wijaya",
+          bib: "U017",
+          gap: "+18:09",
+          status: "In race",
+          category: "men",
+          checkpointId: "cp-21",
+          checkpointCode: "CP2",
+          checkpointName: "Cangar",
+          checkpointKmMarker: 54,
+          checkpointOrder: 2
+        },
+        {
+          rank: 4,
+          name: "Putri Maharani",
+          bib: "W112",
+          gap: "+42:27",
+          status: "In race",
+          category: "women",
+          checkpointId: "cp-21",
+          checkpointCode: "CP2",
+          checkpointName: "Cangar",
+          checkpointKmMarker: 54,
+          checkpointOrder: 2
+        },
+        {
+          rank: 5,
+          name: "Dimas Saputra",
+          bib: "U045",
+          gap: "+54:12",
+          status: "In race",
+          category: "men",
+          checkpointId: "cp-10",
+          checkpointCode: "CP1",
+          checkpointName: "Welirang Hut",
+          checkpointKmMarker: 28,
+          checkpointOrder: 1
+        },
+        {
+          rank: 6,
+          name: "Siti Kurniawati",
+          bib: "W018",
+          gap: "+01:11:09",
+          status: "In race",
+          category: "women",
+          checkpointId: "cp-10",
+          checkpointCode: "CP1",
+          checkpointName: "Welirang Hut",
+          checkpointKmMarker: 28,
+          checkpointOrder: 1
+        },
+        {
+          rank: 7,
+          name: "Fajar Pratama",
+          bib: "U073",
+          gap: "+01:35:50",
+          status: "In race",
+          category: "men",
+          checkpointId: "cp-10",
+          checkpointCode: "CP1",
+          checkpointName: "Welirang Hut",
+          checkpointKmMarker: 28,
+          checkpointOrder: 1
+        },
+        {
+          rank: 8,
+          name: "Ayu Lestari",
+          bib: "W101",
+          gap: "+01:48:22",
+          status: "In race",
+          category: "women",
+          checkpointId: "cp-10",
+          checkpointCode: "CP1",
+          checkpointName: "Welirang Hut",
+          checkpointKmMarker: 28,
+          checkpointOrder: 1
+        }
       ]
     },
     {
