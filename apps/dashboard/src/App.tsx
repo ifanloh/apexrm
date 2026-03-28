@@ -24,7 +24,6 @@ import {
   fetchRunnerSearch
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
-import { EditionHeroBanner } from "./EditionHeroBanner";
 import runnerIcon from "./assets/runner.svg";
 import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
@@ -2896,15 +2895,6 @@ export default function App() {
       </section>
 
       <section className="panel menu-feature-panel runners-list-view" hidden={raceDetailView !== "runners-list"} id="runners-list">
-          <EditionHeroBanner
-            bannerTagline={demoRaceFestival.bannerTagline}
-            brandStack={demoRaceFestival.brandStack}
-            className="section-hero-banner"
-            dateRibbon={demoRaceFestival.dateRibbon}
-            editionLabel={demoRaceFestival.editionLabel}
-            homeSubtitle={demoRaceFestival.homeSubtitle}
-            locationRibbon={demoRaceFestival.locationRibbon}
-          />
           <div className="panel-head compact">
             <div>
               <p className="section-label">The runners</p>
@@ -3164,15 +3154,6 @@ export default function App() {
       </section>
 
       <section className="panel menu-feature-panel favorites-list-view" hidden={raceDetailView !== "favorites"} id="favorites-list">
-        <EditionHeroBanner
-          bannerTagline={demoRaceFestival.bannerTagline}
-          brandStack={demoRaceFestival.brandStack}
-          className="section-hero-banner"
-          dateRibbon={demoRaceFestival.dateRibbon}
-          editionLabel={demoRaceFestival.editionLabel}
-          homeSubtitle={demoRaceFestival.homeSubtitle}
-          locationRibbon={demoRaceFestival.locationRibbon}
-        />
         <div className="search-runner-head">
           <p className="section-label">The runners</p>
           <h2>Favorites list</h2>
@@ -3409,15 +3390,6 @@ export default function App() {
       </section>
 
       <section className="panel menu-feature-panel runner-detail-panel my-runners-panel" hidden={raceDetailView !== "my-runners"} id="my-runners">
-        <EditionHeroBanner
-          bannerTagline={demoRaceFestival.bannerTagline}
-          brandStack={demoRaceFestival.brandStack}
-          className="section-hero-banner"
-          dateRibbon={demoRaceFestival.dateRibbon}
-          editionLabel={demoRaceFestival.editionLabel}
-          homeSubtitle={demoRaceFestival.homeSubtitle}
-          locationRibbon={demoRaceFestival.locationRibbon}
-        />
         <div className="search-runner-head">
           <p className="section-label">The runners</p>
           <h2>My followed runners</h2>
