@@ -1233,6 +1233,7 @@ export default function App() {
   const activeAscentM = selectedRaceCard.ascentM;
   const activeFinisherCount = isFeaturedRace ? finisherCount : selectedRaceCard.finishers;
   const activeDnfCount = isFeaturedRace ? dnfDnsCount : selectedRaceCard.dnf;
+  const isActiveRaceLive = selectedRaceCard.editionLabel.toLowerCase() === "live";
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
   const fullRankingEntries = useMemo(() => {
     return fullRankingSource.topEntries.filter((entry) => {
@@ -1674,7 +1675,7 @@ export default function App() {
 
         <section className="panel race-detail-hero" id="race-hub">
             <div className="race-detail-hero-head">
-              <span className={`race-status-pill ${selectedRaceCard.editionLabel.toLowerCase() === "live" ? "live" : ""}`}>
+              <span className={`race-status-pill ${isActiveRaceLive ? "live" : ""}`}>
                 {selectedRaceCard.editionLabel}
               </span>
             <h2>{eventTitle}</h2>
@@ -2739,7 +2740,7 @@ export default function App() {
         <div className="rail">
               <article className="panel rail-panel rail-ranking-panel" id="race-leaders-sidebar">
                 <div className="rail-panel-head">
-                  <span>Ranking</span>
+                  <span>{isActiveRaceLive ? "Leading" : "Ranking"}</span>
                   <h3>Overall</h3>
                 </div>
                 <div className="mini-leaderboard livetrail-mini-leaderboard">
@@ -2748,7 +2749,7 @@ export default function App() {
                       <div className="mini-leaderboard-row live" key={`rail-overall-${entry.bib}`}>
                         <strong>
                           {entry.rank}
-                          <RankingMedal rank={entry.rank} />
+                          {!isActiveRaceLive ? <RankingMedal rank={entry.rank} /> : null}
                         </strong>
                         <div>
                           <span>{entry.name}</span>
@@ -2780,7 +2781,7 @@ export default function App() {
 
               <article className="panel rail-panel rail-ranking-panel">
                 <div className="rail-panel-head">
-                  <span>Ranking</span>
+                  <span>{isActiveRaceLive ? "Leading" : "Ranking"}</span>
                   <h3>Woman</h3>
                 </div>
                 <div className="mini-leaderboard livetrail-mini-leaderboard">
@@ -2789,7 +2790,7 @@ export default function App() {
                       <div className="mini-leaderboard-row live" key={`rail-women-${entry.bib}`}>
                         <strong>
                           {entry.rank}
-                          <RankingMedal rank={entry.rank} />
+                          {!isActiveRaceLive ? <RankingMedal rank={entry.rank} /> : null}
                         </strong>
                         <div>
                           <span>{entry.name}</span>

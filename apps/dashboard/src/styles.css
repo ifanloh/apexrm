@@ -4919,6 +4919,12 @@ body {
   color: #0c8754 !important;
 }
 
+.race-status-pill.live {
+  background: rgba(231, 62, 62, 0.16) !important;
+  border-color: rgba(231, 62, 62, 0.34) !important;
+  color: #c91e1e !important;
+}
+
 .live-topbar {
   align-items: center !important;
   column-gap: 16px !important;
