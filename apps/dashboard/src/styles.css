@@ -4368,13 +4368,15 @@ body {
 
 .ranking-medal {
   display: inline-flex;
+  align-items: center;
   height: 18px;
+  justify-content: center;
   width: 18px;
 }
 
-.ranking-medal svg {
-  fill: currentColor;
+.ranking-medal img {
   height: 100%;
+  object-fit: contain;
   width: 100%;
 }
 

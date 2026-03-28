@@ -26,6 +26,9 @@ import {
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
 import runnerIcon from "./assets/runner.svg";
+import podium1stIcon from "./assets/podium-1st.svg";
+import podium2ndIcon from "./assets/podium-2nd.svg";
+import podium3rdIcon from "./assets/podium-3rd.svg";
 import { getDemoCourseForRace } from "./demoCourseVariants";
 import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
@@ -160,12 +163,11 @@ function RankingMedal({ rank }: { rank: number }) {
   }
 
   const medalClass = rank === 1 ? "gold" : rank === 2 ? "silver" : "bronze";
+  const medalIcon = rank === 1 ? podium1stIcon : rank === 2 ? podium2ndIcon : podium3rdIcon;
 
   return (
     <span className={`ranking-medal ${medalClass}`} aria-hidden="true">
-      <svg viewBox="0 0 20 20">
-        <path d="M6 2.5h3.2l1 3.2H7.7L6 2.5Zm7.8 0H17l-1.7 3.2h-2.5l1-3.2ZM8.6 6.4h2.8l2.3 2.7-3.7 1.4-3.7-1.4 2.3-2.7Zm1.4 5.1a4.2 4.2 0 1 1 0 8.4 4.2 4.2 0 0 1 0-8.4Zm0 1.6a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2Z" />
-      </svg>
+      <img alt="" src={medalIcon} />
     </span>
   );
 }
