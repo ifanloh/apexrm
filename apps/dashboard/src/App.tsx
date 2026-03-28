@@ -57,6 +57,27 @@ const TEAM_NAMES = [
   "Garuda Trail Society",
   "Tropic Alpine Club"
 ] as const;
+const COUNTRY_PRIORITY_ORDER = ["ID", "MY", "SG", "TH", "AU", "JP", "KR", "PH", "VN", "CN", "US", "FR"] as const;
+
+type CountryCode = (typeof COUNTRY_CODES)[number];
+
+const COUNTRY_META: Record<
+  CountryCode,
+  { name: string; latitude: number; longitude: number; mapX: number; mapY: number; weight: number }
+> = {
+  ID: { name: "Indonesia", latitude: -2, longitude: 118, mapX: 565, mapY: 235, weight: 40 },
+  MY: { name: "Malaysia", latitude: 4, longitude: 102, mapX: 545, mapY: 210, weight: 16 },
+  SG: { name: "Singapore", latitude: 1, longitude: 104, mapX: 552, mapY: 223, weight: 12 },
+  AU: { name: "Australia", latitude: -25, longitude: 133, mapX: 636, mapY: 282, weight: 10 },
+  JP: { name: "Japan", latitude: 36, longitude: 138, mapX: 638, mapY: 146, weight: 8 },
+  TH: { name: "Thailand", latitude: 15, longitude: 101, mapX: 539, mapY: 188, weight: 10 },
+  PH: { name: "Philippines", latitude: 12, longitude: 122, mapX: 593, mapY: 194, weight: 8 },
+  KR: { name: "South Korea", latitude: 36, longitude: 128, mapX: 613, mapY: 152, weight: 6 },
+  CN: { name: "China", latitude: 35, longitude: 104, mapX: 556, mapY: 160, weight: 7 },
+  VN: { name: "Vietnam", latitude: 16, longitude: 108, mapX: 555, mapY: 197, weight: 7 },
+  US: { name: "United States", latitude: 39, longitude: -98, mapX: 145, mapY: 150, weight: 5 },
+  FR: { name: "France", latitude: 46, longitude: 2, mapX: 360, mapY: 136, weight: 4 }
+};
 
 type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
@@ -192,6 +213,52 @@ function getNationalityCode(bib: string) {
 
 function getFlagIconUrl(countryCode: string) {
   return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+}
+
+function formatPercent(value: number) {
+  if (!Number.isFinite(value)) {
+    return "0%";
+  }
+
+  if (value >= 10 || Number.isInteger(value)) {
+    return `${Math.round(value)}%`;
+  }
+
+  return `${value.toFixed(1)}%`;
+}
+
+function distributeCounts(total: number, weights: number[]) {
+  if (total <= 0 || !weights.length) {
+    return weights.map(() => 0);
+  }
+
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  const raw = weights.map((weight) => (weight / totalWeight) * total);
+  const base = raw.map((value) => Math.floor(value));
+  let remainder = total - base.reduce((sum, value) => sum + value, 0);
+
+  const rankedFractions = raw
+    .map((value, index) => ({ index, fraction: value - base[index] }))
+    .sort((left, right) => right.fraction - left.fraction);
+
+  for (let index = 0; index < rankedFractions.length && remainder > 0; index += 1) {
+    base[rankedFractions[index].index] += 1;
+    remainder -= 1;
+  }
+
+  return base;
+}
+
+function buildGenderSplit(total: number, womenRatio: number) {
+  if (total <= 0) {
+    return { women: 0, men: 0 };
+  }
+
+  const safeRatio = Math.min(Math.max(womenRatio, 0.18), 0.55);
+  const women = Math.round(total * safeRatio);
+  const men = Math.max(total - women, 0);
+
+  return { women, men };
 }
 
 function getRunnerTeamName(bib: string) {
@@ -1182,6 +1249,7 @@ export default function App() {
     return leaderboards.find((item) => item.checkpointId === "cp-start")?.totalOfficialScans ?? totalRankedRunners;
   }, [leaderboards, totalRankedRunners]);
   const dnfDnsCount = Math.max(starterCount - finisherCount, 0);
+  const activeStarterCount = isFeaturedRace ? starterCount : selectedRaceCard.finishers + selectedRaceCard.dnf;
 
   const courseProfileStops = useMemo(() => {
     return activeCourse.checkpoints.map((checkpoint) => {
@@ -1260,6 +1328,75 @@ export default function App() {
   const activeFinisherCount = isFeaturedRace ? finisherCount : selectedRaceCard.finishers;
   const activeDnfCount = isFeaturedRace ? dnfDnsCount : selectedRaceCard.dnf;
   const isActiveRaceLive = selectedRaceCard.editionLabel.toLowerCase() === "live";
+  const statsGeneratedLabel = new Date().toLocaleString([], {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  const womenRatioSeed = useMemo(() => {
+    const womenCount = activeOverallLeaderboard.topEntries.filter((entry) => entry.category.toLowerCase() === "women").length;
+
+    if (!activeOverallLeaderboard.topEntries.length) {
+      return 0.34;
+    }
+
+    return womenCount / activeOverallLeaderboard.topEntries.length;
+  }, [activeOverallLeaderboard.topEntries]);
+  const starterGenderSplit = useMemo(() => buildGenderSplit(activeStarterCount, womenRatioSeed), [activeStarterCount, womenRatioSeed]);
+  const finishGenderSplit = useMemo(
+    () => buildGenderSplit(activeFinisherCount, Math.max(womenRatioSeed - 0.02, 0.16)),
+    [activeFinisherCount, womenRatioSeed]
+  );
+  const withdrawalGenderSplit = useMemo(
+    () => buildGenderSplit(activeDnfCount, Math.min(womenRatioSeed + 0.04, 0.52)),
+    [activeDnfCount, womenRatioSeed]
+  );
+  const statisticsCards = useMemo(
+    () => [
+      {
+        key: "starters",
+        title: "Starters",
+        total: activeStarterCount,
+        accentClass: "statistics-card-starters",
+        split: starterGenderSplit
+      },
+      {
+        key: "withdrawals",
+        title: "Withdrawals",
+        total: activeDnfCount,
+        accentClass: "statistics-card-withdrawals",
+        split: withdrawalGenderSplit
+      },
+      {
+        key: "finishers",
+        title: "Finishers",
+        total: activeFinisherCount,
+        accentClass: "statistics-card-finishers",
+        split: finishGenderSplit
+      }
+    ],
+    [activeDnfCount, activeFinisherCount, activeStarterCount, finishGenderSplit, starterGenderSplit, withdrawalGenderSplit]
+  );
+  const statisticsCountries = useMemo(() => {
+    const seededCodes = [...new Set(activeOverallLeaderboard.topEntries.map((entry) => getNationalityCode(entry.bib) as CountryCode))];
+    const orderedCodes = [...new Set([...seededCodes, ...COUNTRY_PRIORITY_ORDER])] as CountryCode[];
+    const selectedCodes = orderedCodes.slice(0, 8);
+    const weights = selectedCodes.map((code) => COUNTRY_META[code].weight + (seededCodes.includes(code) ? 6 : 0));
+    const counts = distributeCounts(activeStarterCount, weights);
+
+    return selectedCodes
+      .map((code, index) => ({
+        code,
+        name: COUNTRY_META[code].name,
+        count: counts[index],
+        percent: activeStarterCount ? (counts[index] / activeStarterCount) * 100 : 0,
+        mapX: COUNTRY_META[code].mapX,
+        mapY: COUNTRY_META[code].mapY
+      }))
+      .sort((left, right) => right.count - left.count);
+  }, [activeOverallLeaderboard.topEntries, activeStarterCount]);
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
   const fullRankingEntries = useMemo(() => {
     return fullRankingSource.topEntries.filter((entry) => {
@@ -1698,7 +1835,7 @@ export default function App() {
             <h2>{eventTitle}</h2>
           </div>
 
-          <div className="race-stat-strip" id="race-statistics">
+          <div className="race-stat-strip" id="race-overview-strip">
             <article className="race-stat-strip-item">
               <span>Distance</span>
               <strong>{totalDistanceKm.toFixed(1)} KM</strong>
@@ -1738,6 +1875,134 @@ export default function App() {
           onSelectCheckpoint={setSelectedCheckpointId}
           dnfCount={dnfDnsCount}
         />
+      </section>
+
+      <section className="panel race-statistics-panel" id="race-statistics">
+        <div className="statistics-section-head">
+          <div className="statistics-section-title">
+            <span className="detail-label">Statistics</span>
+            <h3>Statistics</h3>
+            <small>Generated on {statsGeneratedLabel}</small>
+          </div>
+
+          <label className="statistics-race-select">
+            <span>In which race ?</span>
+            <select onChange={(event) => handleRaceSelection(event.target.value)} value={selectedRaceCard.slug}>
+              {demoRaceFestival.races.map((race) => (
+                <option key={race.slug} value={race.slug}>
+                  {race.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="statistics-card-grid">
+          {statisticsCards.map((card) => {
+            const womenPercent = card.total ? (card.split.women / card.total) * 100 : 0;
+            const menPercent = card.total ? (card.split.men / card.total) * 100 : 0;
+            const totalPercent = activeStarterCount ? (card.total / activeStarterCount) * 100 : 0;
+
+            return (
+              <article className={`statistics-card ${card.accentClass}`} key={card.key}>
+                <div className="statistics-card-head">
+                  <span>{card.title}</span>
+                  <strong>{card.total.toLocaleString()}</strong>
+                  <small>{formatPercent(totalPercent)}</small>
+                </div>
+
+                <div className="statistics-card-bar" aria-hidden="true">
+                  <span className="statistics-card-bar-women" style={{ width: `${womenPercent}%` }} />
+                  <span className="statistics-card-bar-men" style={{ width: `${menPercent}%` }} />
+                </div>
+
+                <div className="statistics-card-breakdown">
+                  <div>
+                    <span className="statistics-gender-dot woman" />
+                    <strong>{card.split.women.toLocaleString()}</strong>
+                    <small>Women</small>
+                  </div>
+                  <div>
+                    <span className="statistics-gender-dot man" />
+                    <strong>{card.split.men.toLocaleString()}</strong>
+                    <small>Men</small>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        <article className="statistics-distribution-panel">
+          <div className="statistics-distribution-head">
+            <div>
+              <span className="detail-label">Distribution</span>
+              <h3>Distribution of starters by country</h3>
+            </div>
+            <div className="statistics-distribution-summary">
+              <strong>{activeStarterCount.toLocaleString()}</strong>
+              <span>Starters</span>
+              <strong>{statisticsCountries.length}</strong>
+              <span>Countries</span>
+            </div>
+          </div>
+
+          <div className="statistics-distribution-grid">
+            <div className="statistics-world-map-shell">
+              <svg className="statistics-world-map" viewBox="0 0 760 360" aria-label="Distribution of starters by country">
+                <path
+                  className="statistics-world-continent"
+                  d="M68 94 94 75 143 70 182 92 211 114 207 146 190 171 154 174 119 165 89 143 70 120Z"
+                />
+                <path
+                  className="statistics-world-continent"
+                  d="M187 203 212 220 227 257 214 307 188 338 171 310 174 271 176 233Z"
+                />
+                <path
+                  className="statistics-world-continent"
+                  d="M327 104 360 89 392 97 409 121 386 135 352 132 332 123Z"
+                />
+                <path
+                  className="statistics-world-continent"
+                  d="M369 148 394 157 408 189 397 243 372 282 339 258 336 212 348 177Z"
+                />
+                <path
+                  className="statistics-world-continent"
+                  d="M409 104 468 85 548 90 621 120 679 152 683 199 655 232 603 226 566 244 536 222 503 229 474 202 446 168 412 147Z"
+                />
+                <path
+                  className="statistics-world-continent"
+                  d="M590 256 624 247 660 263 680 290 672 322 633 328 596 311 576 285Z"
+                />
+
+                {statisticsCountries.map((country) => (
+                  <g key={`country-marker-${country.code}`} transform={`translate(${country.mapX}, ${country.mapY})`}>
+                    <circle className="statistics-world-marker-ring" cx="0" cy="0" r="10" />
+                    <circle className="statistics-world-marker-core" cx="0" cy="0" r="5" />
+                  </g>
+                ))}
+              </svg>
+            </div>
+
+            <div className="statistics-country-list">
+              {statisticsCountries.map((country) => (
+                <article className="statistics-country-row" key={`country-row-${country.code}`}>
+                  <div className="statistics-country-head">
+                    <div className="statistics-country-label">
+                      <img alt={country.code} className="flag-icon" height="18" loading="lazy" src={getFlagIconUrl(country.code)} width="24" />
+                      <strong>{country.name}</strong>
+                    </div>
+                    <span>{country.count.toLocaleString()}</span>
+                  </div>
+                  <div className="statistics-country-bar" aria-hidden="true">
+                    <span style={{ width: `${country.percent}%` }} />
+                  </div>
+                  <small>{formatPercent(country.percent)}</small>
+                </article>
+              ))}
+            </div>
+          </div>
+        </article>
       </section>
 
       {fetchError ? <div className="notice-banner error">{fetchError}</div> : null}
