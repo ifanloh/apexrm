@@ -82,6 +82,7 @@ const COUNTRY_META: Record<
 type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
 type RankingView = "overall" | "women" | "men";
+type RaceDetailView = "race-page" | "ranking" | "leaders" | "statistics";
 
 function getInitialTheme() {
   if (typeof window === "undefined") {
@@ -720,6 +721,7 @@ export default function App() {
   const [showRankingFilters, setShowRankingFilters] = useState(false);
   const [rankingRowsPerPage, setRankingRowsPerPage] = useState(FULL_RANKING_PAGE_SIZE);
   const [selectedRaceSlug, setSelectedRaceSlug] = useState<string>(EDITION_HOME_VALUE);
+  const [raceDetailView, setRaceDetailView] = useState<RaceDetailView>("race-page");
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
@@ -1558,6 +1560,7 @@ export default function App() {
 
   function openRaceView(slug: string, sectionId?: string) {
     setSelectedRaceSlug(slug);
+    setRaceDetailView("race-page");
     jumpToSection(sectionId);
   }
 
@@ -1572,27 +1575,27 @@ export default function App() {
     }, 90);
   }
 
-  function jumpToRaceSection(sectionId: string) {
+  function jumpToRaceSection(sectionId: string, nextView: RaceDetailView = "race-page") {
     if (isEditionHome) {
-      openRaceView(featuredRace.slug, sectionId);
-      return;
+      setSelectedRaceSlug(featuredRace.slug);
     }
 
+    setRaceDetailView(nextView);
     jumpToSection(sectionId);
   }
 
   function focusRanking(view: "overall" | "women") {
     setFullRankingView(view);
-    jumpToRaceSection("full-ranking");
+    jumpToRaceSection("full-ranking", "ranking");
   }
 
   function focusRunnerSearch() {
     focusTopbarSearch();
-    jumpToRaceSection("runner-search");
+    jumpToRaceSection("runner-search", "race-page");
   }
 
   function focusRunnersList() {
-    jumpToRaceSection("runners-list");
+    jumpToRaceSection("runners-list", "race-page");
   }
 
   function focusFavoritesList() {
@@ -1600,11 +1603,12 @@ export default function App() {
       setSelectedRunnerBib(favoriteRunnerResults[0].bib);
     }
 
-    jumpToRaceSection("favorites-list");
+    jumpToRaceSection("favorites-list", "race-page");
   }
 
   function handleRaceSelection(nextValue: string) {
     setSelectedRaceSlug(nextValue);
+    setRaceDetailView("race-page");
     if (nextValue === EDITION_HOME_VALUE) {
       jumpToSection("edition-home");
       return;
@@ -1627,7 +1631,7 @@ export default function App() {
       setSelectedRunnerBib(favoriteRunnerResults[0].bib);
     }
 
-    jumpToRaceSection("my-runners");
+    jumpToRaceSection("my-runners", "race-page");
   }
 
   function focusComparison() {
@@ -1635,15 +1639,20 @@ export default function App() {
       setSelectedRunnerBib(comparisonEntries[0].bib);
     }
 
-    jumpToRaceSection("comparison");
+    jumpToRaceSection("comparison", "race-page");
   }
 
   function focusRaceLeaders() {
-    jumpToRaceSection("race-leaders");
+    jumpToRaceSection("race-leaders", "leaders");
   }
 
   function focusStatistics() {
-    jumpToRaceSection("race-statistics");
+    jumpToRaceSection("race-statistics", "statistics");
+  }
+
+  function focusRacePage() {
+    setRaceDetailView("race-page");
+    jumpToSection("race-hub");
   }
 
   return (
@@ -1661,6 +1670,13 @@ export default function App() {
               <NavIcon name="home" />
               <span>Home</span>
             </button>
+
+            {!isEditionHome && raceDetailView !== "race-page" ? (
+              <button className="nav-link nav-link-icon nav-link-return" onClick={focusRacePage} type="button">
+                <NavIcon name="home" />
+                <span>Back to race page</span>
+              </button>
+            ) : null}
 
           <div className={`nav-group ${runnerNavOpen ? "open" : ""}`}>
             <button className="nav-toggle" onClick={() => setRunnerNavOpen((current) => !current)} type="button">
@@ -1867,7 +1883,9 @@ export default function App() {
           </div>
         </section>
 
-      <section className="spotlight-grid" id="course-profile">
+      {fetchError ? <div className="notice-banner error">{fetchError}</div> : null}
+
+      <section className="spotlight-grid" hidden={raceDetailView !== "race-page"} id="course-profile">
         <CourseProfilePanel
           course={activeCourse}
           courseStops={courseProfileStops}
@@ -1877,7 +1895,7 @@ export default function App() {
         />
       </section>
 
-      <section className="panel race-statistics-panel" id="race-statistics">
+      <section className="panel race-statistics-panel" hidden={raceDetailView !== "statistics"} id="race-statistics">
         <div className="statistics-section-head">
           <div className="statistics-section-title">
             <span className="detail-label">Statistics</span>
@@ -2000,9 +2018,7 @@ export default function App() {
         </article>
       </section>
 
-      {fetchError ? <div className="notice-banner error">{fetchError}</div> : null}
-
-      <section className="control-grid">
+      <section className="control-grid" hidden={raceDetailView !== "ranking"}>
         <article className="panel leaderboard-panel full-ranking-panel livetrail-ranking-panel" id="full-ranking">
           <div className="ranking-title-shell">
             <span className="detail-label">Ranking</span>
@@ -2336,7 +2352,7 @@ export default function App() {
       </section>
 
       {organizerSessionActive ? (
-      <section className="panel checkpoint-monitor-panel">
+      <section className="panel checkpoint-monitor-panel" hidden={raceDetailView !== "race-page"}>
         <div className="panel-head">
           <div>
             <p className="section-label">Checkpoint Monitor</p>
@@ -2417,7 +2433,7 @@ export default function App() {
       </section>
       ) : null}
 
-      <section className="panel runner-search-panel public-runner-search-panel" id="runner-search">
+      <section className="panel runner-search-panel public-runner-search-panel" hidden={raceDetailView !== "race-page"} id="runner-search">
         <div className="panel-head">
           <div>
             <p className="section-label">The Runners</p>
@@ -2638,7 +2654,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="menu-feature-grid">
+      <section className="menu-feature-grid" hidden={raceDetailView !== "race-page"}>
         <article className="panel menu-feature-panel" id="runners-list">
           <div className="panel-head compact">
             <div>
@@ -2745,7 +2761,7 @@ export default function App() {
         </article>
       </section>
 
-      <section className="panel menu-feature-panel" id="comparison">
+      <section className="panel menu-feature-panel" hidden={raceDetailView !== "race-page"} id="comparison">
         <div className="panel-head compact">
           <div>
             <p className="section-label">The runners</p>
@@ -2808,7 +2824,7 @@ export default function App() {
         )}
       </section>
 
-      <section className="panel menu-feature-panel race-leaders-panel" id="race-leaders">
+      <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "leaders"} id="race-leaders">
         <div className="panel-head compact">
           <div>
             <p className="section-label">Follow the race</p>
@@ -2836,7 +2852,7 @@ export default function App() {
                   key={`leader-overall-${entry.bib}`}
                   onClick={() => {
                     setSelectedRunnerBib(entry.bib);
-                    jumpToSection("my-runners");
+                    jumpToRaceSection("my-runners", "race-page");
                   }}
                   type="button"
                 >
@@ -2871,7 +2887,7 @@ export default function App() {
                     key={`leader-women-${entry.bib}`}
                     onClick={() => {
                       setSelectedRunnerBib(entry.bib);
-                      jumpToSection("my-runners");
+                      jumpToRaceSection("my-runners", "race-page");
                     }}
                     type="button"
                   >

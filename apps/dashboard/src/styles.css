@@ -2799,6 +2799,12 @@ body {
   color: #121212;
 }
 
+.live-sidebar-nav .nav-link-return {
+  color: var(--green);
+  font-weight: 700;
+  margin-top: -4px;
+}
+
 .live-sidebar-nav .nav-group {
   gap: 8px;
 }
