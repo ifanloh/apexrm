@@ -1,25 +1,27 @@
-@import url("https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700;800&family=Roboto:wght@400;500;700&family=Rubik:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600;700;800;900&display=swap");
 
 :root {
   color-scheme: light;
-  font-family: "Inter", sans-serif;
-  --bg: #eff3f7;
-  --bg-soft: #f4f6f9;
-  --surface: rgba(255, 255, 255, 0.94);
+  font-family: "Red Hat Display", sans-serif;
+  --bg: #fbf7ef;
+  --bg-soft: #f8f0dc;
+  --surface: rgba(255, 253, 248, 0.96);
   --surface-strong: rgba(255, 255, 255, 0.98);
   --surface-elevated: #ffffff;
-  --sidebar: linear-gradient(180deg, #eef5f2 0%, #e5f0eb 42%, #dde9e4 100%);
-  --stroke: rgba(28, 42, 56, 0.08);
-  --stroke-strong: rgba(255, 170, 84, 0.3);
-  --ink: #15202b;
-  --ink-soft: rgba(21, 32, 43, 0.78);
-  --ink-muted: rgba(21, 32, 43, 0.54);
-  --gold: #d27d21;
-  --gold-soft: rgba(210, 125, 33, 0.14);
-  --green: #0e9f64;
-  --green-soft: rgba(14, 159, 100, 0.12);
-  --danger: #cb4141;
-  --shadow: 0 22px 54px rgba(36, 47, 57, 0.12);
+  --sidebar: linear-gradient(180deg, #f8e9cf 0%, #f1d7a4 52%, #ebcb8c 100%);
+  --stroke: rgba(39, 24, 16, 0.1);
+  --stroke-strong: rgba(224, 181, 77, 0.42);
+  --ink: #1f1410;
+  --ink-soft: rgba(31, 20, 16, 0.74);
+  --ink-muted: rgba(31, 20, 16, 0.52);
+  --gold: #e2b84d;
+  --gold-soft: rgba(226, 184, 77, 0.16);
+  --green: #ff1014;
+  --green-soft: rgba(255, 16, 20, 0.12);
+  --danger: #d23a31;
+  --shadow: 0 18px 44px rgba(112, 66, 26, 0.12);
+  --brand-red: #ff1014;
+  --brand-gold: #e2b84d;
 }
 
 [hidden] {
@@ -36,8 +38,8 @@ html {
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(255, 191, 110, 0.08), transparent 22%),
-    radial-gradient(circle at top right, rgba(31, 209, 122, 0.06), transparent 18%),
+    radial-gradient(circle at top left, rgba(226, 184, 77, 0.08), transparent 22%),
+    radial-gradient(circle at top right, rgba(255, 16, 20, 0.06), transparent 18%),
     var(--bg);
   color: var(--ink);
   margin: 0;
@@ -49,15 +51,17 @@ body {
 
 :root[data-theme="light"] body {
   background:
-    radial-gradient(circle at top left, rgba(210, 125, 33, 0.09), transparent 22%),
-    radial-gradient(circle at top right, rgba(14, 159, 100, 0.08), transparent 18%),
+    radial-gradient(circle at top left, rgba(226, 184, 77, 0.1), transparent 22%),
+    radial-gradient(circle at top right, rgba(255, 16, 20, 0.08), transparent 18%),
     var(--bg);
 }
 
+body,
+body *,
 button,
 input,
 select {
-  font: inherit;
+  font-family: "Red Hat Display", sans-serif;
 }
 
 button {
@@ -138,7 +142,7 @@ a {
 .brand-block h1,
 .hero-panel h2,
 .panel-head h3 {
-  font-family: "Barlow Condensed", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   letter-spacing: -0.04em;
   margin: 0;
   text-transform: uppercase;
@@ -902,7 +906,7 @@ a {
 
 .edition-banner-copy h2 {
   display: grid;
-  font-family: "Barlow Condensed", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: clamp(2.6rem, 4vw, 4.4rem);
   letter-spacing: -0.05em;
   line-height: 0.88;
@@ -979,7 +983,7 @@ a {
 
 .edition-summary-card strong {
   color: var(--green);
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.55rem;
   line-height: 1;
 }
@@ -1053,7 +1057,7 @@ a {
 }
 
 .race-card-head h4 {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.46rem;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -1087,7 +1091,7 @@ a {
 
 .race-card-stats strong,
 .race-card-summary-item strong {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1rem;
   letter-spacing: -0.02em;
 }
@@ -1189,7 +1193,7 @@ a {
 .race-card-ranking-row strong {
   align-items: center;
   display: inline-flex;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.1rem;
   gap: 6px;
 }
@@ -1287,7 +1291,7 @@ a {
 }
 
 .race-overview-stat strong {
-  font-family: "Barlow Condensed", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 2rem;
   letter-spacing: -0.04em;
   line-height: 0.95;
@@ -1696,7 +1700,7 @@ a {
 }
 
 .course-map-copy strong {
-  font-family: "Barlow Condensed", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 2rem;
   letter-spacing: -0.04em;
   text-transform: uppercase;
@@ -1914,7 +1918,7 @@ a {
 
 .ranking-block strong {
   color: var(--ink);
-  font-family: "Barlow Condensed", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 2.5rem;
   letter-spacing: -0.08em;
   line-height: 0.9;
@@ -1959,7 +1963,7 @@ a {
   border-radius: 6px;
   color: #7b6f62;
   display: inline-flex;
-  font-family: "Barlow Condensed", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.7rem;
   justify-content: center;
   min-height: 56px;
@@ -2332,7 +2336,7 @@ a {
 }
 
 .auth-modal-head h3 {
-  font-family: "Barlow Condensed", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 2rem;
   letter-spacing: -0.04em;
   margin: 2px 0 0;
@@ -2582,24 +2586,26 @@ a {
 :root,
 :root[data-theme="light"] {
   color-scheme: light;
-  font-family: "Rubik", "Roboto", sans-serif;
-  --bg: #f4f0e7;
-  --bg-soft: #f8f4eb;
+  font-family: "Red Hat Display", sans-serif;
+  --bg: #fbf7ef;
+  --bg-soft: #f8f0dc;
   --surface: #fffdf8;
   --surface-strong: #ffffff;
   --surface-elevated: #ffffff;
-  --sidebar: linear-gradient(180deg, #f6d2a3 0%, #f2c98f 70%, #efc383 100%);
-  --stroke: rgba(17, 22, 23, 0.12);
-  --stroke-strong: rgba(211, 126, 33, 0.42);
-  --ink: #141618;
-  --ink-soft: rgba(20, 22, 24, 0.75);
-  --ink-muted: rgba(20, 22, 24, 0.52);
-  --gold: #d3882f;
-  --gold-soft: rgba(211, 136, 47, 0.12);
-  --green: #086c4a;
-  --green-soft: rgba(8, 108, 74, 0.11);
-  --danger: #dd5a42;
-  --shadow: 0 20px 38px rgba(59, 44, 27, 0.1);
+  --sidebar: linear-gradient(180deg, #f8e9cf 0%, #f1d7a4 52%, #ebcb8c 100%);
+  --stroke: rgba(39, 24, 16, 0.1);
+  --stroke-strong: rgba(224, 181, 77, 0.42);
+  --ink: #1f1410;
+  --ink-soft: rgba(31, 20, 16, 0.74);
+  --ink-muted: rgba(31, 20, 16, 0.52);
+  --gold: #e2b84d;
+  --gold-soft: rgba(226, 184, 77, 0.16);
+  --green: #ff1014;
+  --green-soft: rgba(255, 16, 20, 0.12);
+  --danger: #d23a31;
+  --shadow: 0 18px 44px rgba(112, 66, 26, 0.12);
+  --brand-red: #ff1014;
+  --brand-gold: #e2b84d;
 }
 
 :root[data-theme="dark"] {
@@ -2627,7 +2633,7 @@ html,
 body,
 #root {
   background: var(--bg);
-  font-family: "Rubik", "Roboto", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   height: 100%;
 }
 
@@ -2707,7 +2713,7 @@ body {
 .spectator-footer-brand {
   align-items: center;
   display: inline-flex;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.4rem;
   font-weight: 800;
   gap: 2px;
@@ -2719,16 +2725,33 @@ body {
   padding: 4px 2px 8px;
 }
 
+.brand-logo-frame {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(31, 20, 16, 0.06);
+  border-radius: 14px;
+  box-shadow: 0 10px 22px rgba(112, 66, 26, 0.1);
+  display: inline-flex;
+  padding: 8px 10px;
+}
+
+.brand-logo-image {
+  display: block;
+  height: auto;
+  max-width: 152px;
+  width: 152px;
+}
+
 .topbar-wordmark {
   padding: 0;
 }
 
 .word-live {
-  color: #101012;
+  color: var(--brand-red);
 }
 
 .word-trail {
-  background: linear-gradient(180deg, #34b8ff 0%, #1d85c8 100%);
+  background: linear-gradient(180deg, var(--brand-gold) 0%, #c79c2d 100%);
   color: #ffffff;
   padding: 0 4px;
 }
@@ -2738,7 +2761,7 @@ body {
 .race-card-head h4,
 .panel-head h3,
 .course-profile-card .panel-head h3 {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
 }
 
 .sidebar-nav.live-sidebar-nav {
@@ -2756,13 +2779,12 @@ body {
   border: 0;
   cursor: pointer;
   display: inline-flex;
-  margin: 0 0 10px;
-  padding: 0 4px;
+  margin: 0 0 12px;
+  padding: 0 2px;
 }
 
-.live-sidebar-logo .livetrail-wordmark {
-  font-size: 1.2rem;
-  padding: 0;
+.live-sidebar-logo .brand-logo-frame {
+  padding: 8px 10px;
 }
 
 .live-sidebar-nav .nav-link,
@@ -3257,7 +3279,7 @@ body {
 
 .favorites-list-bib strong {
   color: var(--ink);
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.15rem;
 }
 
@@ -3380,7 +3402,7 @@ body {
 .runner-directory-meta strong,
 .leader-list-row time {
   color: var(--ink);
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 0.92rem;
 }
 
@@ -3681,7 +3703,7 @@ body {
 .topbar-select-shell select,
 .topbar-search-shell input {
   color: var(--ink);
-  font-family: "Rubik", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 0.86rem;
 }
 
@@ -3885,7 +3907,7 @@ body {
 }
 
 .race-stat-strip-item strong {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.02rem;
   line-height: 1.05;
 }
@@ -4036,7 +4058,7 @@ body {
 
 .ranking-block strong {
   color: #0e1011;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 2.1rem;
   line-height: 1;
 }
@@ -4067,7 +4089,7 @@ body {
   border-radius: 4px;
   color: #8f6a39;
   display: inline-flex;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.4rem;
   height: 44px;
   justify-content: center;
@@ -4084,7 +4106,7 @@ body {
   background: #0d0d0d;
   border: 3px solid #34c165;
   color: #ffffff;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   height: 48px;
   width: 48px;
 }
@@ -4137,7 +4159,7 @@ body {
 }
 
 .race-time-cell strong {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
 }
 
 .ranking-pager.bottom {
@@ -4188,7 +4210,7 @@ body {
 
 .spectator-promo-copy h3 {
   color: #1b1b1b;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 2rem;
   line-height: 1;
   margin: 8px 0 12px;
@@ -4329,7 +4351,7 @@ body {
 }
 
 .rail-panel-head h3 {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.2rem;
   margin: 0;
   text-transform: uppercase;
@@ -4350,7 +4372,7 @@ body {
 
 .mini-leaderboard-row.live strong {
   color: #111;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.6rem;
 }
 
@@ -4374,7 +4396,7 @@ body {
 
 .rail-rank-time time {
   color: #111;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 0.88rem;
 }
 
@@ -4464,7 +4486,7 @@ body {
 }
 
 .race-stat-strip-item span {
-  font-family: "Rubik", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -4472,7 +4494,7 @@ body {
 }
 
 .race-stat-strip-item strong {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1rem;
   line-height: 1.15;
 }
@@ -4502,7 +4524,7 @@ body {
 .statistics-section-title h3,
 .statistics-distribution-head h3 {
   color: #0f7b54;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.9rem;
   margin: 0;
   text-transform: uppercase;
@@ -4535,7 +4557,7 @@ body {
 
 .statistics-race-context strong {
   color: var(--ink);
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1rem;
 }
 
@@ -4595,7 +4617,7 @@ body {
 
 .statistics-card-head strong {
   color: var(--ink);
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.85rem;
 }
 
@@ -4655,7 +4677,7 @@ body {
 
 .statistics-card-breakdown strong {
   color: var(--ink);
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1rem;
 }
 
@@ -4682,7 +4704,7 @@ body {
 
 .statistics-distribution-summary strong {
   color: var(--ink);
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.24rem;
 }
 
@@ -4757,7 +4779,7 @@ body {
 .statistics-country-label strong,
 .statistics-country-head span {
   color: var(--ink);
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 0.96rem;
 }
 
@@ -4792,7 +4814,7 @@ body {
 }
 
 .course-beacon strong {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 0.88rem;
 }
 
@@ -4835,7 +4857,7 @@ body {
 
 .course-profile-title strong {
   color: #111;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.16rem;
   text-transform: uppercase;
 }
@@ -4865,7 +4887,7 @@ body {
 }
 
 .course-profile-meta-card strong {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1rem;
 }
 
@@ -4917,7 +4939,7 @@ body {
 .course-marker-pill-km,
 .course-marker-pill-name {
   fill: #353535;
-  font-family: "Rubik", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
 }
 
 .course-marker-pill-km {
@@ -4948,7 +4970,7 @@ body {
 }
 
 .course-withdrawal-card strong {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.15rem;
 }
 
@@ -4977,7 +4999,7 @@ body {
   border: 0;
   color: var(--ink-soft);
   cursor: pointer;
-  font-family: "Rubik", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 0.95rem;
   font-weight: 500;
   padding: 0 0 8px;
@@ -5003,7 +5025,7 @@ body {
 }
 
 .course-map-copy strong {
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.12rem;
 }
 
@@ -5426,7 +5448,7 @@ body {
 
 .bib-tile {
   border-radius: 4px;
-  font-family: "Oxanium", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 1.05rem;
   min-height: 42px;
 }
@@ -5480,7 +5502,7 @@ body {
 }
 
 .course-inline-map .leaflet-container {
-  font-family: "Rubik", "Roboto", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   height: 100%;
   min-width: 0;
   width: 100%;
@@ -5510,7 +5532,7 @@ body {
   border-radius: 10px;
   box-shadow: 0 8px 18px rgba(20, 22, 24, 0.18);
   color: #fff;
-  font-family: "Rubik", "Roboto", sans-serif;
+  font-family: "Red Hat Display", sans-serif;
   font-size: 0.72rem;
   font-weight: 600;
   padding: 6px 9px;
@@ -5768,7 +5790,7 @@ body {
 .topbar-select-shell select,
 .topbar-search-shell input {
   color: var(--ink) !important;
-  font-family: "Rubik", sans-serif !important;
+  font-family: "Red Hat Display", sans-serif !important;
   font-size: 0.92rem !important;
 }
 
@@ -5996,3 +6018,4 @@ body {
     justify-content: flex-start !important;
   }
 }
+

@@ -28,6 +28,7 @@ import runnerIcon from "./assets/runner.svg";
 import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
+import trailnesiaLogo from "./assets/trailnesia.png";
 import { getDemoCourseForRace } from "./demoCourseVariants";
 import { demoRaceFestival, type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
@@ -1929,9 +1930,8 @@ export default function App() {
         <aside className="dashboard-sidebar live-sidebar">
           <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
             <button className="live-sidebar-logo" onClick={focusHome} type="button" aria-label="Back to edition home">
-              <span className="livetrail-wordmark">
-                <span className="word-live">Live</span>
-                <span className="word-trail">Trail</span>
+              <span className="brand-logo-frame">
+                <img alt="Trailnesia" className="brand-logo-image" src={trailnesiaLogo} />
               </span>
             </button>
 
@@ -3669,7 +3669,7 @@ export default function App() {
             </div>
 
             <div className="auth-modal-copy">
-              <strong>Dear Organiser, please identify yourself to access LiveTrail's tools.</strong>
+              <strong>Dear Organiser, please identify yourself to access Trailnesia&apos;s tools.</strong>
               <span>Dear spectators, the live following is free and you do not need to register to follow the race.</span>
             </div>
 
