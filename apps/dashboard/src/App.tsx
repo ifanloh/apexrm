@@ -82,7 +82,7 @@ const COUNTRY_META: Record<
 type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
 type RankingView = "overall" | "women" | "men";
-type RaceDetailView = "race-page" | "ranking" | "leaders" | "statistics";
+type RaceDetailView = "race-page" | "runner-search" | "ranking" | "leaders" | "statistics";
 type RunnerDirectoryState = "all" | "registered" | "in-race" | "finisher" | "dns" | "withdrawn";
 type RunnerDirectoryEntry = {
   raceSlug: string;
@@ -788,6 +788,9 @@ export default function App() {
   const [runnerDirectoryCategoryFilter, setRunnerDirectoryCategoryFilter] = useState<"all" | "men" | "women">("all");
   const [runnerDirectoryPage, setRunnerDirectoryPage] = useState(1);
   const [runnerDirectoryRowsPerPage, setRunnerDirectoryRowsPerPage] = useState(10);
+  const [runnerSearchRaceFilter, setRunnerSearchRaceFilter] = useState<string>("all");
+  const [runnerSearchPage, setRunnerSearchPage] = useState(1);
+  const [runnerSearchRowsPerPage, setRunnerSearchRowsPerPage] = useState(10);
   const [selectedRaceSlug, setSelectedRaceSlug] = useState<string>(EDITION_HOME_VALUE);
   const [raceDetailView, setRaceDetailView] = useState<RaceDetailView>("race-page");
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
@@ -1225,6 +1228,10 @@ export default function App() {
   }, [isEditionHome, selectedRaceCard.slug]);
 
   useEffect(() => {
+    setRunnerSearchRaceFilter(isEditionHome ? "all" : selectedRaceCard.slug);
+  }, [isEditionHome, selectedRaceCard.slug]);
+
+  useEffect(() => {
     setRunnerDirectoryPage(1);
   }, [
     runnerDirectoryCategoryFilter,
@@ -1234,6 +1241,10 @@ export default function App() {
     runnerDirectoryStateFilter,
     normalizedRunnerQuery
   ]);
+
+  useEffect(() => {
+    setRunnerSearchPage(1);
+  }, [normalizedRunnerQuery, runnerSearchRaceFilter, runnerSearchRowsPerPage]);
 
 
   useEffect(() => {
@@ -1622,12 +1633,44 @@ export default function App() {
         filteredRunnerDirectoryEntries.length
       )} of ${filteredRunnerDirectoryEntries.length}`
     : "0-0 of 0";
+  const searchRunnerEntries = useMemo(() => {
+    if (!normalizedRunnerQuery) {
+      return [] as RunnerDirectoryEntry[];
+    }
+
+    return runnerDirectoryEntries.filter((entry) => {
+      const matchesRace = runnerSearchRaceFilter === "all" ? true : entry.raceSlug === runnerSearchRaceFilter;
+      const matchesQuery =
+        entry.name.toUpperCase().includes(normalizedRunnerQuery) ||
+        entry.bib.toUpperCase().includes(normalizedRunnerQuery) ||
+        entry.teamName.toUpperCase().includes(normalizedRunnerQuery);
+
+      return matchesRace && matchesQuery;
+    });
+  }, [normalizedRunnerQuery, runnerDirectoryEntries, runnerSearchRaceFilter]);
+  const runnerSearchPageCount = Math.max(1, Math.ceil(searchRunnerEntries.length / runnerSearchRowsPerPage));
+  const pagedSearchRunnerEntries = searchRunnerEntries.slice(
+    (runnerSearchPage - 1) * runnerSearchRowsPerPage,
+    runnerSearchPage * runnerSearchRowsPerPage
+  );
+  const runnerSearchRangeLabel = searchRunnerEntries.length
+    ? `${(runnerSearchPage - 1) * runnerSearchRowsPerPage + 1}-${Math.min(
+        runnerSearchPage * runnerSearchRowsPerPage,
+        searchRunnerEntries.length
+      )} of ${searchRunnerEntries.length}`
+    : "0-0 of 0";
 
   useEffect(() => {
     if (runnerDirectoryPage > runnerDirectoryPageCount) {
       setRunnerDirectoryPage(runnerDirectoryPageCount);
     }
   }, [runnerDirectoryPage, runnerDirectoryPageCount]);
+
+  useEffect(() => {
+    if (runnerSearchPage > runnerSearchPageCount) {
+      setRunnerSearchPage(runnerSearchPageCount);
+    }
+  }, [runnerSearchPage, runnerSearchPageCount]);
 
   const fullRankingRangeLabel = fullRankingEntries.length
     ? `${(fullRankingPage - 1) * rankingRowsPerPage + 1}-${Math.min(
@@ -1775,10 +1818,6 @@ export default function App() {
   }
 
   function focusTopbarSearch() {
-    if (isEditionHome) {
-      openRaceView(featuredRace.slug, "runner-search");
-    }
-
     window.setTimeout(() => {
       const input = document.querySelector<HTMLInputElement>(".topbar-search-shell input");
       input?.focus();
@@ -1801,7 +1840,8 @@ export default function App() {
 
   function focusRunnerSearch() {
     focusTopbarSearch();
-    jumpToRaceSection("runner-search", "race-page");
+    setRaceDetailView("runner-search");
+    jumpToSection("runner-search");
   }
 
   function focusRunnersList() {
@@ -2646,224 +2686,237 @@ export default function App() {
       </section>
       ) : null}
 
-      <section className="panel runner-search-panel public-runner-search-panel" hidden={raceDetailView !== "race-page"} id="runner-search">
-        <div className="panel-head">
-          <div>
-            <p className="section-label">The Runners</p>
-            <h3>Search for a runner</h3>
-          </div>
-          <div className="panel-badge">
-            <span>Lookup</span>
-            <strong>{runnerSearchSummary}</strong>
-            <span>{runnerSearchMode === "server" ? "live index" : "fallback index"}</span>
-          </div>
+      <section className="panel runner-search-panel public-runner-search-panel search-runner-view" hidden={raceDetailView !== "runner-search"} id="runner-search">
+        <div className="search-runner-head">
+          <p className="section-label">The runners</p>
+          <h2>Search a runner</h2>
         </div>
 
-        <div className="runner-search-toolbar">
-          <label>
-            Filter progress checkpoint
-            <select value={runnerCheckpointFilter} onChange={(event) => setRunnerCheckpointFilter(event.target.value)}>
-              <option value="all">All progress</option>
-              {defaultCheckpoints.map((checkpoint) => (
-                <option key={checkpoint.id} value={checkpoint.id}>
-                  {formatCheckpointLabel(checkpoint)} | {checkpoint.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="mini-stat">
-            <span>Current search</span>
-            <strong>{runnerQuery.trim() ? runnerQuery : "All runners"}</strong>
-          </div>
-        </div>
-
-        {runnerSearchError ? <div className="empty-compact">{runnerSearchError}</div> : null}
-
-        <div className="favorites-strip">
-          <span className="detail-label">Favorites</span>
-          {favoriteRunnerResults.length ? (
-            favoriteRunnerResults.map((entry) => (
-              <button
-                className={`favorite-chip ${selectedRunnerBib === entry.bib ? "active" : ""}`}
-                key={entry.bib}
-                onClick={() => setSelectedRunnerBib(entry.bib)}
-                type="button"
-              >
-                <strong>{entry.bib}</strong>
-                <span>#{entry.rank}</span>
+        <div className="runner-list-shell search-runner-shell">
+          <div className="search-runner-toolbar">
+            <div className="search-runner-input-shell">
+              <span className="search-runner-input-icon" aria-hidden="true">
+                <img alt="" className="topbar-search-icon-image" src={runnerIcon} />
+              </span>
+              <input
+                id="runner-search-page-input"
+                placeholder="Search a runner (bib, name, club...)"
+                value={runnerQuery}
+                onChange={(event) => setRunnerQuery(event.target.value)}
+                type="text"
+              />
+              <button aria-label="Search runners" className="search-runner-submit" onClick={focusRunnerSearch} type="button">
+                <svg viewBox="0 0 20 20">
+                  <circle cx="8.1" cy="8.1" fill="none" r="5.1" stroke="currentColor" strokeWidth="2" />
+                  <path d="m11.9 11.9 4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                </svg>
               </button>
-            ))
-          ) : (
-            <div className="empty-compact">Belum ada pelari favorit. Tandai dari hasil search untuk pantau cepat.</div>
-          )}
-        </div>
-
-        <div className="runner-hub-grid">
-          <div className="runner-search-results">
-            {publicRunnerResults.length ? (
-              publicRunnerResults.map((entry) => {
-                const isSelected = selectedRunnerBib === entry.bib;
-                const isFavorite = favoriteBibs.includes(entry.bib);
-
-                return (
-                  <article className={`runner-search-card ${isSelected ? "selected" : ""}`} key={`${entry.rank}-${entry.bib}`}>
-                    <div className="runner-card-head">
-                      <div className="runner-cell">
-                        <div aria-hidden="true" className="runner-avatar" />
-                        <div>
-                          <strong>{entry.name}</strong>
-                          <span>BIB #{entry.bib}</span>
-                        </div>
-                      </div>
-                      <button
-                        className={`favorite-toggle ${isFavorite ? "active" : ""}`}
-                        onClick={() => toggleFavoriteBib(entry.bib)}
-                        type="button"
-                      >
-                        {isFavorite ? "Favorit" : "Ikuti"}
-                      </button>
-                    </div>
-                    <button className="runner-card-select" onClick={() => setSelectedRunnerBib(entry.bib)} type="button">
-                      <div className="runner-search-rank">
-                        <span>Overall rank</span>
-                        <strong>#{entry.rank}</strong>
-                      </div>
-                      <div className="runner-search-main">
-                        <div className="runner-search-meta">
-                          <div className="detail-cell">
-                            <span className="detail-label">Progress</span>
-                            <strong>
-                              {formatCheckpointLabel({
-                                code: entry.checkpointCode,
-                                kmMarker: entry.checkpointKmMarker
-                              })}{" "}
-                              - {entry.checkpointName}
-                            </strong>
-                          </div>
-                          <div className="detail-cell">
-                            <span className="detail-label">Scan terakhir</span>
-                            <strong>{formatScanTime(entry.scannedAt)}</strong>
-                          </div>
-                          {organizerSessionActive ? (
-                            <div className="detail-cell">
-                              <span className="detail-label">Crew / Device</span>
-                              <strong>{entry.crewId}</strong>
-                              <span>{entry.deviceId}</span>
-                            </div>
-                          ) : (
-                            <div className="detail-cell">
-                              <span className="detail-label">Race time</span>
-                              <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  </article>
-                );
-              })
-            ) : (
-              <div className="empty-state">
-                <strong>{isSearchingRunners ? "Mencari pelari..." : "Belum ada pelari yang cocok."}</strong>
-                <span>
-                  {runnerQuery.trim() || runnerCheckpointFilter !== "all"
-                    ? "Ubah keyword atau filter progress untuk menemukan pelari yang dicari."
-                    : "Panel ini menampilkan runner teratas lebih dulu. Ketik BIB untuk lookup cepat saat race berjalan."}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <aside className="runner-detail-panel" id="my-runners">
-            <div className="panel-head compact">
-              <div>
-                <p className="section-label">My runners</p>
-                <h3>{runnerDetail ? myRunnerHeading : "Pilih pelari"}</h3>
-              </div>
-              {runnerDetail ? (
-                <div className="panel-badge">
-                  <span>Overall rank</span>
-                  <strong>#{runnerDetail.rank}</strong>
-                </div>
-              ) : null}
             </div>
 
-            {runnerDetail ? (
-              <>
-                <div className="runner-detail-summary">
-                  <div className="runner-cell">
-                    <div aria-hidden="true" className="runner-avatar" />
-                    <div>
-                      <strong>{runnerDetail.name}</strong>
-                      <span>BIB #{runnerDetail.bib}</span>
-                    </div>
-                  </div>
-                  <div className="runner-detail-stats">
-                    <div className="mini-stat">
-                      <span>Current progress</span>
-                      <strong>
-                        {formatCheckpointLabel({
-                          code: runnerDetail.currentCheckpointCode,
-                          kmMarker: runnerDetail.currentCheckpointKmMarker
-                        })}
-                      </strong>
-                    </div>
-                    <div className="mini-stat">
-                      <span>Total passings</span>
-                      <strong>{runnerDetail.totalPassings}</strong>
-                    </div>
-                    <div className="mini-stat">
-                      <span>Last scan</span>
-                      <strong>{formatScanTime(runnerDetail.lastScannedAt)}</strong>
-                    </div>
-                  </div>
-                </div>
+            <label className="ranking-toolbar-label">
+              In which race ?
+              <select value={runnerSearchRaceFilter} onChange={(event) => setRunnerSearchRaceFilter(event.target.value)}>
+                <option value="all">All races</option>
+                {demoRaceFestival.races.map((race) => (
+                  <option key={`runner-search-race-${race.slug}`} value={race.slug}>
+                    {race.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
-                {runnerDetailError ? <div className="empty-compact">{runnerDetailError}</div> : null}
+          {runnerSearchError ? <div className="empty-compact">{runnerSearchError}</div> : null}
 
-                <div className="passings-list">
-                  {runnerDetail.passings.length ? (
-                    runnerDetail.passings.map((passing) => (
-                      <article className="passing-card" key={`${runnerDetail.bib}-${passing.checkpointId}`}>
-                        <div>
-                          <span className="detail-label">Checkpoint</span>
-                          <strong>
-                            {formatCheckpointLabel({
-                              code: passing.checkpointCode,
-                              kmMarker: passing.checkpointKmMarker
-                            })}
-                          </strong>
-                          <span>{passing.checkpointName}</span>
+          <div className="runner-list-pagination">
+            <label className="rows-per-page">
+              Rows per page
+              <select value={runnerSearchRowsPerPage} onChange={(event) => setRunnerSearchRowsPerPage(Number(event.target.value))}>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={30}>30</option>
+              </select>
+            </label>
+            <div className="ranking-range-text">{runnerSearchRangeLabel}</div>
+            <div className="pager-actions compact">
+              <button className="theme-toggle pager-button" disabled={runnerSearchPage <= 1} onClick={() => setRunnerSearchPage(1)} type="button">
+                Â«
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={runnerSearchPage <= 1}
+                onClick={() => setRunnerSearchPage((current) => Math.max(1, current - 1))}
+                type="button"
+              >
+                â€¹
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={runnerSearchPage >= runnerSearchPageCount}
+                onClick={() => setRunnerSearchPage((current) => Math.min(runnerSearchPageCount, current + 1))}
+                type="button"
+              >
+                â€º
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={runnerSearchPage >= runnerSearchPageCount}
+                onClick={() => setRunnerSearchPage(runnerSearchPageCount)}
+                type="button"
+              >
+                Â»
+              </button>
+            </div>
+          </div>
+
+          <div className="runner-list-table search-runner-table">
+            <div className="runner-list-head">
+              <span>Race</span>
+              <span>Runner/Team</span>
+              <span>Country</span>
+              <span>Categ.</span>
+              <span>Info</span>
+              <span>Actions</span>
+            </div>
+
+            {pagedSearchRunnerEntries.length ? (
+              <div className="runner-list-body">
+                {pagedSearchRunnerEntries.map((entry) => {
+                  const isFavorite = favoriteBibs.includes(entry.bib);
+                  const statusClass =
+                    entry.state === "finisher"
+                      ? "finished"
+                      : entry.state === "withdrawn"
+                        ? "withdrawn"
+                        : entry.state === "dns"
+                          ? "dns"
+                          : entry.state === "in-race"
+                            ? "live"
+                            : "registered";
+
+                  return (
+                    <article className="runner-list-row" key={`search-runner-${entry.raceSlug}-${entry.bib}`}>
+                      <div className="runner-list-race">
+                        <strong>{entry.raceTitle}</strong>
+                      </div>
+
+                      <div className="runner-list-runner">
+                        <div className="bib-tile runner-list-bib">{entry.bib}</div>
+                        <div aria-hidden="true" className="runner-avatar runner-list-avatar" />
+                        <div className="runner-list-runner-copy">
+                          <strong>{entry.name}</strong>
+                          <span>{entry.teamName}</span>
+                          <div className={`runner-status-pill ${statusClass}`}>{entry.statusLabel}</div>
                         </div>
-                        <div>
-                          <span className="detail-label">Passing</span>
-                          <strong>{formatScanTime(passing.scannedAt)}</strong>
-                          <span>Posisi #{passing.position}</span>
-                        </div>
-                        <div>
-                          <span className="detail-label">Crew</span>
-                          <strong>{passing.crewId}</strong>
-                          <span>{passing.deviceId}</span>
-                        </div>
-                      </article>
-                    ))
-                  ) : (
-                    <div className="empty-compact">
-                      {isLoadingRunnerDetail
-                        ? "Memuat history passings..."
-                        : "History passings detail belum tersedia di endpoint live, jadi sementara pakai summary progress."}
-                    </div>
-                  )}
-                </div>
-              </>
+                      </div>
+
+                      <div className="runner-list-country">
+                        <img
+                          alt={entry.countryCode}
+                          className="flag-icon"
+                          height="18"
+                          loading="lazy"
+                          src={getFlagIconUrl(entry.countryCode)}
+                          width="24"
+                        />
+                        <small>{entry.countryCode}</small>
+                      </div>
+
+                      <div className="runner-list-category">
+                        <span className={`gender-dot ${entry.category}`} />
+                        <strong>{formatCategoryLabel(entry.category)}</strong>
+                      </div>
+
+                      <div className="runner-list-info">
+                        <span>{entry.infoLabel}</span>
+                        <strong>UTMB Index {entry.indexValue}</strong>
+                      </div>
+
+                      <div className="runner-list-actions">
+                        <button
+                          aria-label={isFavorite ? `Remove ${entry.name} from favorites` : `Add ${entry.name} to favorites`}
+                          className={`runner-list-action-button ${isFavorite ? "active" : ""}`}
+                          onClick={() => toggleFavoriteBib(entry.bib)}
+                          type="button"
+                        >
+                          <NavIcon name="favorite" />
+                        </button>
+                        <button
+                          aria-label={`Compare ${entry.name}`}
+                          className="runner-list-action-button"
+                          onClick={() => {
+                            setSelectedRaceSlug(entry.raceSlug);
+                            setSelectedRunnerBib(entry.bib);
+                            focusComparison();
+                          }}
+                          type="button"
+                        >
+                          <NavIcon name="compare" />
+                        </button>
+                        <button
+                          aria-label={`Open ${entry.name}`}
+                          className="runner-list-action-button active"
+                          onClick={() => {
+                            setSelectedRaceSlug(entry.raceSlug);
+                            setSelectedRunnerBib(entry.bib);
+                            jumpToRaceSection("my-runners", "race-page");
+                          }}
+                          type="button"
+                        >
+                          <NavIcon name="search" />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             ) : (
-              <div className="empty-state">
-                <strong>Pilih satu pelari dari hasil search.</strong>
-                <span>Panel ini jadi fondasi fitur ala LiveTrail: profile runner, passings, dan favorit.</span>
+              <div className="empty-state search-empty-state">
+                <strong>No data to display. Use the search bar to find your runners.</strong>
               </div>
             )}
-          </aside>
+          </div>
+
+          <div className="runner-list-pagination">
+            <label className="rows-per-page">
+              Rows per page
+              <select value={runnerSearchRowsPerPage} onChange={(event) => setRunnerSearchRowsPerPage(Number(event.target.value))}>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={30}>30</option>
+              </select>
+            </label>
+            <div className="ranking-range-text">{runnerSearchRangeLabel}</div>
+            <div className="pager-actions compact">
+              <button className="theme-toggle pager-button" disabled={runnerSearchPage <= 1} onClick={() => setRunnerSearchPage(1)} type="button">
+                Â«
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={runnerSearchPage <= 1}
+                onClick={() => setRunnerSearchPage((current) => Math.max(1, current - 1))}
+                type="button"
+              >
+                â€¹
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={runnerSearchPage >= runnerSearchPageCount}
+                onClick={() => setRunnerSearchPage((current) => Math.min(runnerSearchPageCount, current + 1))}
+                type="button"
+              >
+                â€º
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={runnerSearchPage >= runnerSearchPageCount}
+                onClick={() => setRunnerSearchPage(runnerSearchPageCount)}
+                type="button"
+              >
+                Â»
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -3200,6 +3253,96 @@ export default function App() {
             </div>
           )}
         </article>
+      </section>
+
+      <section className="panel menu-feature-panel runner-detail-panel my-runners-panel" hidden={raceDetailView !== "race-page"} id="my-runners">
+        <div className="panel-head compact">
+          <div>
+            <p className="section-label">My runners</p>
+            <h3>{runnerDetail ? myRunnerHeading : "Pilih pelari"}</h3>
+          </div>
+          {runnerDetail ? (
+            <div className="panel-badge">
+              <span>Overall rank</span>
+              <strong>#{runnerDetail.rank}</strong>
+            </div>
+          ) : null}
+        </div>
+
+        {runnerDetail ? (
+          <>
+            <div className="runner-detail-summary">
+              <div className="runner-cell">
+                <div aria-hidden="true" className="runner-avatar" />
+                <div>
+                  <strong>{runnerDetail.name}</strong>
+                  <span>BIB #{runnerDetail.bib}</span>
+                </div>
+              </div>
+              <div className="runner-detail-stats">
+                <div className="mini-stat">
+                  <span>Current progress</span>
+                  <strong>
+                    {formatCheckpointLabel({
+                      code: runnerDetail.currentCheckpointCode,
+                      kmMarker: runnerDetail.currentCheckpointKmMarker
+                    })}
+                  </strong>
+                </div>
+                <div className="mini-stat">
+                  <span>Total passings</span>
+                  <strong>{runnerDetail.totalPassings}</strong>
+                </div>
+                <div className="mini-stat">
+                  <span>Last scan</span>
+                  <strong>{formatScanTime(runnerDetail.lastScannedAt)}</strong>
+                </div>
+              </div>
+            </div>
+
+            {runnerDetailError ? <div className="empty-compact">{runnerDetailError}</div> : null}
+
+            <div className="passings-list">
+              {runnerDetail.passings.length ? (
+                runnerDetail.passings.map((passing) => (
+                  <article className="passing-card" key={`${runnerDetail.bib}-${passing.checkpointId}`}>
+                    <div>
+                      <span className="detail-label">Checkpoint</span>
+                      <strong>
+                        {formatCheckpointLabel({
+                          code: passing.checkpointCode,
+                          kmMarker: passing.checkpointKmMarker
+                        })}
+                      </strong>
+                      <span>{passing.checkpointName}</span>
+                    </div>
+                    <div>
+                      <span className="detail-label">Passing</span>
+                      <strong>{formatScanTime(passing.scannedAt)}</strong>
+                      <span>Posisi #{passing.position}</span>
+                    </div>
+                    <div>
+                      <span className="detail-label">Crew</span>
+                      <strong>{passing.crewId}</strong>
+                      <span>{passing.deviceId}</span>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="empty-compact">
+                  {isLoadingRunnerDetail
+                    ? "Memuat history passings..."
+                    : "History passings detail belum tersedia di endpoint live, jadi sementara pakai summary progress."}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="empty-state">
+            <strong>Pilih satu pelari dari hasil search.</strong>
+            <span>Panel ini jadi fondasi fitur ala LiveTrail: profile runner, passings, dan favorit.</span>
+          </div>
+        )}
       </section>
 
       <section className="panel menu-feature-panel" hidden={raceDetailView !== "race-page"} id="comparison">
