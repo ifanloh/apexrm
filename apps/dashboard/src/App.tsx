@@ -1189,6 +1189,39 @@ export default function App() {
     const favoriteSet = new Set(favoriteBibs);
     return activeOverallLeaderboard.topEntries.filter((entry) => favoriteSet.has(entry.bib));
   }, [activeOverallLeaderboard.topEntries, favoriteBibs]);
+  const alphabeticalRunnerResults = useMemo(() => {
+    return [...activeOverallLeaderboard.topEntries].sort((left, right) => left.name.localeCompare(right.name));
+  }, [activeOverallLeaderboard.topEntries]);
+  const selectedRunnerEntry = useMemo(() => {
+    if (!selectedRunnerBib) {
+      return null;
+    }
+
+    return (
+      activeOverallLeaderboard.topEntries.find((entry) => entry.bib === selectedRunnerBib) ??
+      fullRankingSource.topEntries.find((entry) => entry.bib === selectedRunnerBib) ??
+      null
+    );
+  }, [activeOverallLeaderboard.topEntries, fullRankingSource.topEntries, selectedRunnerBib]);
+  const comparisonEntries = useMemo(() => {
+    const next: OverallLeaderboard["topEntries"] = [];
+    const seen = new Set<string>();
+
+    const pushIfUnique = (entry: OverallLeaderboard["topEntries"][number] | null | undefined) => {
+      if (!entry || seen.has(entry.bib)) {
+        return;
+      }
+
+      seen.add(entry.bib);
+      next.push(entry);
+    };
+
+    pushIfUnique(selectedRunnerEntry);
+    favoriteRunnerResults.slice(0, 2).forEach(pushIfUnique);
+    activeOverallLeaderboard.topEntries.slice(0, 3).forEach(pushIfUnique);
+
+    return next.slice(0, 2);
+  }, [activeOverallLeaderboard.topEntries, favoriteRunnerResults, selectedRunnerEntry]);
   const recentPassingSummary = useMemo(() => {
     if (!recentPassings.length) {
       return "Belum ada passing";
@@ -1303,6 +1336,13 @@ export default function App() {
   ];
   const topbarSearchPlaceholder = "Search a runner ...";
   const activeRaceStartAt = selectedRaceCard.startAt;
+  const recentPassingRows = recentPassings.slice(0, 16);
+  const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
+  const publicRunnerResults =
+    runnerResults.length || hasRunnerSearchFilters
+      ? runnerResults
+      : buildRunnerFallbackResults(activeOverallLeaderboard.topEntries, "", "all");
+  const myRunnerHeading = selectedRunnerEntry?.name ?? runnerDetail?.name ?? "My runners";
   function toggleFavoriteBib(bib: string) {
     setFavoriteBibs((current) =>
       current.includes(bib) ? current.filter((item) => item !== bib) : [...current, bib].sort((left, right) => left.localeCompare(right))
@@ -1360,7 +1400,7 @@ export default function App() {
 
   function focusTopbarSearch() {
     if (isEditionHome) {
-      openRaceView(featuredRace.slug, "full-ranking");
+      openRaceView(featuredRace.slug, "runner-search");
     }
 
     window.setTimeout(() => {
@@ -1369,24 +1409,35 @@ export default function App() {
     }, 90);
   }
 
-  function focusRanking(view: "overall" | "women") {
-    setFullRankingView(view);
+  function jumpToRaceSection(sectionId: string) {
     if (isEditionHome) {
-      openRaceView(featuredRace.slug, "full-ranking");
+      openRaceView(featuredRace.slug, sectionId);
       return;
     }
 
-    jumpToSection("full-ranking");
+    jumpToSection(sectionId);
+  }
+
+  function focusRanking(view: "overall" | "women") {
+    setFullRankingView(view);
+    jumpToRaceSection("full-ranking");
   }
 
   function focusRunnerSearch() {
     focusTopbarSearch();
-    if (organizerSessionActive) {
-      jumpToSection("runner-finder");
-      return;
+    jumpToRaceSection("runner-search");
+  }
+
+  function focusRunnersList() {
+    jumpToRaceSection("runners-list");
+  }
+
+  function focusFavoritesList() {
+    if (favoriteRunnerResults.length) {
+      setSelectedRunnerBib(favoriteRunnerResults[0].bib);
     }
 
-    jumpToSection("full-ranking");
+    jumpToRaceSection("favorites-list");
   }
 
   function handleRaceSelection(nextValue: string) {
@@ -1413,30 +1464,27 @@ export default function App() {
       setSelectedRunnerBib(favoriteRunnerResults[0].bib);
     }
 
-    if (organizerSessionActive) {
-      jumpToSection("runner-finder");
-      return;
+    jumpToRaceSection("my-runners");
+  }
+
+  function focusComparison() {
+    if (comparisonEntries.length) {
+      setSelectedRunnerBib(comparisonEntries[0].bib);
     }
 
-    focusTopbarSearch();
+    jumpToRaceSection("comparison");
   }
 
   function focusPassingsTable() {
-    if (organizerSessionActive) {
-      jumpToSection("signals");
-      return;
-    }
+    jumpToRaceSection("passings-table");
+  }
 
-    jumpToSection("course-profile");
+  function focusRaceLeaders() {
+    jumpToRaceSection("race-leaders");
   }
 
   function focusStatistics() {
-    if (isEditionHome) {
-      openRaceView(featuredRace.slug, "race-statistics");
-      return;
-    }
-
-    jumpToSection("race-statistics");
+    jumpToRaceSection("race-statistics");
   }
 
   return (
@@ -1465,11 +1513,11 @@ export default function App() {
                 <NavIcon name="search" />
                 <span>Search for a runner</span>
               </button>
-              <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
+              <button className="nav-link nav-link-icon" onClick={focusRunnersList} type="button">
                 <NavIcon name="runners" />
                 <span>Runners list</span>
               </button>
-              <button className="nav-link nav-link-icon" onClick={focusMyRunners} type="button">
+              <button className="nav-link nav-link-icon" onClick={focusFavoritesList} type="button">
                 <NavIcon name="favorite" />
                 <span>Favorites list</span>
               </button>
@@ -1477,7 +1525,7 @@ export default function App() {
                 <NavIcon name="heart" />
                 <span>My runners</span>
               </button>
-              <button className="nav-link nav-link-icon" onClick={focusRunnerSearch} type="button">
+              <button className="nav-link nav-link-icon" onClick={focusComparison} type="button">
                 <NavIcon name="compare" />
                 <span>Comparison</span>
               </button>
@@ -1498,7 +1546,7 @@ export default function App() {
                 <NavIcon name="passings" />
                 <span>Passings table</span>
               </button>
-              <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
+              <button className="nav-link nav-link-icon" onClick={focusRaceLeaders} type="button">
                 <NavIcon name="leaders" />
                 <span>Race leaders</span>
               </button>
@@ -2089,12 +2137,11 @@ export default function App() {
       </section>
       ) : null}
 
-      {organizerSessionActive ? (
-      <section className="panel runner-search-panel" id="runner-finder">
+      <section className="panel runner-search-panel public-runner-search-panel" id="runner-search">
         <div className="panel-head">
           <div>
-            <p className="section-label">Cari Pelari</p>
-            <h3>Runner Finder & Passings</h3>
+            <p className="section-label">The Runners</p>
+            <h3>Search for a runner</h3>
           </div>
           <div className="panel-badge">
             <span>Lookup</span>
@@ -2107,7 +2154,7 @@ export default function App() {
           <label>
             Filter progress checkpoint
             <select value={runnerCheckpointFilter} onChange={(event) => setRunnerCheckpointFilter(event.target.value)}>
-              <option value="all">Semua progress</option>
+              <option value="all">All progress</option>
               {defaultCheckpoints.map((checkpoint) => (
                 <option key={checkpoint.id} value={checkpoint.id}>
                   {formatCheckpointLabel(checkpoint)} | {checkpoint.name}
@@ -2118,7 +2165,7 @@ export default function App() {
 
           <div className="mini-stat">
             <span>Current search</span>
-            <strong>{runnerQuery.trim() ? runnerQuery : "Semua pelari"}</strong>
+            <strong>{runnerQuery.trim() ? runnerQuery : "All runners"}</strong>
           </div>
         </div>
 
@@ -2145,8 +2192,8 @@ export default function App() {
 
         <div className="runner-hub-grid">
           <div className="runner-search-results">
-            {runnerResults.length ? (
-              runnerResults.map((entry) => {
+            {publicRunnerResults.length ? (
+              publicRunnerResults.map((entry) => {
                 const isSelected = selectedRunnerBib === entry.bib;
                 const isFavorite = favoriteBibs.includes(entry.bib);
 
@@ -2189,11 +2236,18 @@ export default function App() {
                             <span className="detail-label">Scan terakhir</span>
                             <strong>{formatScanTime(entry.scannedAt)}</strong>
                           </div>
-                          <div className="detail-cell">
-                            <span className="detail-label">Crew / Device</span>
-                            <strong>{entry.crewId}</strong>
-                            <span>{entry.deviceId}</span>
-                          </div>
+                          {organizerSessionActive ? (
+                            <div className="detail-cell">
+                              <span className="detail-label">Crew / Device</span>
+                              <strong>{entry.crewId}</strong>
+                              <span>{entry.deviceId}</span>
+                            </div>
+                          ) : (
+                            <div className="detail-cell">
+                              <span className="detail-label">Race time</span>
+                              <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </button>
@@ -2212,11 +2266,11 @@ export default function App() {
             )}
           </div>
 
-          <aside className="runner-detail-panel" id="my-runner">
+          <aside className="runner-detail-panel" id="my-runners">
             <div className="panel-head compact">
               <div>
-                <p className="section-label">Runner Detail</p>
-                <h3>{runnerDetail ? runnerDetail.bib : "Pilih pelari"}</h3>
+                <p className="section-label">My runners</p>
+                <h3>{runnerDetail ? myRunnerHeading : "Pilih pelari"}</h3>
               </div>
               {runnerDetail ? (
                 <div className="panel-badge">
@@ -2303,7 +2357,308 @@ export default function App() {
           </aside>
         </div>
       </section>
-      ) : null}
+
+      <section className="menu-feature-grid">
+        <article className="panel menu-feature-panel" id="runners-list">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">The runners</p>
+              <h3>Runners list</h3>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Sorted</span>
+              <strong>A-Z</strong>
+              <span>{alphabeticalRunnerResults.length} runners</span>
+            </div>
+          </div>
+
+          <div className="runner-directory-list">
+            {alphabeticalRunnerResults.length ? (
+              alphabeticalRunnerResults.slice(0, 24).map((entry) => (
+                <button
+                  className="runner-directory-row"
+                  key={`directory-${entry.bib}`}
+                  onClick={() => {
+                    setSelectedRunnerBib(entry.bib);
+                    jumpToSection("my-runners");
+                  }}
+                  type="button"
+                >
+                  <div className="runner-directory-main">
+                    <strong>{entry.name}</strong>
+                    <span>{entry.bib} | {getRunnerTeamName(entry.bib)}</span>
+                  </div>
+                  <div className="runner-directory-meta">
+                    <span>{formatCheckpointProgress(entry)}</span>
+                    <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="empty-state">
+                <strong>Belum ada runners list.</strong>
+                <span>Daftar pelari akan terisi otomatis saat data ranking tersedia.</span>
+              </div>
+            )}
+          </div>
+        </article>
+
+        <article className="panel menu-feature-panel" id="favorites-list">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">The runners</p>
+              <h3>Favorites list</h3>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Saved</span>
+              <strong>{favoriteRunnerResults.length}</strong>
+              <span>tracked runners</span>
+            </div>
+          </div>
+
+          {favoriteRunnerResults.length ? (
+            <div className="favorite-summary-grid">
+              {favoriteRunnerResults.map((entry) => (
+                <article className="favorite-summary-card" key={`favorite-${entry.bib}`}>
+                  <div className="favorite-summary-head">
+                    <div>
+                      <strong>{entry.name}</strong>
+                      <span>{entry.bib} | {getRunnerTeamName(entry.bib)}</span>
+                    </div>
+                    <button className="favorite-toggle active" onClick={() => toggleFavoriteBib(entry.bib)} type="button">
+                      Favorit
+                    </button>
+                  </div>
+                  <div className="favorite-summary-stats">
+                    <div className="mini-stat">
+                      <span>Overall</span>
+                      <strong>#{entry.rank}</strong>
+                    </div>
+                    <div className="mini-stat">
+                      <span>Progress</span>
+                      <strong>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</strong>
+                    </div>
+                    <div className="mini-stat">
+                      <span>Race time</span>
+                      <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
+                    </div>
+                  </div>
+                  <button
+                    className="favorite-summary-open"
+                    onClick={() => {
+                      setSelectedRunnerBib(entry.bib);
+                      jumpToSection("my-runners");
+                    }}
+                    type="button"
+                  >
+                    Open my runner
+                  </button>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <strong>Belum ada runner favorit.</strong>
+              <span>Tandai runner dari hasil search atau ranking untuk membangun shortlist pribadi.</span>
+            </div>
+          )}
+        </article>
+      </section>
+
+      <section className="menu-feature-grid">
+        <article className="panel menu-feature-panel" id="comparison">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">The runners</p>
+              <h3>Comparison</h3>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Compared</span>
+              <strong>{comparisonEntries.length}</strong>
+              <span>runner cards</span>
+            </div>
+          </div>
+
+          {comparisonEntries.length >= 2 ? (
+            <div className="comparison-grid">
+              {comparisonEntries.map((entry) => (
+                <article className="comparison-card" key={`comparison-${entry.bib}`}>
+                  <div className="comparison-head">
+                    <div>
+                      <strong>{entry.name}</strong>
+                      <span>{entry.bib} | {getRunnerTeamName(entry.bib)}</span>
+                    </div>
+                    <button
+                      className={`favorite-toggle ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}
+                      onClick={() => toggleFavoriteBib(entry.bib)}
+                      type="button"
+                    >
+                      {favoriteBibs.includes(entry.bib) ? "Favorit" : "Ikuti"}
+                    </button>
+                  </div>
+                  <div className="comparison-stats-grid">
+                    <div className="mini-stat">
+                      <span>Overall</span>
+                      <strong>#{entry.rank}</strong>
+                    </div>
+                    <div className="mini-stat">
+                      <span>Gender</span>
+                      <strong>{entry.category.toLowerCase() === "women" ? "Woman" : "Man"}</strong>
+                    </div>
+                    <div className="mini-stat">
+                      <span>Nationality</span>
+                      <strong>{getNationalityCode(entry.bib)}</strong>
+                    </div>
+                    <div className="mini-stat">
+                      <span>Race time</span>
+                      <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
+                    </div>
+                  </div>
+                  <div className="comparison-progress">
+                    <span>Progress</span>
+                    <strong>{formatCheckpointProgress(entry)}</strong>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <strong>Belum cukup runner untuk dibandingkan.</strong>
+              <span>Tambahkan minimal dua runner favorit atau pilih runner dari ranking untuk membangun comparison.</span>
+            </div>
+          )}
+        </article>
+
+        <article className="panel menu-feature-panel" id="passings-table">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Follow the race</p>
+              <h3>Passings table</h3>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Source</span>
+              <strong>{recentPassingSummary}</strong>
+              <span>{recentPassingsMode === "server" ? "live feed" : "fallback feed"}</span>
+            </div>
+          </div>
+
+          <div className="passings-table-head">
+            <span>Runner</span>
+            <span>Checkpoint</span>
+            <span>Position</span>
+            <span>Time</span>
+          </div>
+          <div className="passings-table-list">
+            {recentPassingRows.length ? (
+              recentPassingRows.map((passing) => (
+                <button
+                  className="passings-table-row"
+                  key={`passing-table-${passing.bib}-${passing.checkpointId}-${passing.scannedAt}`}
+                  onClick={() => {
+                    setSelectedRunnerBib(passing.bib);
+                    jumpToSection("my-runners");
+                  }}
+                  type="button"
+                >
+                  <strong>{passing.name}</strong>
+                  <span>{formatCheckpointLabel({ code: passing.checkpointCode, kmMarker: passing.checkpointKmMarker })}</span>
+                  <span>#{passing.position}</span>
+                  <time>{formatScanTime(passing.scannedAt)}</time>
+                </button>
+              ))
+            ) : (
+              <div className="empty-state">
+                <strong>Belum ada passings table.</strong>
+                <span>Passing terbaru akan muncul otomatis saat scan resmi masuk.</span>
+              </div>
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section className="panel menu-feature-panel race-leaders-panel" id="race-leaders">
+        <div className="panel-head compact">
+          <div>
+            <p className="section-label">Follow the race</p>
+            <h3>Race leaders</h3>
+          </div>
+          <div className="panel-badge compact-badge">
+            <span>Boards</span>
+            <strong>2</strong>
+            <span>overall + women</span>
+          </div>
+        </div>
+
+        <div className="leaders-grid">
+          <article className="leader-card">
+            <div className="leader-card-head">
+              <span>Overall</span>
+              <button className="toolbar-link" onClick={() => focusRanking("overall")} type="button">
+                See ranking
+              </button>
+            </div>
+            <div className="leader-list">
+              {sidebarOverallRows.map((entry) => (
+                <button
+                  className="leader-list-row"
+                  key={`leader-overall-${entry.bib}`}
+                  onClick={() => {
+                    setSelectedRunnerBib(entry.bib);
+                    jumpToSection("my-runners");
+                  }}
+                  type="button"
+                >
+                  <strong>
+                    #{entry.rank}
+                    <RankingMedal rank={entry.rank} />
+                  </strong>
+                  <div>
+                    <span>{entry.name}</span>
+                    <small>{formatCheckpointProgress(entry)}</small>
+                  </div>
+                  <time>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</time>
+                </button>
+              ))}
+            </div>
+          </article>
+
+          <article className="leader-card">
+            <div className="leader-card-head">
+              <span>Woman</span>
+              <button className="toolbar-link" onClick={() => focusRanking("women")} type="button">
+                See ranking
+              </button>
+            </div>
+            <div className="leader-list">
+              {sidebarWomenRows.length ? (
+                sidebarWomenRows.map((entry) => (
+                  <button
+                    className="leader-list-row"
+                    key={`leader-women-${entry.bib}`}
+                    onClick={() => {
+                      setSelectedRunnerBib(entry.bib);
+                      jumpToSection("my-runners");
+                    }}
+                    type="button"
+                  >
+                    <strong>
+                      #{entry.rank}
+                      <RankingMedal rank={entry.rank} />
+                    </strong>
+                    <div>
+                      <span>{entry.name}</span>
+                      <small>{formatCheckpointProgress(entry)}</small>
+                    </div>
+                    <time>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</time>
+                  </button>
+                ))
+              ) : (
+                <div className="empty-compact">Belum ada women leaders untuk race ini.</div>
+              )}
+            </div>
+          </article>
+        </div>
+      </section>
           </>
         )}
 
@@ -2382,7 +2737,7 @@ export default function App() {
       {!isEditionHome ? (
       <aside className="dashboard-rail live-ranking-rail">
         <div className="rail">
-              <article className="panel rail-panel rail-ranking-panel" id="race-leaders">
+              <article className="panel rail-panel rail-ranking-panel" id="race-leaders-sidebar">
                 <div className="rail-panel-head">
                   <span>Ranking</span>
                   <h3>Overall</h3>

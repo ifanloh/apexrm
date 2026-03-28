@@ -2846,6 +2846,249 @@ body {
   transform: rotate(0deg);
 }
 
+.public-runner-search-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.menu-feature-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.menu-feature-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.runner-directory-list,
+.favorite-summary-grid,
+.leaders-grid,
+.comparison-grid,
+.passings-table-list {
+  display: grid;
+  gap: 12px;
+}
+
+.runner-directory-row,
+.favorite-summary-card,
+.comparison-card,
+.leader-card,
+.passings-table-row {
+  background: var(--surface);
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 18px;
+}
+
+.runner-directory-row,
+.passings-table-row,
+.leader-list-row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.runner-directory-row {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  padding: 14px 16px;
+}
+
+.runner-directory-main,
+.runner-directory-meta,
+.favorite-summary-head,
+.comparison-head {
+  display: grid;
+  gap: 4px;
+}
+
+.runner-directory-main strong,
+.favorite-summary-head strong,
+.comparison-head strong,
+.leader-list-row div span {
+  color: var(--ink);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.runner-directory-main span,
+.runner-directory-meta span,
+.favorite-summary-head span,
+.comparison-head span,
+.leader-list-row div small {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.runner-directory-meta {
+  justify-items: end;
+}
+
+.runner-directory-meta strong,
+.passings-table-row time,
+.leader-list-row time {
+  color: var(--ink);
+  font-family: "Oxanium", sans-serif;
+  font-size: 0.92rem;
+}
+
+.favorite-summary-grid,
+.comparison-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.favorite-summary-card,
+.comparison-card,
+.leader-card {
+  padding: 16px;
+}
+
+.favorite-summary-head,
+.comparison-head,
+.leader-card-head {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.favorite-summary-stats,
+.comparison-stats-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 12px;
+}
+
+.comparison-stats-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.favorite-summary-open {
+  background: transparent;
+  border: 1px solid rgba(13, 115, 80, 0.28);
+  border-radius: 999px;
+  color: var(--brand);
+  font: inherit;
+  font-weight: 700;
+  margin-top: 12px;
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+.comparison-progress {
+  border-top: 1px solid rgba(20, 22, 24, 0.08);
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.comparison-progress span,
+.leader-card-head span,
+.passings-table-head span {
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.comparison-progress strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.passings-table-head {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 80px 110px;
+  padding: 0 8px;
+}
+
+.passings-table-row {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 80px 110px;
+  padding: 14px 16px;
+}
+
+.passings-table-row strong {
+  color: var(--ink);
+  font-size: 0.94rem;
+}
+
+.passings-table-row span {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.leaders-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.leader-card-head {
+  margin-bottom: 12px;
+}
+
+.leader-card-head .toolbar-link {
+  flex: 0 0 auto;
+}
+
+.leader-list {
+  display: grid;
+  gap: 10px;
+}
+
+.leader-list-row {
+  background: rgba(20, 22, 24, 0.02);
+  border: 1px solid rgba(20, 22, 24, 0.06);
+  border-radius: 14px;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
+  padding: 12px 14px;
+}
+
+.leader-list-row strong {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 1rem;
+  gap: 6px;
+}
+
+.leader-list-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.public-runner-search-panel .runner-card-select {
+  width: 100%;
+}
+
+.public-runner-search-panel .runner-detail-panel {
+  min-height: 100%;
+}
+
+@media (max-width: 1280px) {
+  .menu-feature-grid,
+  .favorite-summary-grid,
+  .comparison-grid,
+  .leaders-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .passings-table-head,
+  .passings-table-row,
+  .runner-directory-row {
+    grid-template-columns: 1fr;
+  }
+
+  .runner-directory-meta {
+    justify-items: start;
+  }
+}
+
 .nav-link {
   background: transparent;
   border: 0;
