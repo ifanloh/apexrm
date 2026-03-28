@@ -4467,6 +4467,74 @@ body {
   margin-top: 12px;
 }
 
+.race-course-info-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 6px;
+  padding: 18px 18px 20px;
+}
+
+.race-course-info-head {
+  display: grid;
+  gap: 4px;
+}
+
+.race-course-info-head h2 {
+  color: var(--green);
+  font-family: "Red Hat Display", sans-serif;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.race-course-info-head small {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.race-course-info-body {
+  display: grid;
+  gap: 16px;
+}
+
+.race-course-info-body p {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin: 0;
+  max-width: 72ch;
+}
+
+.race-course-info-meta {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.race-course-info-meta article {
+  background: #fffdf9;
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 14px;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.race-course-info-meta article span {
+  color: var(--green);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.race-course-info-meta article strong {
+  color: var(--ink);
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 0.96rem;
+  line-height: 1.25;
+}
+
 .race-detail-hero {
   margin-top: 6px;
   padding: 10px 14px 14px;
@@ -5287,7 +5355,8 @@ body {
   .course-map-card,
   .course-profile-headline,
   .course-profile-footer,
-  .ranking-advanced-filters {
+  .ranking-advanced-filters,
+  .race-course-info-meta {
     grid-template-columns: 1fr;
   }
 
@@ -5496,9 +5565,15 @@ body {
   background: #eef2e7;
   border: 1px solid rgba(20, 22, 24, 0.08);
   border-radius: 22px;
+  display: grid;
+  gap: 14px;
   min-height: 420px;
   overflow: hidden;
-  padding: 0;
+  padding: 18px 18px 0;
+}
+
+.course-map-title {
+  gap: 4px;
 }
 
 .course-inline-map {

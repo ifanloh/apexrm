@@ -2084,15 +2084,36 @@ export default function App() {
           </button>
         </div>
 
-        <section className="panel race-detail-hero" hidden={raceDetailView !== "race-page"} id="race-hub">
-            <div className="race-detail-hero-head">
-              <span className={`race-status-pill ${isActiveRaceLive ? "live" : ""}`}>
-                {selectedRaceCard.editionLabel}
-              </span>
+        <section className="panel race-course-info-panel" hidden={raceDetailView !== "race-page"} id="race-hub">
+          <div className="race-course-info-head">
+            <span className="detail-label">Info deskripsi course</span>
             <h2>{eventTitle}</h2>
+            <small>{selectedRaceCard.editionLabel}</small>
           </div>
 
-          <div className="race-stat-strip" id="race-overview-strip">
+          <div className="race-course-info-body">
+            <p>{activeCourse.subtitle}</p>
+            <div className="race-course-info-meta">
+              <article>
+                <span>Start</span>
+                <strong>{selectedRaceCard.startTown}</strong>
+              </article>
+              <article>
+                <span>Distance</span>
+                <strong>{totalDistanceKm.toFixed(1)} km</strong>
+              </article>
+              <article>
+                <span>Ascent</span>
+                <strong>{activeAscentM} m+</strong>
+              </article>
+              <article>
+                <span>Race state</span>
+                <strong>{isActiveRaceLive ? "Live race" : "Finished race"}</strong>
+              </article>
+            </div>
+          </div>
+
+          <div className="race-stat-strip" hidden id="race-overview-strip">
             <article className="race-stat-strip-item">
               <span>Distance</span>
               <strong>{totalDistanceKm.toFixed(1)} KM</strong>
@@ -2596,7 +2617,7 @@ export default function App() {
       </section>
 
       {organizerSessionActive ? (
-      <section className="panel checkpoint-monitor-panel" hidden={raceDetailView !== "race-page"}>
+      <section className="panel checkpoint-monitor-panel" hidden>
         <div className="panel-head">
           <div>
             <p className="section-label">Checkpoint Monitor</p>
@@ -3523,7 +3544,7 @@ export default function App() {
         )}
       </section>
 
-      <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "leaders"} id="race-leaders">
+      <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "leaders" && raceDetailView !== "race-page"} id="race-leaders">
         <div className="panel-head compact">
           <div>
             <p className="section-label">Follow the race</p>
