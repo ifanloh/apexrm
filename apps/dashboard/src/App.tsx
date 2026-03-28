@@ -2381,7 +2381,10 @@ export default function App() {
                   {sidebarOverallRows.length ? (
                     sidebarOverallRows.map((entry) => (
                       <div className="mini-leaderboard-row live" key={`rail-overall-${entry.bib}`}>
-                        <strong>{entry.rank}</strong>
+                        <strong>
+                          {entry.rank}
+                          <RankingMedal rank={entry.rank} />
+                        </strong>
                         <div>
                           <span>{entry.name}</span>
                           <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>
@@ -2419,7 +2422,10 @@ export default function App() {
                   {sidebarWomenRows.length ? (
                     sidebarWomenRows.map((entry) => (
                       <div className="mini-leaderboard-row live" key={`rail-women-${entry.bib}`}>
-                        <strong>{entry.rank}</strong>
+                        <strong>
+                          {entry.rank}
+                          <RankingMedal rank={entry.rank} />
+                        </strong>
                         <div>
                           <span>{entry.name}</span>
                           <small>{entry.checkpointId === "finish" ? "Arrivee" : entry.checkpointId === "cp-start" ? "Depart" : entry.checkpointName}</small>

@@ -220,7 +220,7 @@ export function RaceEditionHome({
                       <div className="race-card-ranking-row" key={`${card.slug}-${entry.rank}-${entry.bib}`}>
                         <strong>
                           {entry.rank}
-                          <PreviewPodium rank={entry.rank} />
+                          {!isLiveCard ? <PreviewPodium rank={entry.rank} /> : null}
                         </strong>
                         <div className="race-card-runner">
                           <span>{entry.name}</span>
