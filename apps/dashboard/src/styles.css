@@ -2833,13 +2833,13 @@ body {
   content: "";
   display: block;
   height: 8px;
-  transform: rotate(45deg);
+  transform: rotate(-45deg);
   transition: transform 180ms ease;
   width: 8px;
 }
 
 .nav-chevron.open::before {
-  transform: rotate(225deg) translate(-1px, -1px);
+  transform: rotate(45deg);
 }
 
 .nav-link {
