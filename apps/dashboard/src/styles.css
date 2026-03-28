@@ -2869,6 +2869,179 @@ body {
   gap: 14px;
 }
 
+.runner-list-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.runner-list-toolbar,
+.runner-list-pagination {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.runner-list-pagination {
+  grid-template-columns: minmax(0, 180px) auto auto;
+  justify-content: end;
+}
+
+.runner-list-table {
+  border-top: 1px solid rgba(20, 22, 24, 0.08);
+  display: grid;
+  gap: 0;
+}
+
+.runner-list-head,
+.runner-list-row {
+  align-items: center;
+  column-gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(160px, 0.9fr) minmax(320px, 1.6fr) 88px 110px minmax(170px, 1fr) 120px;
+}
+
+.runner-list-head {
+  color: var(--green);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  min-height: 54px;
+  padding: 0 12px;
+  text-transform: uppercase;
+}
+
+.runner-list-body {
+  display: grid;
+}
+
+.runner-list-row {
+  background: rgba(255, 255, 255, 0.82);
+  border-top: 1px solid rgba(20, 22, 24, 0.06);
+  min-height: 76px;
+  padding: 10px 12px;
+}
+
+.runner-list-row:nth-child(even) {
+  background: rgba(247, 244, 236, 0.92);
+}
+
+.runner-list-race strong {
+  display: block;
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.runner-list-runner {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 74px 46px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.runner-list-bib {
+  font-size: 1rem;
+  min-height: 44px;
+}
+
+.runner-list-avatar {
+  border: 2px solid rgba(31, 209, 122, 0.82);
+  border-radius: 999px;
+  height: 44px;
+  width: 44px;
+}
+
+.runner-list-runner-copy,
+.runner-list-info {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.runner-list-runner-copy strong,
+.runner-list-category strong,
+.runner-list-country small,
+.runner-list-info strong {
+  color: var(--ink);
+}
+
+.runner-list-runner-copy span,
+.runner-list-info span,
+.runner-list-country small {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.runner-list-country,
+.runner-list-category,
+.runner-list-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.runner-list-country {
+  flex-direction: column;
+  justify-content: center;
+}
+
+.runner-list-category strong {
+  font-size: 0.9rem;
+}
+
+.runner-list-info strong {
+  font-size: 0.86rem;
+}
+
+.runner-list-actions {
+  justify-content: flex-end;
+}
+
+.runner-list-action-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(20, 22, 24, 0.12);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  display: inline-flex;
+  height: 34px;
+  justify-content: center;
+  padding: 0;
+  width: 34px;
+}
+
+.runner-list-action-button.active {
+  background: rgba(13, 115, 80, 0.08);
+  border-color: rgba(13, 115, 80, 0.26);
+  color: var(--brand);
+}
+
+.runner-list-action-button .nav-icon-svg {
+  height: 15px;
+  width: 15px;
+}
+
+.runner-status-pill.live {
+  background: rgba(239, 74, 82, 0.12);
+  color: #c8454c;
+}
+
+.runner-status-pill.withdrawn {
+  background: rgba(239, 95, 74, 0.12);
+  color: #ca533d;
+}
+
+.runner-status-pill.dns {
+  background: rgba(102, 104, 114, 0.12);
+  color: #61656f;
+}
+
+.runner-status-pill.registered {
+  background: rgba(214, 125, 47, 0.12);
+  color: #ad6d1f;
+}
+
 .runner-directory-list,
 .favorite-summary-grid,
 .leaders-grid,
@@ -3056,12 +3229,31 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .runner-list-toolbar,
+  .runner-list-pagination {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .runner-list-head {
+    display: none;
+  }
+
   .runner-directory-row {
     grid-template-columns: 1fr;
   }
 
   .runner-directory-meta {
     justify-items: start;
+  }
+
+  .runner-list-row {
+    grid-template-columns: 1fr;
+    row-gap: 12px;
+  }
+
+  .runner-list-actions {
+    justify-content: flex-start;
   }
 
   .statistics-card-grid,
