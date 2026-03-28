@@ -3116,6 +3116,10 @@ body {
   gap: 14px;
 }
 
+.runners-list-view {
+  gap: 18px;
+}
+
 .runner-list-shell {
   display: grid;
   gap: 16px;
@@ -3183,20 +3187,13 @@ body {
   align-items: center;
   display: grid;
   gap: 12px;
-  grid-template-columns: 74px 46px minmax(0, 1fr);
+  grid-template-columns: 74px minmax(0, 1fr);
   min-width: 0;
 }
 
 .runner-list-bib {
   font-size: 1rem;
   min-height: 44px;
-}
-
-.runner-list-avatar {
-  border: 2px solid rgba(31, 209, 122, 0.82);
-  border-radius: 999px;
-  height: 44px;
-  width: 44px;
 }
 
 .runner-list-runner-copy,
@@ -3285,16 +3282,8 @@ body {
   font-size: 1.15rem;
 }
 
-.favorites-list-bib span {
-  color: var(--ink-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .favorites-list-runner {
-  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .favorites-race-cell,

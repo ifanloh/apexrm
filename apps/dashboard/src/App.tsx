@@ -93,7 +93,6 @@ type RunnerDirectoryEntry = {
   state: Exclude<RunnerDirectoryState, "all">;
   statusLabel: string;
   infoLabel: string;
-  indexValue: number;
   raceTime: string;
   rank: number | null;
   scannedAt: string;
@@ -428,10 +427,6 @@ function formatRelativeTime(value: string) {
 
 function formatCategoryLabel(category: string) {
   return category === "women" ? "Women" : category === "men" ? "Men" : category;
-}
-
-function getRunnerDirectoryIndexValue(bib: string) {
-  return 650 + getStableIndex(`${bib}-index`, 320);
 }
 
 function normalizeRunnerDirectoryState(
@@ -1532,7 +1527,6 @@ export default function App() {
         teamName: getRunnerTeamName(entry.bib),
         countryCode: getNationalityCode(entry.bib) as CountryCode,
         infoLabel: `Club ${getRunnerTeamName(entry.bib)}`,
-        indexValue: getRunnerDirectoryIndexValue(entry.bib),
         ...entry
       }));
 
@@ -1552,7 +1546,6 @@ export default function App() {
           state,
           statusLabel: formatRunnerDirectoryStateLabel(state),
           infoLabel: `Club ${getRunnerTeamName(bib)}`,
-          indexValue: getRunnerDirectoryIndexValue(bib),
           raceTime: "--:--:--",
           rank: null,
           scannedAt: race.startAt
@@ -2785,7 +2778,7 @@ export default function App() {
               <span>Race</span>
               <span>Runner/Team</span>
               <span>Country</span>
-              <span>Categ.</span>
+              <span>Gender</span>
               <span>Info</span>
               <span>Actions</span>
             </div>
@@ -2813,7 +2806,6 @@ export default function App() {
 
                       <div className="runner-list-runner">
                         <div className="bib-tile runner-list-bib">{entry.bib}</div>
-                        <div aria-hidden="true" className="runner-avatar runner-list-avatar" />
                         <div className="runner-list-runner-copy">
                           <strong>{entry.name}</strong>
                           <span>{entry.teamName}</span>
@@ -2839,8 +2831,7 @@ export default function App() {
                       </div>
 
                       <div className="runner-list-info">
-                        <span>{entry.infoLabel}</span>
-                        <strong>UTMB Index {entry.indexValue}</strong>
+                        <strong>{entry.infoLabel}</strong>
                       </div>
 
                       <div className="runner-list-actions">
@@ -2919,8 +2910,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="menu-feature-grid" hidden={raceDetailView !== "runners-list"}>
-        <article className="panel menu-feature-panel" id="runners-list">
+      <section className="panel menu-feature-panel runners-list-view" hidden={raceDetailView !== "runners-list"} id="runners-list">
           <div className="panel-head compact">
             <div>
               <p className="section-label">The runners</p>
@@ -2933,7 +2923,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="runner-list-shell">
+        <div className="runner-list-shell">
             <div className="runner-list-toolbar">
               <label className="ranking-toolbar-label">
                 In what state ?
@@ -3032,12 +3022,12 @@ export default function App() {
               </div>
             </div>
 
-            <div className="runner-list-table">
+          <div className="runner-list-table">
               <div className="runner-list-head">
                 <span>Race</span>
                 <span>Runner/Team</span>
                 <span>Country</span>
-                <span>Categ.</span>
+                <span>Gender</span>
                 <span>Info</span>
                 <span>Actions</span>
               </div>
@@ -3065,7 +3055,6 @@ export default function App() {
 
                         <div className="runner-list-runner">
                           <div className="bib-tile runner-list-bib">{entry.bib}</div>
-                          <div aria-hidden="true" className="runner-avatar runner-list-avatar" />
                           <div className="runner-list-runner-copy">
                             <strong>{entry.name}</strong>
                             <span>{entry.teamName}</span>
@@ -3091,8 +3080,7 @@ export default function App() {
                         </div>
 
                         <div className="runner-list-info">
-                          <span>{entry.infoLabel}</span>
-                          <strong>UTMB Index {entry.indexValue}</strong>
+                          <strong>{entry.infoLabel}</strong>
                         </div>
 
                         <div className="runner-list-actions">
@@ -3129,7 +3117,7 @@ export default function App() {
               )}
             </div>
 
-            <div className="runner-list-pagination">
+          <div className="runner-list-pagination">
               <label className="rows-per-page">
                 Rows per page
                 <select
@@ -3176,9 +3164,8 @@ export default function App() {
                   Â»
                 </button>
               </div>
-            </div>
           </div>
-        </article>
+        </div>
 
       </section>
 
@@ -3297,11 +3284,9 @@ export default function App() {
                     <article className="runner-list-row favorites-list-row" key={`favorite-row-${entry.raceSlug}-${entry.bib}`}>
                       <div className="favorites-list-bib">
                         <strong>{entry.bib}</strong>
-                        <span>{entry.indexValue}</span>
                       </div>
 
                       <div className="runner-list-runner favorites-list-runner">
-                        <div aria-hidden="true" className="runner-avatar runner-list-avatar" />
                         <div className="runner-list-runner-copy">
                           <strong>{entry.name}</strong>
                           <span>{entry.teamName}</span>
