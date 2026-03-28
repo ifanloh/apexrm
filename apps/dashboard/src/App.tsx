@@ -460,7 +460,7 @@ function formatRunnerDirectoryStateLabel(state: Exclude<RunnerDirectoryState, "a
     case "dns":
       return "DNS";
     case "withdrawn":
-      return "Withdrawn";
+      return "DNF";
     default:
       return "Registered";
   }
@@ -1724,13 +1724,18 @@ export default function App() {
         rankingPreview: (overallLeaderboard.topEntries.length ? overallLeaderboard.topEntries : previewOverallLeaderboard.topEntries)
           .slice(0, 3)
           .map((entry) => ({
-          rank: entry.rank,
-          name: entry.name,
-          bib: entry.bib,
-          gap: formatElapsedRaceTime(entry.scannedAt, race.startAt),
-          status: "Finisher" as const,
-          category: (entry.category.toLowerCase() === "women" ? "women" : "men") as "women" | "men"
-        })),
+            rank: entry.rank,
+            name: entry.name,
+            bib: entry.bib,
+            gap: formatElapsedRaceTime(entry.scannedAt, race.startAt),
+            status: entry.checkpointId === "finish" ? ("Finisher" as const) : ("In race" as const),
+            category: (entry.category.toLowerCase() === "women" ? "women" : "men") as "women" | "men",
+            checkpointId: entry.checkpointId,
+            checkpointCode: entry.checkpointCode,
+            checkpointName: entry.checkpointName,
+            checkpointKmMarker: entry.checkpointKmMarker,
+            checkpointOrder: entry.checkpointOrder
+          })),
         isLive: true,
         isSelected: race.slug === selectedRaceCard.slug
       };

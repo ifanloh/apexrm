@@ -95,6 +95,26 @@ function getPreviewDisplayTime(entry: DemoRaceRankingPreview, index: number, pre
   return formatClockDuration(leaderSeconds + deltaSeconds);
 }
 
+function getPreviewStatusLabel(entry: DemoRaceRankingPreview, isLiveCard: boolean) {
+  if (entry.status === "No ranking") {
+    return "DNF";
+  }
+
+  if (entry.checkpointId === "finish" || entry.status === "Finisher") {
+    return "Finisher";
+  }
+
+  if (isLiveCard) {
+    if (entry.checkpointId === "cp-start") {
+      return "Depart";
+    }
+
+    return entry.checkpointCode ?? entry.checkpointName ?? "In race";
+  }
+
+  return "In race";
+}
+
 function PreviewPodium({ rank }: { rank: number }) {
   const icon = rank === 1 ? podium1stIcon : rank === 2 ? podium2ndIcon : rank === 3 ? podium3rdIcon : null;
 
@@ -224,7 +244,7 @@ export function RaceEditionHome({
                         </strong>
                         <div className="race-card-runner">
                           <span>{entry.name}</span>
-                          <small>{entry.status}</small>
+                          <small>{getPreviewStatusLabel(entry, isLiveCard)}</small>
                         </div>
                         <time>{getPreviewDisplayTime(entry, index, card.rankingPreview)}</time>
                       </div>
