@@ -1,29 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700;800&family=Roboto:wght@400;500;700&family=Rubik:wght@400;500;600;700;800&display=swap");
 
 :root {
-  color-scheme: dark;
-  font-family: "Inter", sans-serif;
-  --bg: #111217;
-  --bg-soft: #171920;
-  --surface: #181b21;
-  --surface-strong: #1d2027;
-  --surface-elevated: #222631;
-  --sidebar: linear-gradient(180deg, #173f35 0%, #12382f 40%, #101920 100%);
-  --stroke: rgba(255, 255, 255, 0.08);
-  --stroke-strong: rgba(255, 199, 119, 0.28);
-  --ink: #f6f2eb;
-  --ink-soft: rgba(246, 242, 235, 0.78);
-  --ink-muted: rgba(246, 242, 235, 0.52);
-  --gold: #ffbf6e;
-  --gold-soft: rgba(255, 191, 110, 0.14);
-  --green: #1fd17a;
-  --green-soft: rgba(31, 209, 122, 0.18);
-  --danger: #ff6f6f;
-  --shadow: 0 28px 70px rgba(0, 0, 0, 0.34);
-}
-
-:root[data-theme="light"] {
   color-scheme: light;
+  font-family: "Inter", sans-serif;
   --bg: #eff3f7;
   --bg-soft: #f4f6f9;
   --surface: rgba(255, 255, 255, 0.94);
@@ -87,8 +66,8 @@ button {
 
 input,
 select {
-  background: rgba(20, 23, 30, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(28, 42, 56, 0.12);
   border-radius: 14px;
   color: var(--ink);
   min-height: 46px;
@@ -3942,7 +3921,11 @@ body {
 .organizer-signal-card,
 .runner-search-panel,
 .my-runners-panel,
-.checkpoint-monitor-panel {
+.checkpoint-monitor-panel,
+.menu-feature-panel,
+.runners-list-view,
+.favorites-list-view,
+.race-leaders-panel {
   background: var(--surface);
   border: 1px solid rgba(20, 22, 24, 0.08);
   border-radius: 26px;
