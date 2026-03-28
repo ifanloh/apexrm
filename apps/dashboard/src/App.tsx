@@ -2088,7 +2088,7 @@ export default function App() {
           </button>
         </div>
 
-        <section className="panel race-detail-hero" id="race-hub">
+        <section className="panel race-detail-hero" hidden={raceDetailView !== "race-page"} id="race-hub">
             <div className="race-detail-hero-head">
               <span className={`race-status-pill ${isActiveRaceLive ? "live" : ""}`}>
                 {selectedRaceCard.editionLabel}
