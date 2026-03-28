@@ -2819,6 +2819,10 @@ body {
   max-width: 184px;
 }
 
+.live-sidebar-logo .brand-logo-image {
+  filter: brightness(0) invert(1);
+}
+
 .live-sidebar-nav .nav-link,
 .live-sidebar-nav .nav-link-primary,
 .live-sidebar-nav .nav-link-footer {
