@@ -2037,17 +2037,6 @@ export default function App() {
                   }
                 }}
               />
-              <button
-                aria-label="Open runner search"
-                className="topbar-search-submit"
-                onClick={focusRunnerSearch}
-                type="button"
-              >
-                <svg viewBox="0 0 20 20">
-                  <circle cx="8.1" cy="8.1" fill="none" r="5.1" stroke="currentColor" strokeWidth="2" />
-                  <path d="m11.9 11.9 4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                </svg>
-              </button>
             </div>
           </div>
 
@@ -2711,12 +2700,6 @@ export default function App() {
                 onChange={(event) => setRunnerQuery(event.target.value)}
                 type="text"
               />
-              <button aria-label="Search runners" className="search-runner-submit" onClick={focusRunnerSearch} type="button">
-                <svg viewBox="0 0 20 20">
-                  <circle cx="8.1" cy="8.1" fill="none" r="5.1" stroke="currentColor" strokeWidth="2" />
-                  <path d="m11.9 11.9 4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-                </svg>
-              </button>
             </div>
 
             <label className="ranking-toolbar-label">
