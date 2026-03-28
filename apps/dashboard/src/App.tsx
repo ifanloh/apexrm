@@ -82,7 +82,7 @@ const COUNTRY_META: Record<
 type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
 type RankingView = "overall" | "women" | "men";
-type RaceDetailView = "race-page" | "runner-search" | "favorites" | "ranking" | "leaders" | "statistics";
+type RaceDetailView = "race-page" | "runner-search" | "favorites" | "my-runners" | "ranking" | "leaders" | "statistics";
 type RunnerDirectoryState = "all" | "registered" | "in-race" | "finisher" | "dns" | "withdrawn";
 type RunnerDirectoryEntry = {
   raceSlug: string;
@@ -1947,11 +1947,11 @@ export default function App() {
   }
 
   function focusMyRunners() {
-    if (favoriteRunnerResults.length) {
-      setSelectedRunnerBib(favoriteRunnerResults[0].bib);
+    if (favoriteDirectoryEntries.length) {
+      setSelectedRunnerBib(favoriteDirectoryEntries[0].bib);
     }
 
-    jumpToRaceSection("my-runners", "race-page");
+    jumpToRaceSection("my-runners", "my-runners");
   }
 
   function focusComparison() {
@@ -2929,7 +2929,7 @@ export default function App() {
                           onClick={() => {
                             setSelectedRaceSlug(entry.raceSlug);
                             setSelectedRunnerBib(entry.bib);
-                            jumpToRaceSection("my-runners", "race-page");
+                            jumpToRaceSection("my-runners", "my-runners");
                           }}
                           type="button"
                         >
@@ -3193,7 +3193,7 @@ export default function App() {
                             onClick={() => {
                               setSelectedRaceSlug(entry.raceSlug);
                               setSelectedRunnerBib(entry.bib);
-                              jumpToRaceSection("my-runners", "race-page");
+                              jumpToRaceSection("my-runners", "my-runners");
                             }}
                             type="button"
                           >
@@ -3454,7 +3454,7 @@ export default function App() {
                           onClick={() => {
                             setSelectedRaceSlug(entry.raceSlug);
                             setSelectedRunnerBib(entry.bib);
-                            jumpToRaceSection("my-runners", "race-page");
+                            jumpToRaceSection("my-runners", "my-runners");
                           }}
                           type="button"
                         >
@@ -3515,92 +3515,142 @@ export default function App() {
         </div>
       </section>
 
-      <section className="panel menu-feature-panel runner-detail-panel my-runners-panel" hidden={raceDetailView !== "race-page"} id="my-runners">
-        <div className="panel-head compact">
-          <div>
-            <p className="section-label">My runners</p>
-            <h3>{runnerDetail ? myRunnerHeading : "Pilih pelari"}</h3>
-          </div>
-          {runnerDetail ? (
-            <div className="panel-badge">
-              <span>Overall rank</span>
-              <strong>#{runnerDetail.rank}</strong>
-            </div>
-          ) : null}
+      <section className="panel menu-feature-panel runner-detail-panel my-runners-panel" hidden={raceDetailView !== "my-runners"} id="my-runners">
+        <div className="search-runner-head">
+          <p className="section-label">The runners</p>
+          <h2>My followed runners</h2>
         </div>
 
-        {runnerDetail ? (
-          <>
-            <div className="runner-detail-summary">
-              <div className="runner-cell">
-                <div aria-hidden="true" className="runner-avatar" />
-                <div>
-                  <strong>{runnerDetail.name}</strong>
-                  <span>BIB #{runnerDetail.bib}</span>
-                </div>
-              </div>
-              <div className="runner-detail-stats">
-                <div className="mini-stat">
-                  <span>Current progress</span>
-                  <strong>
-                    {formatCheckpointLabel({
-                      code: runnerDetail.currentCheckpointCode,
-                      kmMarker: runnerDetail.currentCheckpointKmMarker
-                    })}
-                  </strong>
-                </div>
-                <div className="mini-stat">
-                  <span>Total passings</span>
-                  <strong>{runnerDetail.totalPassings}</strong>
-                </div>
-                <div className="mini-stat">
-                  <span>Last scan</span>
-                  <strong>{formatScanTime(runnerDetail.lastScannedAt)}</strong>
-                </div>
-              </div>
+        {favoriteDirectoryEntries.length ? (
+          <div className="my-followed-layout">
+            <div className="my-followed-grid">
+              {favoriteDirectoryEntries.map((entry) => {
+                const isSelected = selectedRunnerBib === entry.bib;
+                const statusClass =
+                  entry.state === "finisher"
+                    ? "finished"
+                    : entry.state === "withdrawn"
+                      ? "withdrawn"
+                      : entry.state === "dns"
+                        ? "dns"
+                        : entry.state === "in-race"
+                          ? "live"
+                          : "registered";
+
+                return (
+                  <button
+                    className={`my-followed-card ${isSelected ? "active" : ""}`}
+                    key={`my-followed-${entry.raceSlug}-${entry.bib}`}
+                    onClick={() => {
+                      setSelectedRaceSlug(entry.raceSlug);
+                      setSelectedRunnerBib(entry.bib);
+                    }}
+                    type="button"
+                  >
+                    <div className="my-followed-card-head">
+                      <strong>{entry.name}</strong>
+                      <img
+                        alt={entry.countryCode}
+                        className="flag-icon"
+                        height="18"
+                        loading="lazy"
+                        src={getFlagIconUrl(entry.countryCode)}
+                        width="24"
+                      />
+                    </div>
+                    <span>{entry.bib} | {entry.raceTitle}</span>
+                    <div className={`runner-status-pill ${statusClass}`}>{entry.statusLabel}</div>
+                  </button>
+                );
+              })}
             </div>
 
-            {runnerDetailError ? <div className="empty-compact">{runnerDetailError}</div> : null}
-
-            <div className="passings-list">
-              {runnerDetail.passings.length ? (
-                runnerDetail.passings.map((passing) => (
-                  <article className="passing-card" key={`${runnerDetail.bib}-${passing.checkpointId}`}>
+            {runnerDetail ? (
+              <div className="my-runners-detail-shell">
+                <div className="runner-detail-summary">
+                  <div className="runner-cell">
+                    <div aria-hidden="true" className="runner-avatar" />
                     <div>
-                      <span className="detail-label">Checkpoint</span>
+                      <strong>{runnerDetail.name}</strong>
+                      <span>BIB #{runnerDetail.bib}</span>
+                    </div>
+                  </div>
+                  <div className="runner-detail-stats">
+                    <div className="mini-stat">
+                      <span>Current progress</span>
                       <strong>
                         {formatCheckpointLabel({
-                          code: passing.checkpointCode,
-                          kmMarker: passing.checkpointKmMarker
+                          code: runnerDetail.currentCheckpointCode,
+                          kmMarker: runnerDetail.currentCheckpointKmMarker
                         })}
                       </strong>
-                      <span>{passing.checkpointName}</span>
                     </div>
-                    <div>
-                      <span className="detail-label">Passing</span>
-                      <strong>{formatScanTime(passing.scannedAt)}</strong>
-                      <span>Posisi #{passing.position}</span>
+                    <div className="mini-stat">
+                      <span>Total passings</span>
+                      <strong>{runnerDetail.totalPassings}</strong>
                     </div>
-                    <div>
-                      <span className="detail-label">Crew</span>
-                      <strong>{passing.crewId}</strong>
-                      <span>{passing.deviceId}</span>
+                    <div className="mini-stat">
+                      <span>Last scan</span>
+                      <strong>{formatScanTime(runnerDetail.lastScannedAt)}</strong>
                     </div>
-                  </article>
-                ))
-              ) : (
-                <div className="empty-compact">
-                  {isLoadingRunnerDetail
-                    ? "Memuat history passings..."
-                    : "History passings detail belum tersedia di endpoint live, jadi sementara pakai summary progress."}
+                  </div>
                 </div>
-              )}
-            </div>
-          </>
+
+                {runnerDetailError ? <div className="empty-compact">{runnerDetailError}</div> : null}
+
+                <div className="passings-list">
+                  {runnerDetail.passings.length ? (
+                    runnerDetail.passings.map((passing) => (
+                      <article className="passing-card" key={`${runnerDetail.bib}-${passing.checkpointId}`}>
+                        <div>
+                          <span className="detail-label">Checkpoint</span>
+                          <strong>
+                            {formatCheckpointLabel({
+                              code: passing.checkpointCode,
+                              kmMarker: passing.checkpointKmMarker
+                            })}
+                          </strong>
+                          <span>{passing.checkpointName}</span>
+                        </div>
+                        <div>
+                          <span className="detail-label">Passing</span>
+                          <strong>{formatScanTime(passing.scannedAt)}</strong>
+                          <span>Posisi #{passing.position}</span>
+                        </div>
+                        <div>
+                          <span className="detail-label">Crew</span>
+                          <strong>{passing.crewId}</strong>
+                          <span>{passing.deviceId}</span>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="empty-compact">
+                      {isLoadingRunnerDetail
+                        ? "Memuat history passings..."
+                        : "History passings detail belum tersedia di endpoint live, jadi sementara pakai summary progress."}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <strong>Pilih satu pelari yang kamu ikuti.</strong>
+              </div>
+            )}
+          </div>
         ) : (
-          <div className="empty-state">
-            <strong>Pilih satu pelari dari hasil search.</strong>
-            <span>Panel ini jadi fondasi fitur ala LiveTrail: profile runner, passings, dan favorit.</span>
+          <div className="my-runners-empty-shell">
+            <article className="my-runners-empty-card">
+              <strong>Add your first runner to follow</strong>
+              <div className="my-runners-empty-icon" aria-hidden="true">
+                <span className="my-runners-heart">♡</span>
+                <img alt="" className="my-runners-empty-runner" src={runnerIcon} />
+              </div>
+              <button className="my-runners-empty-action" onClick={focusRunnerSearch} type="button">
+                Search
+              </button>
+            </article>
           </div>
         )}
       </section>
@@ -3696,7 +3746,7 @@ export default function App() {
                   key={`leader-overall-${entry.bib}`}
                   onClick={() => {
                     setSelectedRunnerBib(entry.bib);
-                    jumpToRaceSection("my-runners", "race-page");
+                    jumpToRaceSection("my-runners", "my-runners");
                   }}
                   type="button"
                 >
@@ -3731,7 +3781,7 @@ export default function App() {
                     key={`leader-women-${entry.bib}`}
                     onClick={() => {
                       setSelectedRunnerBib(entry.bib);
-                      jumpToRaceSection("my-runners", "race-page");
+                      jumpToRaceSection("my-runners", "my-runners");
                     }}
                     type="button"
                   >

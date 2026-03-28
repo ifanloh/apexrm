@@ -2865,6 +2865,132 @@ body {
   gap: 20px;
 }
 
+.my-runners-panel {
+  gap: 22px;
+}
+
+.my-followed-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.my-followed-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.my-followed-card {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(20, 22, 24, 0.1);
+  border-radius: 18px;
+  color: var(--ink);
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 16px;
+  text-align: left;
+}
+
+.my-followed-card.active {
+  border-color: rgba(13, 115, 80, 0.32);
+  box-shadow: 0 0 0 2px rgba(13, 115, 80, 0.08);
+}
+
+.my-followed-card-head {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.my-followed-card-head strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.my-followed-card span {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.my-runners-detail-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.my-runners-empty-shell {
+  display: grid;
+  justify-items: center;
+  padding: 8px 0 28px;
+}
+
+.my-runners-empty-card {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 14px 30px rgba(20, 22, 24, 0.08);
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  max-width: 240px;
+  padding: 18px 20px 16px;
+  text-align: center;
+}
+
+.my-runners-empty-card strong {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.my-runners-empty-icon {
+  align-items: center;
+  background: #0b6b57;
+  border-radius: 999px;
+  display: inline-flex;
+  height: 110px;
+  justify-content: center;
+  position: relative;
+  width: 110px;
+}
+
+.my-runners-heart {
+  color: #fffdf9;
+  font-size: 5rem;
+  line-height: 1;
+  transform: translateY(-2px);
+}
+
+.my-runners-empty-runner {
+  height: 30px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -38%);
+  width: 30px;
+}
+
+.my-runners-empty-action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(13, 115, 80, 0.22);
+  border-radius: 4px;
+  color: var(--brand);
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 40px;
+  min-width: 136px;
+  text-transform: uppercase;
+}
+
 .search-runner-head {
   display: grid;
   gap: 6px;
