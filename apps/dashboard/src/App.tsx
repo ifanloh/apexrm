@@ -40,7 +40,6 @@ const emptyOverallLeaderboard: OverallLeaderboard = {
 };
 
 const FAVORITES_STORAGE_KEY = "arm:dashboard-favorites";
-const THEME_STORAGE_KEY = "arm:dashboard-theme";
 const FULL_RANKING_PAGE_SIZE = 12;
 const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
 const EDITION_HOME_VALUE = "__edition-home";
@@ -79,7 +78,6 @@ const COUNTRY_META: Record<
   FR: { name: "France", latitude: 46, longitude: 2, mapX: 360, mapY: 136, weight: 4 }
 };
 
-type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
 type RankingView = "overall" | "women" | "men";
 type RaceDetailView = "race-page" | "runner-search" | "favorites" | "my-runners" | "ranking" | "leaders" | "statistics";
@@ -100,24 +98,6 @@ type RunnerDirectoryEntry = {
   rank: number | null;
   scannedAt: string;
 };
-
-function getInitialTheme() {
-  if (typeof window === "undefined") {
-    return "light" as DashboardTheme;
-  }
-
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-
-  if (stored === "dark" || stored === "light") {
-    return stored;
-  }
-
-  return "light" as DashboardTheme;
-}
-
-function getNextTheme(theme: DashboardTheme): DashboardTheme {
-  return theme === "dark" ? "light" : "dark";
-}
 
 function formatScanTime(value: string) {
   return new Date(value).toLocaleTimeString([], {
@@ -777,7 +757,6 @@ export default function App() {
   const [runnerDetailError, setRunnerDetailError] = useState<string | null>(null);
   const [isLoadingRunnerDetail, setIsLoadingRunnerDetail] = useState(false);
   const [favoriteBibs, setFavoriteBibs] = useState<string[]>(() => loadFavoriteBibs());
-  const [theme, setTheme] = useState<DashboardTheme>(() => getInitialTheme());
   const [fullRankingPage, setFullRankingPage] = useState(1);
   const [fullRankingView, setFullRankingView] = useState<RankingView>("overall");
   const [showRankingFilters, setShowRankingFilters] = useState(false);
@@ -851,13 +830,12 @@ export default function App() {
       return;
     }
 
-    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.theme = "light";
 
     return () => {
       delete document.documentElement.dataset.theme;
     };
-  }, [theme]);
+  }, []);
 
   useEffect(() => {
     if (!isLoginModalOpen) {
@@ -2121,17 +2099,6 @@ export default function App() {
                 Login
               </button>
             )}
-
-            <button
-              aria-label={`Switch to ${getNextTheme(theme)} mode`}
-              className="topbar-icon-button theme-switch-button"
-              onClick={() => setTheme((current) => getNextTheme(current))}
-              type="button"
-            >
-              <span className={`theme-switch-track ${theme}`}>
-                <span className="theme-switch-thumb" />
-              </span>
-            </button>
 
             <button className="topbar-locale-pill" type="button">
               EN <span aria-hidden="true">▾</span>
