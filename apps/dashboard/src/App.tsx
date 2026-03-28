@@ -2004,9 +2004,10 @@ export default function App() {
       <div className="dashboard-main dashboard-main-scroll live-main">
         <header className="topbar topbar-hub live-topbar">
           <div className="topbar-race-lockup">
-            {demoRaceFestival.brandStack.map((line) => (
-              <strong key={line}>{line}</strong>
-            ))}
+            <div aria-label="Event logo placeholder" className="event-logo-placeholder" role="img">
+              <span>Event</span>
+              <span>Logo</span>
+            </div>
           </div>
 
           <div className="topbar-center">

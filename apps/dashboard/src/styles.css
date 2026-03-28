@@ -2774,6 +2774,25 @@ body {
   font-family: "Red Hat Display", sans-serif;
 }
 
+.event-logo-placeholder {
+  align-items: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 239, 224, 0.98));
+  border: 2px dashed rgba(173, 130, 52, 0.58);
+  border-radius: 16px;
+  color: var(--gold-deep);
+  display: grid;
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  justify-items: center;
+  letter-spacing: 0.06em;
+  line-height: 0.92;
+  min-height: 54px;
+  padding: 6px 10px;
+  text-transform: uppercase;
+  width: 100%;
+}
+
 .sidebar-nav.live-sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -5744,6 +5763,10 @@ body {
   font-weight: 800 !important;
   letter-spacing: 0.02em !important;
   line-height: 0.88 !important;
+}
+
+.event-logo-placeholder {
+  min-height: 50px !important;
 }
 
 .topbar-center,
