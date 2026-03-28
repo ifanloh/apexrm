@@ -302,6 +302,16 @@ function NavIcon({ name }: { name: "home" | "search" | "runners" | "favorite" | 
   }
 }
 
+function NavChevron({ open }: { open: boolean }) {
+  return (
+    <span className={`nav-chevron ${open ? "open" : ""}`} aria-hidden="true">
+      <svg viewBox="0 0 12 12">
+        <path d="M2.5 4.25 6 7.75l3.5-3.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      </svg>
+    </span>
+  );
+}
+
 function formatRelativeTime(value: string) {
   const deltaMs = Math.max(0, Date.now() - new Date(value).getTime());
   const seconds = Math.floor(deltaMs / 1000);
@@ -1448,7 +1458,7 @@ export default function App() {
           <div className={`nav-group ${runnerNavOpen ? "open" : ""}`}>
             <button className="nav-toggle" onClick={() => setRunnerNavOpen((current) => !current)} type="button">
               <span>THE RUNNERS</span>
-              <span className={`nav-chevron ${runnerNavOpen ? "open" : ""}`} aria-hidden="true" />
+              <NavChevron open={runnerNavOpen} />
             </button>
             <div className="nav-links">
               <button className="nav-link nav-link-icon" onClick={focusRunnerSearch} type="button">
@@ -1477,7 +1487,7 @@ export default function App() {
           <div className={`nav-group ${raceNavOpen ? "open" : ""}`}>
             <button className="nav-toggle" onClick={() => setRaceNavOpen((current) => !current)} type="button">
               <span>FOLLOW THE RACE</span>
-              <span className={`nav-chevron ${raceNavOpen ? "open" : ""}`} aria-hidden="true" />
+              <NavChevron open={raceNavOpen} />
             </button>
             <div className="nav-links">
               <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">

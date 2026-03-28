@@ -263,7 +263,7 @@ a {
 }
 
 .nav-chevron.open {
-  transform: rotate(180deg);
+  transform: none;
 }
 
 .nav-links {
@@ -2821,25 +2821,29 @@ body {
 }
 
 .nav-chevron {
-  font-size: 0;
-  height: 10px;
-  position: relative;
-  width: 10px;
+  align-items: center;
+  color: #5b5b5b;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 12px;
+  justify-content: center;
+  width: 12px;
 }
 
 .nav-chevron::before {
-  border-bottom: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  content: "";
-  display: block;
-  height: 8px;
-  transform: rotate(-45deg);
-  transition: transform 180ms ease;
-  width: 8px;
+  content: none !important;
 }
 
-.nav-chevron.open::before {
-  transform: rotate(45deg);
+.nav-chevron svg {
+  display: block;
+  height: 100%;
+  transform: rotate(-90deg);
+  transition: transform 180ms ease;
+  width: 100%;
+}
+
+.nav-chevron.open svg {
+  transform: rotate(0deg);
 }
 
 .nav-link {
