@@ -3056,8 +3056,7 @@ body {
   border: 1px solid rgba(20, 22, 24, 0.14);
   border-radius: 999px;
   display: grid;
-  gap: 12px;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 48px;
   padding: 6px 14px;
   width: min(100%, 460px);
@@ -3075,13 +3074,6 @@ body {
 
 .search-runner-input-shell input::placeholder {
   color: var(--ink-muted);
-}
-
-.search-runner-input-icon {
-  align-items: center;
-  color: var(--brand);
-  display: inline-flex;
-  justify-content: center;
 }
 
 .search-runner-shell .ranking-toolbar-label {
@@ -5799,8 +5791,7 @@ body {
 .topbar-search-shell {
   border: 3px solid var(--green) !important;
   display: grid !important;
-  gap: 12px !important;
-  grid-template-columns: auto minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   max-width: 520px !important;
   padding: 0 14px !important;
 }
@@ -5828,21 +5819,6 @@ body {
 .topbar-search-shell input::placeholder {
   color: rgba(30, 38, 35, 0.45) !important;
   font-style: italic !important;
-}
-
-.topbar-search-icon {
-  color: var(--green) !important;
-  display: inline-flex !important;
-  flex: 0 0 auto !important;
-  height: 24px !important;
-  width: 24px !important;
-}
-
-.topbar-search-icon img {
-  display: block !important;
-  height: 100% !important;
-  object-fit: contain !important;
-  width: 100% !important;
 }
 
 .live-topbar-actions {

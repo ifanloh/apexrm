@@ -2018,9 +2018,6 @@ export default function App() {
             </label>
 
             <div className="topbar-search topbar-search-shell">
-              <span className="topbar-search-icon" aria-hidden="true">
-                <img alt="" className="topbar-search-icon-image" src={runnerIcon} />
-              </span>
               <label className="sr-only" htmlFor="topbar-runner-search">
                 Search a runner
               </label>
@@ -2689,9 +2686,6 @@ export default function App() {
         <div className="runner-list-shell search-runner-shell">
           <div className="search-runner-toolbar">
             <div className="search-runner-input-shell">
-              <span className="search-runner-input-icon" aria-hidden="true">
-                <img alt="" className="topbar-search-icon-image" src={runnerIcon} />
-              </span>
               <input
                 id="runner-search-page-input"
                 placeholder="Search a runner (bib, name, club...)"
