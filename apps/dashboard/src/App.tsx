@@ -82,7 +82,7 @@ const COUNTRY_META: Record<
 type DashboardTheme = "dark" | "light";
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
 type RankingView = "overall" | "women" | "men";
-type RaceDetailView = "race-page" | "runner-search" | "ranking" | "leaders" | "statistics";
+type RaceDetailView = "race-page" | "runner-search" | "favorites" | "ranking" | "leaders" | "statistics";
 type RunnerDirectoryState = "all" | "registered" | "in-race" | "finisher" | "dns" | "withdrawn";
 type RunnerDirectoryEntry = {
   raceSlug: string;
@@ -791,6 +791,11 @@ export default function App() {
   const [runnerSearchRaceFilter, setRunnerSearchRaceFilter] = useState<string>("all");
   const [runnerSearchPage, setRunnerSearchPage] = useState(1);
   const [runnerSearchRowsPerPage, setRunnerSearchRowsPerPage] = useState(10);
+  const [favoritesRaceFilter, setFavoritesRaceFilter] = useState<string>("all");
+  const [favoritesCountryFilter, setFavoritesCountryFilter] = useState<string>("all");
+  const [favoritesCategoryFilter, setFavoritesCategoryFilter] = useState<"all" | "men" | "women">("all");
+  const [favoritesPage, setFavoritesPage] = useState(1);
+  const [favoritesRowsPerPage, setFavoritesRowsPerPage] = useState(10);
   const [selectedRaceSlug, setSelectedRaceSlug] = useState<string>(EDITION_HOME_VALUE);
   const [raceDetailView, setRaceDetailView] = useState<RaceDetailView>("race-page");
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
@@ -1246,6 +1251,10 @@ export default function App() {
     setRunnerSearchPage(1);
   }, [normalizedRunnerQuery, runnerSearchRaceFilter, runnerSearchRowsPerPage]);
 
+  useEffect(() => {
+    setFavoritesPage(1);
+  }, [favoritesRaceFilter, favoritesCountryFilter, favoritesCategoryFilter, favoritesRowsPerPage, favoriteBibs]);
+
 
   useEffect(() => {
     if (!runnerResults.length) {
@@ -1659,6 +1668,61 @@ export default function App() {
         searchRunnerEntries.length
       )} of ${searchRunnerEntries.length}`
     : "0-0 of 0";
+  const favoriteGenderRankMap = useMemo(() => {
+    const next = new Map<string, number>();
+    const grouped = new Map<string, RunnerDirectoryEntry[]>();
+
+    runnerDirectoryEntries.forEach((entry) => {
+      const key = `${entry.raceSlug}:${entry.category}`;
+      const bucket = grouped.get(key) ?? [];
+      bucket.push(entry);
+      grouped.set(key, bucket);
+    });
+
+    grouped.forEach((bucket, key) => {
+      bucket
+        .slice()
+        .sort((left, right) => (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER))
+        .forEach((entry, index) => {
+          next.set(`${key}:${entry.bib}`, index + 1);
+        });
+    });
+
+    return next;
+  }, [runnerDirectoryEntries]);
+  const favoriteDirectoryEntries = useMemo(() => {
+    const favoriteSet = new Set(favoriteBibs);
+    return runnerDirectoryEntries
+      .filter((entry) => favoriteSet.has(entry.bib))
+      .slice()
+      .sort((left, right) => {
+        if (left.raceTitle !== right.raceTitle) {
+          return left.raceTitle.localeCompare(right.raceTitle);
+        }
+        return (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER);
+      });
+  }, [favoriteBibs, runnerDirectoryEntries]);
+  const favoriteDirectoryCountries = useMemo(
+    () => [...new Set(favoriteDirectoryEntries.map((entry) => entry.countryCode))].sort(),
+    [favoriteDirectoryEntries]
+  );
+  const filteredFavoriteDirectoryEntries = favoriteDirectoryEntries.filter((entry) => {
+    const matchesRace = favoritesRaceFilter === "all" ? true : entry.raceSlug === favoritesRaceFilter;
+    const matchesCountry = favoritesCountryFilter === "all" ? true : entry.countryCode === favoritesCountryFilter;
+    const matchesCategory = favoritesCategoryFilter === "all" ? true : entry.category === favoritesCategoryFilter;
+    return matchesRace && matchesCountry && matchesCategory;
+  });
+  const favoritesPageCount = Math.max(1, Math.ceil(filteredFavoriteDirectoryEntries.length / favoritesRowsPerPage));
+  const favoriteRows = filteredFavoriteDirectoryEntries.slice(
+    (favoritesPage - 1) * favoritesRowsPerPage,
+    favoritesPage * favoritesRowsPerPage
+  );
+  const favoritesRangeLabel = filteredFavoriteDirectoryEntries.length
+    ? `${(favoritesPage - 1) * favoritesRowsPerPage + 1}-${Math.min(
+        favoritesPage * favoritesRowsPerPage,
+        filteredFavoriteDirectoryEntries.length
+      )} of ${filteredFavoriteDirectoryEntries.length}`
+    : "0-0 of 0";
 
   useEffect(() => {
     if (runnerDirectoryPage > runnerDirectoryPageCount) {
@@ -1671,6 +1735,12 @@ export default function App() {
       setRunnerSearchPage(runnerSearchPageCount);
     }
   }, [runnerSearchPage, runnerSearchPageCount]);
+
+  useEffect(() => {
+    if (favoritesPage > favoritesPageCount) {
+      setFavoritesPage(favoritesPageCount);
+    }
+  }, [favoritesPage, favoritesPageCount]);
 
   const fullRankingRangeLabel = fullRankingEntries.length
     ? `${(fullRankingPage - 1) * rankingRowsPerPage + 1}-${Math.min(
@@ -1849,11 +1919,11 @@ export default function App() {
   }
 
   function focusFavoritesList() {
-    if (favoriteRunnerResults.length) {
-      setSelectedRunnerBib(favoriteRunnerResults[0].bib);
+    if (favoriteDirectoryEntries.length) {
+      setSelectedRunnerBib(favoriteDirectoryEntries[0].bib);
     }
 
-    jumpToRaceSection("favorites-list", "race-page");
+    jumpToRaceSection("favorites-list", "favorites");
   }
 
   function handleRaceSelection(nextValue: string) {
@@ -3193,66 +3263,256 @@ export default function App() {
           </div>
         </article>
 
-        <article className="panel menu-feature-panel" id="favorites-list">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">The runners</p>
-              <h3>Favorites list</h3>
-            </div>
-            <div className="panel-badge compact-badge">
-              <span>Saved</span>
-              <strong>{favoriteRunnerResults.length}</strong>
-              <span>tracked runners</span>
+      </section>
+
+      <section className="panel menu-feature-panel favorites-list-view" hidden={raceDetailView !== "favorites"} id="favorites-list">
+        <div className="search-runner-head">
+          <p className="section-label">The runners</p>
+          <h2>Favorites list</h2>
+        </div>
+
+        <div className="runner-list-shell favorites-list-shell">
+          <div className="runner-list-toolbar favorite-list-toolbar">
+            <label className="ranking-toolbar-label">
+              In which race ?
+              <select value={favoritesRaceFilter} onChange={(event) => setFavoritesRaceFilter(event.target.value)}>
+                <option value="all">All races</option>
+                {demoRaceFestival.races.map((race) => (
+                  <option key={`favorites-race-${race.slug}`} value={race.slug}>
+                    {race.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="ranking-toolbar-label">
+              Of what nationality ?
+              <select value={favoritesCountryFilter} onChange={(event) => setFavoritesCountryFilter(event.target.value)}>
+                <option value="all">All nationalities</option>
+                {favoriteDirectoryCountries.map((countryCode) => (
+                  <option key={`favorites-country-${countryCode}`} value={countryCode}>
+                    {COUNTRY_META[countryCode].name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="ranking-toolbar-label">
+              Of which category ?
+              <select value={favoritesCategoryFilter} onChange={(event) => setFavoritesCategoryFilter(event.target.value as "all" | "men" | "women")}>
+                <option value="all">All categories</option>
+                <option value="men">Men</option>
+                <option value="women">Women</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="runner-list-pagination">
+            <label className="rows-per-page">
+              Rows per page
+              <select value={favoritesRowsPerPage} onChange={(event) => setFavoritesRowsPerPage(Number(event.target.value))}>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={30}>30</option>
+              </select>
+            </label>
+            <div className="ranking-range-text">{favoritesRangeLabel}</div>
+            <div className="pager-actions compact">
+              <button className="theme-toggle pager-button" disabled={favoritesPage <= 1} onClick={() => setFavoritesPage(1)} type="button">
+                Â«
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={favoritesPage <= 1}
+                onClick={() => setFavoritesPage((current) => Math.max(1, current - 1))}
+                type="button"
+              >
+                â€¹
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={favoritesPage >= favoritesPageCount}
+                onClick={() => setFavoritesPage((current) => Math.min(favoritesPageCount, current + 1))}
+                type="button"
+              >
+                â€º
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={favoritesPage >= favoritesPageCount}
+                onClick={() => setFavoritesPage(favoritesPageCount)}
+                type="button"
+              >
+                Â»
+              </button>
             </div>
           </div>
 
-          {favoriteRunnerResults.length ? (
-            <div className="favorite-summary-grid">
-              {favoriteRunnerResults.map((entry) => (
-                <article className="favorite-summary-card" key={`favorite-${entry.bib}`}>
-                  <div className="favorite-summary-head">
-                    <div>
-                      <strong>{entry.name}</strong>
-                      <span>{entry.bib} | {getRunnerTeamName(entry.bib)}</span>
-                    </div>
-                    <button className="favorite-toggle active" onClick={() => toggleFavoriteBib(entry.bib)} type="button">
-                      Favorit
-                    </button>
-                  </div>
-                  <div className="favorite-summary-stats">
-                    <div className="mini-stat">
-                      <span>Overall</span>
-                      <strong>#{entry.rank}</strong>
-                    </div>
-                    <div className="mini-stat">
-                      <span>Progress</span>
-                      <strong>{formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })}</strong>
-                    </div>
-                    <div className="mini-stat">
-                      <span>Race time</span>
-                      <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
-                    </div>
-                  </div>
-                  <button
-                    className="favorite-summary-open"
-                    onClick={() => {
-                      setSelectedRunnerBib(entry.bib);
-                      jumpToSection("my-runners");
-                    }}
-                    type="button"
-                  >
-                    Open my runner
-                  </button>
-                </article>
-              ))}
+          <div className="runner-list-table favorites-list-table">
+            <div className="runner-list-head favorites-list-head">
+              <span>Bib</span>
+              <span>Runner/Team</span>
+              <span>Race</span>
+              <span>Cat. & Nat.</span>
+              <span>Club</span>
+              <span>Ranking</span>
+              <span>Actions</span>
             </div>
-          ) : (
-            <div className="empty-state">
-              <strong>Belum ada runner favorit.</strong>
-              <span>Tandai runner dari hasil search atau ranking untuk membangun shortlist pribadi.</span>
+
+            {favoriteRows.length ? (
+              <div className="runner-list-body">
+                {favoriteRows.map((entry) => {
+                  const isFavorite = favoriteBibs.includes(entry.bib);
+                  const statusClass =
+                    entry.state === "finisher"
+                      ? "finished"
+                      : entry.state === "withdrawn"
+                        ? "withdrawn"
+                        : entry.state === "dns"
+                          ? "dns"
+                          : entry.state === "in-race"
+                            ? "live"
+                            : "registered";
+                  const overallRank = entry.rank ?? 0;
+                  const genderRank = favoriteGenderRankMap.get(`${entry.raceSlug}:${entry.category}:${entry.bib}`) ?? overallRank;
+
+                  return (
+                    <article className="runner-list-row favorites-list-row" key={`favorite-row-${entry.raceSlug}-${entry.bib}`}>
+                      <div className="favorites-list-bib">
+                        <strong>{entry.bib}</strong>
+                        <span>{entry.indexValue}</span>
+                      </div>
+
+                      <div className="runner-list-runner favorites-list-runner">
+                        <div aria-hidden="true" className="runner-avatar runner-list-avatar" />
+                        <div className="runner-list-runner-copy">
+                          <strong>{entry.name}</strong>
+                          <span>{entry.teamName}</span>
+                          <div className={`runner-status-pill ${statusClass}`}>{entry.statusLabel}</div>
+                        </div>
+                      </div>
+
+                      <div className="runner-list-race favorites-race-cell">
+                        <strong>{entry.raceTitle}</strong>
+                      </div>
+
+                      <div className="favorites-catnat-cell">
+                        <div className="runner-list-category">
+                          <span className={`gender-dot ${entry.category}`} />
+                          <strong>{formatCategoryLabel(entry.category)}</strong>
+                        </div>
+                        <div className="runner-list-country">
+                          <img
+                            alt={entry.countryCode}
+                            className="flag-icon"
+                            height="18"
+                            loading="lazy"
+                            src={getFlagIconUrl(entry.countryCode)}
+                            width="24"
+                          />
+                          <small>{entry.countryCode}</small>
+                        </div>
+                      </div>
+
+                      <div className="runner-list-info favorites-club-cell">
+                        <span>Club</span>
+                        <strong>{entry.teamName}</strong>
+                      </div>
+
+                      <div className="favorite-ranking-cell">
+                        <strong>
+                          {overallRank > 0 && overallRank <= 3 && entry.state === "finisher" ? <RankingMedal rank={overallRank} /> : null}
+                          #{overallRank} Overall
+                        </strong>
+                        <span>Sex {genderRank}</span>
+                      </div>
+
+                      <div className="runner-list-actions">
+                        <button
+                          aria-label={isFavorite ? `Remove ${entry.name} from favorites` : `Add ${entry.name} to favorites`}
+                          className={`runner-list-action-button ${isFavorite ? "active" : ""}`}
+                          onClick={() => toggleFavoriteBib(entry.bib)}
+                          type="button"
+                        >
+                          <NavIcon name="favorite" />
+                        </button>
+                        <button
+                          aria-label={`Compare ${entry.name}`}
+                          className="runner-list-action-button"
+                          onClick={() => {
+                            setSelectedRaceSlug(entry.raceSlug);
+                            setSelectedRunnerBib(entry.bib);
+                            focusComparison();
+                          }}
+                          type="button"
+                        >
+                          <NavIcon name="compare" />
+                        </button>
+                        <button
+                          aria-label={`Open ${entry.name}`}
+                          className="runner-list-action-button active"
+                          onClick={() => {
+                            setSelectedRaceSlug(entry.raceSlug);
+                            setSelectedRunnerBib(entry.bib);
+                            jumpToRaceSection("my-runners", "race-page");
+                          }}
+                          type="button"
+                        >
+                          <NavIcon name="search" />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="empty-state search-empty-state">
+                <strong>No favorite runners match the current filters.</strong>
+              </div>
+            )}
+          </div>
+
+          <div className="runner-list-pagination">
+            <label className="rows-per-page">
+              Rows per page
+              <select value={favoritesRowsPerPage} onChange={(event) => setFavoritesRowsPerPage(Number(event.target.value))}>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={30}>30</option>
+              </select>
+            </label>
+            <div className="ranking-range-text">{favoritesRangeLabel}</div>
+            <div className="pager-actions compact">
+              <button className="theme-toggle pager-button" disabled={favoritesPage <= 1} onClick={() => setFavoritesPage(1)} type="button">
+                Â«
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={favoritesPage <= 1}
+                onClick={() => setFavoritesPage((current) => Math.max(1, current - 1))}
+                type="button"
+              >
+                â€¹
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={favoritesPage >= favoritesPageCount}
+                onClick={() => setFavoritesPage((current) => Math.min(favoritesPageCount, current + 1))}
+                type="button"
+              >
+                â€º
+              </button>
+              <button
+                className="theme-toggle pager-button"
+                disabled={favoritesPage >= favoritesPageCount}
+                onClick={() => setFavoritesPage(favoritesPageCount)}
+                type="button"
+              >
+                Â»
+              </button>
             </div>
-          )}
-        </article>
+          </div>
+        </div>
       </section>
 
       <section className="panel menu-feature-panel runner-detail-panel my-runners-panel" hidden={raceDetailView !== "race-page"} id="my-runners">

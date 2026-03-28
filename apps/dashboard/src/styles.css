@@ -2861,6 +2861,10 @@ body {
   gap: 20px;
 }
 
+.favorites-list-view {
+  gap: 20px;
+}
+
 .search-runner-head {
   display: grid;
   gap: 6px;
@@ -2953,6 +2957,21 @@ body {
   min-height: 140px;
   place-content: center;
   text-align: center;
+}
+
+.favorite-list-toolbar {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-items: center;
+}
+
+.favorite-list-toolbar .ranking-toolbar-label {
+  justify-items: center;
+  width: min(100%, 220px);
+}
+
+.favorite-list-toolbar .ranking-toolbar-label select {
+  min-width: 0;
+  width: 100%;
 }
 
 .menu-feature-grid {
@@ -3118,6 +3137,66 @@ body {
 .runner-list-action-button .nav-icon-svg {
   height: 15px;
   width: 15px;
+}
+
+.favorites-list-head,
+.favorites-list-row {
+  grid-template-columns: 84px minmax(280px, 1.3fr) minmax(190px, 1fr) minmax(120px, 0.7fr) minmax(170px, 0.9fr) minmax(150px, 0.9fr) 120px;
+}
+
+.favorites-list-bib {
+  display: grid;
+  gap: 2px;
+}
+
+.favorites-list-bib strong {
+  color: var(--ink);
+  font-family: "Oxanium", sans-serif;
+  font-size: 1.15rem;
+}
+
+.favorites-list-bib span {
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.favorites-list-runner {
+  grid-template-columns: 46px minmax(0, 1fr);
+}
+
+.favorites-race-cell,
+.favorites-club-cell,
+.favorite-ranking-cell,
+.favorites-catnat-cell {
+  display: grid;
+  gap: 4px;
+}
+
+.favorites-catnat-cell .runner-list-country {
+  align-items: center;
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+.favorites-club-cell span,
+.favorite-ranking-cell span,
+.favorites-catnat-cell small {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.favorites-club-cell strong,
+.favorite-ranking-cell strong {
+  color: var(--ink);
+}
+
+.favorite-ranking-cell strong {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
 }
 
 .runner-status-pill.live {
@@ -3348,6 +3427,10 @@ body {
   .runner-list-row {
     grid-template-columns: 1fr;
     row-gap: 12px;
+  }
+
+  .favorites-list-head {
+    display: none;
   }
 
   .runner-list-actions {
