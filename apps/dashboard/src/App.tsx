@@ -80,7 +80,7 @@ const COUNTRY_META: Record<
 
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
 type RankingView = "overall" | "women" | "men";
-type RaceDetailView = "race-page" | "runner-search" | "favorites" | "my-runners" | "ranking" | "leaders" | "statistics";
+type RaceDetailView = "race-page" | "runner-search" | "runners-list" | "favorites" | "my-runners" | "ranking" | "leaders" | "statistics";
 type RunnerDirectoryState = "all" | "registered" | "in-race" | "finisher" | "dns" | "withdrawn";
 type RunnerDirectoryEntry = {
   raceSlug: string;
@@ -1384,25 +1384,6 @@ export default function App() {
       null
     );
   }, [activeOverallLeaderboard.topEntries, fullRankingSource.topEntries, selectedRunnerBib]);
-  const comparisonEntries = useMemo(() => {
-    const next: OverallLeaderboard["topEntries"] = [];
-    const seen = new Set<string>();
-
-    const pushIfUnique = (entry: OverallLeaderboard["topEntries"][number] | null | undefined) => {
-      if (!entry || seen.has(entry.bib)) {
-        return;
-      }
-
-      seen.add(entry.bib);
-      next.push(entry);
-    };
-
-    pushIfUnique(selectedRunnerEntry);
-    favoriteRunnerResults.slice(0, 2).forEach(pushIfUnique);
-    activeOverallLeaderboard.topEntries.slice(0, 3).forEach(pushIfUnique);
-
-    return next.slice(0, 2);
-  }, [activeOverallLeaderboard.topEntries, favoriteRunnerResults, selectedRunnerEntry]);
   const recentPassingSummary = useMemo(() => {
     if (!recentPassings.length) {
       return "Belum ada passing";
@@ -1893,7 +1874,7 @@ export default function App() {
   }
 
   function focusRunnersList() {
-    jumpToRaceSection("runners-list", "race-page");
+    jumpToRaceSection("runners-list", "runners-list");
   }
 
   function focusFavoritesList() {
@@ -1930,14 +1911,6 @@ export default function App() {
     }
 
     jumpToRaceSection("my-runners", "my-runners");
-  }
-
-  function focusComparison() {
-    if (comparisonEntries.length) {
-      setSelectedRunnerBib(comparisonEntries[0].bib);
-    }
-
-    jumpToRaceSection("comparison", "race-page");
   }
 
   function focusRaceLeaders() {
@@ -1997,10 +1970,6 @@ export default function App() {
               <button className="nav-link nav-link-icon" onClick={focusMyRunners} type="button">
                 <NavIcon name="heart" />
                 <span>My runners</span>
-              </button>
-              <button className="nav-link nav-link-icon" onClick={focusComparison} type="button">
-                <NavIcon name="compare" />
-                <span>Comparison</span>
               </button>
             </div>
           </div>
@@ -2879,18 +2848,6 @@ export default function App() {
                           <NavIcon name="favorite" />
                         </button>
                         <button
-                          aria-label={`Compare ${entry.name}`}
-                          className="runner-list-action-button"
-                          onClick={() => {
-                            setSelectedRaceSlug(entry.raceSlug);
-                            setSelectedRunnerBib(entry.bib);
-                            focusComparison();
-                          }}
-                          type="button"
-                        >
-                          <NavIcon name="compare" />
-                        </button>
-                        <button
                           aria-label={`Open ${entry.name}`}
                           className="runner-list-action-button active"
                           onClick={() => {
@@ -2957,7 +2914,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="menu-feature-grid" hidden={raceDetailView !== "race-page"}>
+      <section className="menu-feature-grid" hidden={raceDetailView !== "runners-list"}>
         <article className="panel menu-feature-panel" id="runners-list">
           <div className="panel-head compact">
             <div>
@@ -3141,18 +3098,6 @@ export default function App() {
                             type="button"
                           >
                             <NavIcon name="favorite" />
-                          </button>
-                          <button
-                            aria-label={`Compare ${entry.name}`}
-                            className="runner-list-action-button"
-                            onClick={() => {
-                              setSelectedRaceSlug(entry.raceSlug);
-                              setSelectedRunnerBib(entry.bib);
-                              focusComparison();
-                            }}
-                            type="button"
-                          >
-                            <NavIcon name="compare" />
                           </button>
                           <button
                             aria-label={`Open ${entry.name}`}
@@ -3404,18 +3349,6 @@ export default function App() {
                           <NavIcon name="favorite" />
                         </button>
                         <button
-                          aria-label={`Compare ${entry.name}`}
-                          className="runner-list-action-button"
-                          onClick={() => {
-                            setSelectedRaceSlug(entry.raceSlug);
-                            setSelectedRunnerBib(entry.bib);
-                            focusComparison();
-                          }}
-                          type="button"
-                        >
-                          <NavIcon name="compare" />
-                        </button>
-                        <button
                           aria-label={`Open ${entry.name}`}
                           className="runner-list-action-button active"
                           onClick={() => {
@@ -3618,69 +3551,6 @@ export default function App() {
                 Search
               </button>
             </article>
-          </div>
-        )}
-      </section>
-
-      <section className="panel menu-feature-panel" hidden={raceDetailView !== "race-page"} id="comparison">
-        <div className="panel-head compact">
-          <div>
-            <p className="section-label">The runners</p>
-            <h3>Comparison</h3>
-          </div>
-          <div className="panel-badge compact-badge">
-            <span>Compared</span>
-            <strong>{comparisonEntries.length}</strong>
-            <span>runner cards</span>
-          </div>
-        </div>
-
-        {comparisonEntries.length >= 2 ? (
-          <div className="comparison-grid">
-            {comparisonEntries.map((entry) => (
-              <article className="comparison-card" key={`comparison-${entry.bib}`}>
-                <div className="comparison-head">
-                  <div>
-                    <strong>{entry.name}</strong>
-                    <span>{entry.bib} | {getRunnerTeamName(entry.bib)}</span>
-                  </div>
-                  <button
-                    className={`favorite-toggle ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}
-                    onClick={() => toggleFavoriteBib(entry.bib)}
-                    type="button"
-                  >
-                    {favoriteBibs.includes(entry.bib) ? "Favorit" : "Ikuti"}
-                  </button>
-                </div>
-                <div className="comparison-stats-grid">
-                  <div className="mini-stat">
-                    <span>Overall</span>
-                    <strong>#{entry.rank}</strong>
-                  </div>
-                  <div className="mini-stat">
-                    <span>Gender</span>
-                    <strong>{entry.category.toLowerCase() === "women" ? "Woman" : "Man"}</strong>
-                  </div>
-                  <div className="mini-stat">
-                    <span>Nationality</span>
-                    <strong>{getNationalityCode(entry.bib)}</strong>
-                  </div>
-                  <div className="mini-stat">
-                    <span>Race time</span>
-                    <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
-                  </div>
-                </div>
-                <div className="comparison-progress">
-                  <span>Progress</span>
-                  <strong>{formatCheckpointProgress(entry)}</strong>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <strong>Belum cukup runner untuk dibandingkan.</strong>
-            <span>Tambahkan minimal dua runner favorit atau pilih runner dari ranking untuk membangun comparison.</span>
           </div>
         )}
       </section>
