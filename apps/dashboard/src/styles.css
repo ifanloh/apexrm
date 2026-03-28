@@ -3111,6 +3111,77 @@ body {
   width: 100%;
 }
 
+.race-leaders-directory-view {
+  gap: 18px;
+}
+
+.race-leaders-toolbar {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-items: center;
+}
+
+.race-leaders-toolbar .ranking-toolbar-label {
+  justify-items: center;
+  width: min(100%, 220px);
+}
+
+.race-leaders-toolbar .ranking-toolbar-label select {
+  min-width: 0;
+  width: 100%;
+}
+
+.race-leaders-head,
+.race-leaders-row {
+  align-items: center;
+  column-gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.9fr) minmax(280px, 1.5fr) minmax(140px, 0.9fr) minmax(140px, 0.9fr) minmax(170px, 1fr) 110px;
+}
+
+.race-leaders-rank,
+.race-leaders-catnat,
+.race-leaders-point,
+.race-leaders-next {
+  display: grid;
+  gap: 4px;
+}
+
+.race-leaders-rank strong,
+.race-leaders-point strong,
+.race-leaders-next strong {
+  align-items: center;
+  color: var(--ink);
+  display: inline-flex;
+  gap: 6px;
+}
+
+.race-leaders-rank span,
+.race-leaders-rank small,
+.race-leaders-catnat small,
+.race-leaders-point span,
+.race-leaders-next span {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.race-leaders-catnat .runner-list-country,
+.race-leaders-catnat .runner-list-category {
+  justify-content: flex-start;
+}
+
+.race-leaders-runner {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.race-leaders-table .search-empty-state {
+  min-height: 180px;
+  place-content: center;
+  text-align: center;
+}
+
 .menu-feature-grid {
   display: grid;
   gap: 14px;
@@ -3538,6 +3609,10 @@ body {
     justify-items: stretch;
   }
 
+  .race-leaders-toolbar {
+    grid-template-columns: 1fr;
+  }
+
   .runner-list-head {
     display: none;
   }
@@ -3553,6 +3628,11 @@ body {
   .runner-list-row {
     grid-template-columns: 1fr;
     row-gap: 12px;
+  }
+
+  .race-leaders-row,
+  .race-leaders-head {
+    grid-template-columns: 1fr;
   }
 
   .favorites-list-head {

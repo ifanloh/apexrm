@@ -97,6 +97,18 @@ type RunnerDirectoryEntry = {
   raceTime: string;
   rank: number | null;
   scannedAt: string;
+  checkpointId?: string | null;
+  checkpointCode?: string | null;
+  checkpointName?: string | null;
+  checkpointKmMarker?: number | null;
+  checkpointOrder?: number | null;
+};
+
+type RaceLeaderEntry = RunnerDirectoryEntry & {
+  genderRank: number;
+  lastPointLabel: string;
+  nextPassingLabel: string;
+  nextPassingTime: string;
 };
 
 function formatScanTime(value: string) {
@@ -295,6 +307,43 @@ function shouldShowLivePodium(rank: number, checkpointId: string, isLiveRace: bo
   }
 
   return !isLiveRace || checkpointId === "finish";
+}
+
+function estimateNextPassing(
+  race: DemoRaceCard,
+  entry: Pick<
+    RunnerDirectoryEntry,
+    "checkpointId" | "checkpointCode" | "checkpointKmMarker" | "checkpointOrder" | "raceTime" | "scannedAt"
+  >
+) {
+  if (entry.checkpointId === "finish") {
+    return {
+      label: "Finish",
+      time: entry.raceTime
+    };
+  }
+
+  const course = getDemoCourseForRace(race);
+  const currentOrder = entry.checkpointOrder ?? 0;
+  const nextCheckpoint = course.checkpoints.find((checkpoint) => checkpoint.order > currentOrder);
+
+  if (!nextCheckpoint) {
+    return {
+      label: "Finish",
+      time: entry.raceTime
+    };
+  }
+
+  const scanMs = new Date(entry.scannedAt).getTime();
+  const etaMs = Number.isFinite(scanMs) ? scanMs + Math.max(1, nextCheckpoint.order - currentOrder) * 42 * 60 * 1000 : NaN;
+
+  return {
+    label: formatCheckpointLabel({
+      code: nextCheckpoint.code,
+      kmMarker: nextCheckpoint.kmMarker
+    }),
+    time: Number.isFinite(etaMs) ? formatScanTime(new Date(etaMs).toISOString()) : entry.raceTime
+  };
 }
 
 function RankingMedal({ rank }: { rank: number }) {
@@ -763,6 +812,11 @@ export default function App() {
   const [runnerDirectoryCategoryFilter, setRunnerDirectoryCategoryFilter] = useState<"all" | "men" | "women">("all");
   const [runnerDirectoryPage, setRunnerDirectoryPage] = useState(1);
   const [runnerDirectoryRowsPerPage, setRunnerDirectoryRowsPerPage] = useState(10);
+  const [leadersRaceFilter, setLeadersRaceFilter] = useState<string>("all");
+  const [leadersCountryFilter, setLeadersCountryFilter] = useState<string>("all");
+  const [leadersCategoryFilter, setLeadersCategoryFilter] = useState<"all" | "men" | "women">("all");
+  const [leadersPage, setLeadersPage] = useState(1);
+  const [leadersRowsPerPage, setLeadersRowsPerPage] = useState(10);
   const [runnerSearchRaceFilter, setRunnerSearchRaceFilter] = useState<string>("all");
   const [runnerSearchPage, setRunnerSearchPage] = useState(1);
   const [runnerSearchRowsPerPage, setRunnerSearchRowsPerPage] = useState(10);
@@ -789,6 +843,7 @@ export default function App() {
   const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
   const isFeaturedRace = selectedRaceCard.slug === featuredRace.slug;
   const activeCourse = useMemo(() => getDemoCourseForRace(selectedRaceCard), [selectedRaceCard]);
+  const showEditionHome = isEditionHome && raceDetailView === "race-page";
 
   useEffect(() => {
     if (!supabase) {
@@ -1228,6 +1283,9 @@ export default function App() {
   useEffect(() => {
     setFavoritesPage(1);
   }, [favoritesRaceFilter, favoritesCountryFilter, favoritesCategoryFilter, favoritesRowsPerPage, favoriteBibs]);
+  useEffect(() => {
+    setLeadersPage(1);
+  }, [leadersRaceFilter, leadersCountryFilter, leadersCategoryFilter, leadersRowsPerPage]);
 
 
   useEffect(() => {
@@ -1522,14 +1580,19 @@ export default function App() {
               statusLabel: inRaceCheckpoint ?? formatRunnerDirectoryStateLabel(state)
             };
           })
-      ).map((entry) => ({
-        raceSlug: race.slug,
-        raceTitle: race.title,
-        teamName: getRunnerTeamName(entry.bib),
-        countryCode: getNationalityCode(entry.bib) as CountryCode,
-        infoLabel: `Club ${getRunnerTeamName(entry.bib)}`,
-        ...entry
-      }));
+        ).map((entry) => ({
+          ...entry,
+          raceSlug: race.slug,
+          raceTitle: race.title,
+          teamName: getRunnerTeamName(entry.bib),
+          countryCode: getNationalityCode(entry.bib) as CountryCode,
+          infoLabel: `Club ${getRunnerTeamName(entry.bib)}`,
+          checkpointId: (entry as { checkpointId?: string | null }).checkpointId ?? null,
+          checkpointCode: (entry as { checkpointCode?: string | null }).checkpointCode ?? null,
+          checkpointName: (entry as { checkpointName?: string | null }).checkpointName ?? null,
+          checkpointKmMarker: (entry as { checkpointKmMarker?: number | null }).checkpointKmMarker ?? null,
+          checkpointOrder: (entry as { checkpointOrder?: number | null }).checkpointOrder ?? null
+        }));
 
       const extraRows = Array.from({ length: Math.max(0, 12 - rankedRows.length) }, (_, index) => {
         const profile = RUNNER_DIRECTORY_EXTRA_PROFILES[index % RUNNER_DIRECTORY_EXTRA_PROFILES.length];
@@ -1545,12 +1608,17 @@ export default function App() {
           countryCode: getNationalityCode(bib) as CountryCode,
           category: profile.category,
           state,
-          statusLabel: formatRunnerDirectoryStateLabel(state),
-          infoLabel: `Club ${getRunnerTeamName(bib)}`,
-          raceTime: "--:--:--",
-          rank: null,
-          scannedAt: race.startAt
-        } satisfies RunnerDirectoryEntry;
+            statusLabel: formatRunnerDirectoryStateLabel(state),
+            infoLabel: `Club ${getRunnerTeamName(bib)}`,
+            raceTime: "--:--:--",
+            rank: null,
+            scannedAt: race.startAt,
+            checkpointId: null,
+            checkpointCode: null,
+            checkpointName: null,
+            checkpointKmMarker: null,
+            checkpointOrder: null
+          } satisfies RunnerDirectoryEntry;
       });
 
       return [...rankedRows, ...extraRows];
@@ -1594,6 +1662,78 @@ export default function App() {
         runnerDirectoryPage * runnerDirectoryRowsPerPage,
         filteredRunnerDirectoryEntries.length
       )} of ${filteredRunnerDirectoryEntries.length}`
+    : "0-0 of 0";
+  const raceLeaderEntries = useMemo<RaceLeaderEntry[]>(() => {
+    const genderRanks = new Map<string, number>();
+    const groupedByRaceAndGender = new Map<string, RunnerDirectoryEntry[]>();
+
+    runnerDirectoryEntries
+      .filter((entry) => entry.rank !== null && (entry.state === "in-race" || entry.state === "finisher"))
+      .forEach((entry) => {
+        const key = `${entry.raceSlug}:${entry.category}`;
+        const bucket = groupedByRaceAndGender.get(key) ?? [];
+        bucket.push(entry);
+        groupedByRaceAndGender.set(key, bucket);
+      });
+
+    groupedByRaceAndGender.forEach((bucket, key) => {
+      bucket
+        .slice()
+        .sort((left, right) => (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER))
+        .forEach((entry, index) => {
+          genderRanks.set(`${key}:${entry.bib}`, index + 1);
+        });
+    });
+
+    return runnerDirectoryEntries
+      .filter((entry) => entry.rank !== null && (entry.state === "in-race" || entry.state === "finisher"))
+      .map((entry) => {
+        const race = demoRaceFestival.races.find((item) => item.slug === entry.raceSlug) ?? selectedRaceCard;
+        const nextPassing = estimateNextPassing(race, entry);
+        const lastPointLabel =
+          entry.checkpointId === "finish"
+            ? "Finish"
+            : entry.checkpointCode && entry.checkpointKmMarker !== null && entry.checkpointKmMarker !== undefined
+              ? formatCheckpointLabel({
+                  code: entry.checkpointCode,
+                  kmMarker: entry.checkpointKmMarker
+                })
+              : entry.statusLabel;
+
+        return {
+          ...entry,
+          genderRank: genderRanks.get(`${entry.raceSlug}:${entry.category}:${entry.bib}`) ?? entry.rank ?? 0,
+          lastPointLabel,
+          nextPassingLabel: nextPassing.label,
+          nextPassingTime: nextPassing.time
+        };
+      })
+      .sort((left, right) => {
+        if (left.raceTitle !== right.raceTitle) {
+          return left.raceTitle.localeCompare(right.raceTitle);
+        }
+
+        return (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER);
+      });
+  }, [runnerDirectoryEntries, selectedRaceCard]);
+  const raceLeaderCountries = useMemo(
+    () =>
+      [...new Set(raceLeaderEntries.map((entry) => entry.countryCode))]
+        .sort((left, right) => COUNTRY_META[left].name.localeCompare(COUNTRY_META[right].name)),
+    [raceLeaderEntries]
+  );
+  const filteredRaceLeaderEntries = useMemo(() => {
+    return raceLeaderEntries.filter((entry) => {
+      const matchesRace = leadersRaceFilter === "all" ? true : entry.raceSlug === leadersRaceFilter;
+      const matchesCountry = leadersCountryFilter === "all" ? true : entry.countryCode === leadersCountryFilter;
+      const matchesCategory = leadersCategoryFilter === "all" ? true : entry.category === leadersCategoryFilter;
+      return matchesRace && matchesCountry && matchesCategory;
+    });
+  }, [leadersCategoryFilter, leadersCountryFilter, leadersRaceFilter, raceLeaderEntries]);
+  const raceLeadersPageCount = Math.max(1, Math.ceil(filteredRaceLeaderEntries.length / leadersRowsPerPage));
+  const raceLeaderRows = filteredRaceLeaderEntries.slice((leadersPage - 1) * leadersRowsPerPage, leadersPage * leadersRowsPerPage);
+  const raceLeadersRangeLabel = filteredRaceLeaderEntries.length
+    ? `${(leadersPage - 1) * leadersRowsPerPage + 1}-${Math.min(leadersPage * leadersRowsPerPage, filteredRaceLeaderEntries.length)} of ${filteredRaceLeaderEntries.length}`
     : "0-0 of 0";
   const searchRunnerEntries = useMemo(() => {
     if (!normalizedRunnerQuery) {
@@ -1694,6 +1834,11 @@ export default function App() {
       setFavoritesPage(favoritesPageCount);
     }
   }, [favoritesPage, favoritesPageCount]);
+  useEffect(() => {
+    if (leadersPage > raceLeadersPageCount) {
+      setLeadersPage(raceLeadersPageCount);
+    }
+  }, [leadersPage, raceLeadersPageCount]);
 
   const fullRankingRangeLabel = fullRankingEntries.length
     ? `${(fullRankingPage - 1) * rankingRowsPerPage + 1}-${Math.min(
@@ -1913,7 +2058,12 @@ export default function App() {
   }
 
   function focusRaceLeaders() {
-    jumpToRaceSection("race-leaders", "leaders");
+    setLeadersRaceFilter(isEditionHome ? "all" : selectedRaceCard.slug);
+    setLeadersCountryFilter("all");
+    setLeadersCategoryFilter("all");
+    setLeadersPage(1);
+    setRaceDetailView("leaders");
+    jumpToSection("race-leaders-view");
   }
 
   function focusStatistics() {
@@ -2062,7 +2212,7 @@ export default function App() {
 
         {showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
 
-        {isEditionHome ? (
+        {showEditionHome ? (
           <>
             <RaceEditionHome
               bannerTagline={demoRaceFestival.bannerTagline}
@@ -2076,7 +2226,7 @@ export default function App() {
               onOpenRace={(slug) => openRaceView(slug, "race-hub")}
             />
           </>
-        ) : (
+        ) : !isEditionHome ? (
           <>
         <div className="detail-topline">
           <button className="back-home-link" onClick={() => handleRaceSelection(EDITION_HOME_VALUE)} type="button">
@@ -3551,7 +3701,7 @@ export default function App() {
         )}
       </section>
 
-      <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "leaders" && raceDetailView !== "race-page"} id="race-leaders">
+      <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "race-page" || !isActiveRaceLive} id="race-leaders">
         <div className="panel-head compact">
           <div>
             <p className="section-label">Follow the race</p>
@@ -3639,12 +3789,189 @@ export default function App() {
         </div>
       </section>
           </>
-        )}
+        ) : null}
 
-      <footer className="runtime-footer" id="runtime-footer">
-        <span>API {apiHost}</span>
-        <span>Live {liveStatusLabel}</span>
-      </footer>
+        <section className="panel menu-feature-panel race-leaders-directory-view" hidden={raceDetailView !== "leaders"} id="race-leaders-view">
+          <div className="search-runner-head">
+            <p className="section-label">Follow the race</p>
+            <h2>Race leaders</h2>
+          </div>
+
+          <div className="runner-list-shell race-leaders-directory-shell">
+            <div className="runner-list-toolbar race-leaders-toolbar">
+              <label className="ranking-toolbar-label">
+                In which race ?
+                <select value={leadersRaceFilter} onChange={(event) => setLeadersRaceFilter(event.target.value)}>
+                  <option value="all">All races</option>
+                  {demoRaceFestival.races.map((race) => (
+                    <option key={`leaders-race-${race.slug}`} value={race.slug}>
+                      {race.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="ranking-toolbar-label">
+                Of what nationality ?
+                <select value={leadersCountryFilter} onChange={(event) => setLeadersCountryFilter(event.target.value)}>
+                  <option value="all">All nationalities</option>
+                  {raceLeaderCountries.map((countryCode) => (
+                    <option key={`leaders-country-${countryCode}`} value={countryCode}>
+                      {COUNTRY_META[countryCode].name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="ranking-toolbar-label">
+                Of which category ?
+                <select value={leadersCategoryFilter} onChange={(event) => setLeadersCategoryFilter(event.target.value as "all" | "men" | "women")}>
+                  <option value="all">All categories</option>
+                  <option value="men">Men</option>
+                  <option value="women">Women</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="runner-list-pagination">
+              <label className="rows-per-page">
+                Rows per page
+                <select value={leadersRowsPerPage} onChange={(event) => setLeadersRowsPerPage(Number(event.target.value))}>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={30}>30</option>
+                </select>
+              </label>
+              <div className="ranking-range-text">{raceLeadersRangeLabel}</div>
+              <div className="pager-actions compact">
+                <button className="theme-toggle pager-button" disabled={leadersPage <= 1} onClick={() => setLeadersPage(1)} type="button">
+                  «
+                </button>
+                <button
+                  className="theme-toggle pager-button"
+                  disabled={leadersPage <= 1}
+                  onClick={() => setLeadersPage((current) => Math.max(1, current - 1))}
+                  type="button"
+                >
+                  ‹
+                </button>
+                <button
+                  className="theme-toggle pager-button"
+                  disabled={leadersPage >= raceLeadersPageCount}
+                  onClick={() => setLeadersPage((current) => Math.min(raceLeadersPageCount, current + 1))}
+                  type="button"
+                >
+                  ›
+                </button>
+                <button
+                  className="theme-toggle pager-button"
+                  disabled={leadersPage >= raceLeadersPageCount}
+                  onClick={() => setLeadersPage(raceLeadersPageCount)}
+                  type="button"
+                >
+                  »
+                </button>
+              </div>
+            </div>
+
+            <div className="runner-list-table race-leaders-table">
+              <div className="runner-list-head race-leaders-head">
+                <span>Ranking</span>
+                <span>Runner/Team</span>
+                <span>Cat. & Nat.</span>
+                <span>Last point</span>
+                <span>Next estimated passing</span>
+                <span>Actions</span>
+              </div>
+
+              {raceLeaderRows.length ? (
+                <div className="runner-list-body">
+                  {raceLeaderRows.map((entry) => {
+                    const statusClass = entry.state === "finisher" ? "finished" : "live";
+                    const canShowPodium = shouldShowLivePodium(
+                      entry.rank ?? 0,
+                      entry.checkpointId ?? "",
+                      (demoRaceFestival.races.find((race) => race.slug === entry.raceSlug)?.editionLabel.toLowerCase() ?? "finished") === "live"
+                    );
+
+                    return (
+                      <article className="runner-list-row race-leaders-row" key={`race-leader-${entry.raceSlug}-${entry.bib}`}>
+                        <div className="race-leaders-rank">
+                          <strong>
+                            #{entry.rank}
+                            {canShowPodium ? <RankingMedal rank={entry.rank ?? 0} /> : null}
+                          </strong>
+                          <span>Overall</span>
+                          <small>Sex {entry.genderRank}</small>
+                        </div>
+
+                        <div className="runner-list-runner race-leaders-runner">
+                          <div className="bib-tile">{entry.bib}</div>
+                          <div className="runner-list-runner-copy">
+                            <strong>{entry.name}</strong>
+                            <span>{entry.teamName}</span>
+                            <div className={`runner-status-pill ${statusClass}`}>{entry.statusLabel}</div>
+                          </div>
+                        </div>
+
+                        <div className="race-leaders-catnat">
+                          <div className="runner-list-category">
+                            <span className={`gender-dot ${entry.category}`} />
+                            <strong>{formatCategoryLabel(entry.category)}</strong>
+                          </div>
+                          <div className="runner-list-country">
+                            <img alt={entry.countryCode} className="flag-icon" height="18" loading="lazy" src={getFlagIconUrl(entry.countryCode)} width="24" />
+                            <small>{entry.countryCode}</small>
+                          </div>
+                        </div>
+
+                        <div className="race-leaders-point">
+                          <strong>{entry.lastPointLabel}</strong>
+                          <span>{formatScanTime(entry.scannedAt)}</span>
+                        </div>
+
+                        <div className="race-leaders-next">
+                          <strong>{entry.nextPassingLabel}</strong>
+                          <span>{entry.nextPassingTime}</span>
+                        </div>
+
+                        <div className="runner-list-actions">
+                          <button
+                            aria-label={favoriteBibs.includes(entry.bib) ? `Remove ${entry.name} from favorites` : `Add ${entry.name} to favorites`}
+                            className={`runner-action ghost ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}
+                            onClick={() => toggleFavoriteBib(entry.bib)}
+                            type="button"
+                          >
+                            ♡
+                          </button>
+                          <button
+                            aria-label={`Open ${entry.name}`}
+                            className="runner-action"
+                            onClick={() => {
+                              setSelectedRaceSlug(entry.raceSlug);
+                              setSelectedRunnerBib(entry.bib);
+                              jumpToRaceSection("my-runners", "my-runners");
+                            }}
+                            type="button"
+                          >
+                            ↗
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="search-empty-state">No race leaders available for the selected filters.</div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <footer className="runtime-footer" id="runtime-footer">
+          <span>API {apiHost}</span>
+          <span>Live {liveStatusLabel}</span>
+        </footer>
 
       {isLoginModalOpen ? (
         <div
