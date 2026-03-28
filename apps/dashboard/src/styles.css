@@ -4497,6 +4497,25 @@ body {
   gap: 16px;
 }
 
+.race-course-info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.race-course-info-tag {
+  background: rgba(255, 244, 226, 0.95);
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 999px;
+  color: var(--ink);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 700;
+  min-height: 34px;
+  padding: 0 14px;
+  align-items: center;
+}
+
 .race-course-info-body p {
   color: var(--ink);
   font-size: 1rem;

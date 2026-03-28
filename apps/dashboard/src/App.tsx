@@ -2092,7 +2092,14 @@ export default function App() {
           </div>
 
           <div className="race-course-info-body">
-            <p>{activeCourse.subtitle}</p>
+            <p>{selectedRaceCard.courseDescription}</p>
+            <div className="race-course-info-tags" aria-label="Course highlights">
+              {selectedRaceCard.courseHighlights.map((highlight) => (
+                <span className="race-course-info-tag" key={highlight}>
+                  {highlight}
+                </span>
+              ))}
+            </div>
             <div className="race-course-info-meta">
               <article>
                 <span>Start</span>

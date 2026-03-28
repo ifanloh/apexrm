@@ -21,6 +21,8 @@ export type DemoRaceCard = {
   scheduleLabel: string;
   startAt: string;
   startTown: string;
+  courseDescription: string;
+  courseHighlights: string[];
   distanceKm: number;
   ascentM: number;
   finishers: number;
@@ -49,6 +51,9 @@ export const demoRaceFestival = {
       scheduleLabel: "Fri 05 Jul 23:59",
       startAt: "2025-07-05T23:59:00+07:00",
       startTown: "Kaliandra",
+      courseDescription:
+        "Ultra utama MANTRA116 melintasi rangkaian Arjuno-Welirang dengan tanjakan panjang, ridge teknikal, dan segmen malam yang paling menuntut di antara seluruh kategori.",
+      courseHighlights: ["Night start", "Arjuno-Welirang ridge", "Longest cut-off"],
       distanceKm: 116,
       ascentM: 7400,
       finishers: 138,
@@ -170,6 +175,9 @@ export const demoRaceFestival = {
       scheduleLabel: "Fri 05 Jul 23:59",
       startAt: "2025-07-05T23:59:00+07:00",
       startTown: "Kaliandra",
+      courseDescription:
+        "Kategori 68K mengambil inti pegunungan utama dengan profil ultra yang tetap menantang, namun lebih cepat dan lebih padat dibanding rute 116K.",
+      courseHighlights: ["Fast ultra", "Core mountain route", "Technical descent"],
       distanceKm: 68,
       ascentM: 4300,
       finishers: 214,
@@ -193,6 +201,9 @@ export const demoRaceFestival = {
       scheduleLabel: "Sat 06 Jul 00:00",
       startAt: "2025-07-06T00:00:00+07:00",
       startTown: "Kaliandra",
+      courseDescription:
+        "Trail 38 Welirang menekankan ritme cepat dengan kombinasi single track hutan, punggungan terbuka, dan pemandangan khas sisi Welirang.",
+      courseHighlights: ["Welirang flank", "Forest single track", "Fast mid-distance"],
       distanceKm: 38,
       ascentM: 2750,
       finishers: 308,
@@ -216,6 +227,9 @@ export const demoRaceFestival = {
       scheduleLabel: "Sat 06 Jul 00:00",
       startAt: "2025-07-06T00:00:00+07:00",
       startTown: "Kaliandra",
+      courseDescription:
+        "Trail 34 Arjuno berfokus pada pendakian cepat ke area Arjuno sebelum turun tajam kembali ke basecamp, cocok untuk pelari gunung yang agresif.",
+      courseHighlights: ["Arjuno climb", "Sharp descent", "Compact mountain race"],
       distanceKm: 34,
       ascentM: 3050,
       finishers: 291,
@@ -239,6 +253,9 @@ export const demoRaceFestival = {
       scheduleLabel: "Sun 07 Jul 07:00",
       startAt: "2025-07-07T07:00:00+07:00",
       startTown: "Kaliandra",
+      courseDescription:
+        "Fun 17 adalah kategori cepat dengan satu putaran punggungan pendek, ideal untuk pelari yang ingin sensasi trail gunung tanpa durasi ultra.",
+      courseHighlights: ["Short ridge loop", "Beginner friendly", "Scenic pace"],
       distanceKm: 17,
       ascentM: 1250,
       finishers: 426,
@@ -262,6 +279,9 @@ export const demoRaceFestival = {
       scheduleLabel: "Sun 07 Jul 07:00",
       startAt: "2025-07-07T07:00:00+07:00",
       startTown: "Kaliandra",
+      courseDescription:
+        "Fun 10 merupakan loop trail singkat di sekitar Kaliandra dengan climb pendek, jalur hutan, dan finis cepat yang ramah untuk first-timer.",
+      courseHighlights: ["Shortest course", "Forest loop", "First-timer friendly"],
       distanceKm: 10,
       ascentM: 700,
       finishers: 508,
