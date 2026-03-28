@@ -1363,7 +1363,6 @@ export default function App() {
   ];
   const topbarSearchPlaceholder = "Search a runner ...";
   const activeRaceStartAt = selectedRaceCard.startAt;
-  const recentPassingRows = recentPassings.slice(0, 16);
   const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
   const publicRunnerResults =
     runnerResults.length || hasRunnerSearchFilters
@@ -1502,10 +1501,6 @@ export default function App() {
     jumpToRaceSection("comparison");
   }
 
-  function focusPassingsTable() {
-    jumpToRaceSection("passings-table");
-  }
-
   function focusRaceLeaders() {
     jumpToRaceSection("race-leaders");
   }
@@ -1568,10 +1563,6 @@ export default function App() {
               <button className="nav-link nav-link-icon" onClick={() => focusRanking("overall")} type="button">
                 <NavIcon name="podium" />
                 <span>Ranking</span>
-              </button>
-              <button className="nav-link nav-link-icon" onClick={focusPassingsTable} type="button">
-                <NavIcon name="passings" />
-                <span>Passings table</span>
               </button>
               <button className="nav-link nav-link-icon" onClick={focusRaceLeaders} type="button">
                 <NavIcon name="leaders" />
@@ -2494,115 +2485,67 @@ export default function App() {
         </article>
       </section>
 
-      <section className="menu-feature-grid">
-        <article className="panel menu-feature-panel" id="comparison">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">The runners</p>
-              <h3>Comparison</h3>
-            </div>
-            <div className="panel-badge compact-badge">
-              <span>Compared</span>
-              <strong>{comparisonEntries.length}</strong>
-              <span>runner cards</span>
-            </div>
+      <section className="panel menu-feature-panel" id="comparison">
+        <div className="panel-head compact">
+          <div>
+            <p className="section-label">The runners</p>
+            <h3>Comparison</h3>
           </div>
+          <div className="panel-badge compact-badge">
+            <span>Compared</span>
+            <strong>{comparisonEntries.length}</strong>
+            <span>runner cards</span>
+          </div>
+        </div>
 
-          {comparisonEntries.length >= 2 ? (
-            <div className="comparison-grid">
-              {comparisonEntries.map((entry) => (
-                <article className="comparison-card" key={`comparison-${entry.bib}`}>
-                  <div className="comparison-head">
-                    <div>
-                      <strong>{entry.name}</strong>
-                      <span>{entry.bib} | {getRunnerTeamName(entry.bib)}</span>
-                    </div>
-                    <button
-                      className={`favorite-toggle ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}
-                      onClick={() => toggleFavoriteBib(entry.bib)}
-                      type="button"
-                    >
-                      {favoriteBibs.includes(entry.bib) ? "Favorit" : "Ikuti"}
-                    </button>
+        {comparisonEntries.length >= 2 ? (
+          <div className="comparison-grid">
+            {comparisonEntries.map((entry) => (
+              <article className="comparison-card" key={`comparison-${entry.bib}`}>
+                <div className="comparison-head">
+                  <div>
+                    <strong>{entry.name}</strong>
+                    <span>{entry.bib} | {getRunnerTeamName(entry.bib)}</span>
                   </div>
-                  <div className="comparison-stats-grid">
-                    <div className="mini-stat">
-                      <span>Overall</span>
-                      <strong>#{entry.rank}</strong>
-                    </div>
-                    <div className="mini-stat">
-                      <span>Gender</span>
-                      <strong>{entry.category.toLowerCase() === "women" ? "Woman" : "Man"}</strong>
-                    </div>
-                    <div className="mini-stat">
-                      <span>Nationality</span>
-                      <strong>{getNationalityCode(entry.bib)}</strong>
-                    </div>
-                    <div className="mini-stat">
-                      <span>Race time</span>
-                      <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
-                    </div>
+                  <button
+                    className={`favorite-toggle ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}
+                    onClick={() => toggleFavoriteBib(entry.bib)}
+                    type="button"
+                  >
+                    {favoriteBibs.includes(entry.bib) ? "Favorit" : "Ikuti"}
+                  </button>
+                </div>
+                <div className="comparison-stats-grid">
+                  <div className="mini-stat">
+                    <span>Overall</span>
+                    <strong>#{entry.rank}</strong>
                   </div>
-                  <div className="comparison-progress">
-                    <span>Progress</span>
-                    <strong>{formatCheckpointProgress(entry)}</strong>
+                  <div className="mini-stat">
+                    <span>Gender</span>
+                    <strong>{entry.category.toLowerCase() === "women" ? "Woman" : "Man"}</strong>
                   </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <strong>Belum cukup runner untuk dibandingkan.</strong>
-              <span>Tambahkan minimal dua runner favorit atau pilih runner dari ranking untuk membangun comparison.</span>
-            </div>
-          )}
-        </article>
-
-        <article className="panel menu-feature-panel" id="passings-table">
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Follow the race</p>
-              <h3>Passings table</h3>
-            </div>
-            <div className="panel-badge compact-badge">
-              <span>Source</span>
-              <strong>{recentPassingSummary}</strong>
-              <span>{recentPassingsMode === "server" ? "live feed" : "fallback feed"}</span>
-            </div>
+                  <div className="mini-stat">
+                    <span>Nationality</span>
+                    <strong>{getNationalityCode(entry.bib)}</strong>
+                  </div>
+                  <div className="mini-stat">
+                    <span>Race time</span>
+                    <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
+                  </div>
+                </div>
+                <div className="comparison-progress">
+                  <span>Progress</span>
+                  <strong>{formatCheckpointProgress(entry)}</strong>
+                </div>
+              </article>
+            ))}
           </div>
-
-          <div className="passings-table-head">
-            <span>Runner</span>
-            <span>Checkpoint</span>
-            <span>Position</span>
-            <span>Time</span>
+        ) : (
+          <div className="empty-state">
+            <strong>Belum cukup runner untuk dibandingkan.</strong>
+            <span>Tambahkan minimal dua runner favorit atau pilih runner dari ranking untuk membangun comparison.</span>
           </div>
-          <div className="passings-table-list">
-            {recentPassingRows.length ? (
-              recentPassingRows.map((passing) => (
-                <button
-                  className="passings-table-row"
-                  key={`passing-table-${passing.bib}-${passing.checkpointId}-${passing.scannedAt}`}
-                  onClick={() => {
-                    setSelectedRunnerBib(passing.bib);
-                    jumpToSection("my-runners");
-                  }}
-                  type="button"
-                >
-                  <strong>{passing.name}</strong>
-                  <span>{formatCheckpointLabel({ code: passing.checkpointCode, kmMarker: passing.checkpointKmMarker })}</span>
-                  <span>#{passing.position}</span>
-                  <time>{formatScanTime(passing.scannedAt)}</time>
-                </button>
-              ))
-            ) : (
-              <div className="empty-state">
-                <strong>Belum ada passings table.</strong>
-                <span>Passing terbaru akan muncul otomatis saat scan resmi masuk.</span>
-              </div>
-            )}
-          </div>
-        </article>
+        )}
       </section>
 
       <section className="panel menu-feature-panel race-leaders-panel" id="race-leaders">

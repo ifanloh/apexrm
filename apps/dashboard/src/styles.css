@@ -2866,8 +2866,7 @@ body {
 .runner-directory-list,
 .favorite-summary-grid,
 .leaders-grid,
-.comparison-grid,
-.passings-table-list {
+.comparison-grid {
   display: grid;
   gap: 12px;
 }
@@ -2875,15 +2874,13 @@ body {
 .runner-directory-row,
 .favorite-summary-card,
 .comparison-card,
-.leader-card,
-.passings-table-row {
+.leader-card {
   background: var(--surface);
   border: 1px solid rgba(20, 22, 24, 0.08);
   border-radius: 18px;
 }
 
 .runner-directory-row,
-.passings-table-row,
 .leader-list-row {
   align-items: center;
   display: grid;
@@ -2927,7 +2924,6 @@ body {
 }
 
 .runner-directory-meta strong,
-.passings-table-row time,
 .leader-list-row time {
   color: var(--ink);
   font-family: "Oxanium", sans-serif;
@@ -2987,8 +2983,7 @@ body {
 }
 
 .comparison-progress span,
-.leader-card-head span,
-.passings-table-head span {
+.leader-card-head span {
   color: var(--ink-muted);
   font-size: 0.76rem;
   font-weight: 700;
@@ -2999,29 +2994,6 @@ body {
 .comparison-progress strong {
   color: var(--ink);
   font-size: 0.92rem;
-}
-
-.passings-table-head {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 80px 110px;
-  padding: 0 8px;
-}
-
-.passings-table-row {
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) 80px 110px;
-  padding: 14px 16px;
-}
-
-.passings-table-row strong {
-  color: var(--ink);
-  font-size: 0.94rem;
-}
-
-.passings-table-row span {
-  color: var(--ink-soft);
-  font-size: 0.82rem;
 }
 
 .leaders-grid {
@@ -3078,8 +3050,6 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .passings-table-head,
-  .passings-table-row,
   .runner-directory-row {
     grid-template-columns: 1fr;
   }
