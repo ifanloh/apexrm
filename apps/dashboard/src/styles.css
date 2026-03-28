@@ -858,6 +858,10 @@ a {
   position: relative;
 }
 
+.section-hero-banner {
+  margin-bottom: 8px;
+}
+
 .edition-banner-panel::before,
 .edition-banner-panel::after {
   content: "";

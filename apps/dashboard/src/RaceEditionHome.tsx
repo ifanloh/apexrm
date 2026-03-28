@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { DemoRaceCard, DemoRaceRankingPreview } from "./demoRaceFestival";
+import { EditionHeroBanner } from "./EditionHeroBanner";
 import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
@@ -142,22 +143,14 @@ export function RaceEditionHome({
 }: Props) {
   return (
     <section className="edition-home-shell" id="edition-home">
-      <article className="panel edition-banner-panel">
-        <div className="edition-banner-copy">
-          <span className="status-chip active">{editionLabel}</span>
-          <strong>{bannerTagline}</strong>
-          <h2>
-            {brandStack.map((line) => (
-              <span key={line}>{line}</span>
-            ))}
-          </h2>
-          <p>{homeSubtitle}</p>
-        </div>
-        <div className="edition-banner-ribbons">
-          <span>{dateRibbon}</span>
-          <span>{locationRibbon}</span>
-        </div>
-      </article>
+      <EditionHeroBanner
+        bannerTagline={bannerTagline}
+        brandStack={brandStack}
+        dateRibbon={dateRibbon}
+        editionLabel={editionLabel}
+        homeSubtitle={homeSubtitle}
+        locationRibbon={locationRibbon}
+      />
 
       <div className="edition-home-header">
         <div>
