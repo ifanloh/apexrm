@@ -2731,19 +2731,25 @@ body {
 
 .brand-logo-frame {
   align-items: center;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(31, 20, 16, 0.06);
-  border-radius: 14px;
-  box-shadow: 0 10px 22px rgba(112, 66, 26, 0.1);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   display: inline-flex;
-  padding: 8px 10px;
+  justify-content: flex-start;
+  overflow: visible;
+  padding: 0;
+  width: 100%;
 }
 
 .brand-logo-image {
   display: block;
   height: auto;
-  max-width: 152px;
-  width: 152px;
+  max-height: 56px;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: left center;
+  width: 100%;
 }
 
 .topbar-wordmark {
@@ -2783,12 +2789,15 @@ body {
   border: 0;
   cursor: pointer;
   display: inline-flex;
+  justify-content: flex-start;
   margin: 0 0 12px;
-  padding: 0 2px;
+  overflow: visible;
+  padding: 0;
+  width: 100%;
 }
 
 .live-sidebar-logo .brand-logo-frame {
-  padding: 8px 10px;
+  max-width: 184px;
 }
 
 .live-sidebar-nav .nav-link,
