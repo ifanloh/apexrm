@@ -1,5 +1,8 @@
 import type { CSSProperties } from "react";
 import type { DemoRaceCard, DemoRaceRankingPreview } from "./demoRaceFestival";
+import podium1stIcon from "./assets/podium-1st.svg";
+import podium2ndIcon from "./assets/podium-2nd.svg";
+import podium3rdIcon from "./assets/podium-3rd.svg";
 
 type RaceHomeCard = DemoRaceCard & {
   rankingPreview: DemoRaceRankingPreview[];
@@ -47,6 +50,20 @@ function buildSparkline(seed: number) {
     linePath,
     areaPath
   };
+}
+
+function PreviewPodium({ rank }: { rank: number }) {
+  const icon = rank === 1 ? podium1stIcon : rank === 2 ? podium2ndIcon : rank === 3 ? podium3rdIcon : null;
+
+  if (!icon) {
+    return null;
+  }
+
+  return (
+    <span className="race-card-podium" aria-hidden="true">
+      <img alt="" src={icon} />
+    </span>
+  );
 }
 
 export function RaceEditionHome({
@@ -158,7 +175,10 @@ export function RaceEditionHome({
                   <div className="race-card-ranking-list">
                     {card.rankingPreview.slice(0, 3).map((entry) => (
                       <div className="race-card-ranking-row" key={`${card.slug}-${entry.rank}-${entry.bib}`}>
-                        <strong>{entry.rank}</strong>
+                        <strong>
+                          {entry.rank}
+                          <PreviewPodium rank={entry.rank} />
+                        </strong>
                         <div className="race-card-runner">
                           <span>{entry.name}</span>
                           <small>{entry.status}</small>

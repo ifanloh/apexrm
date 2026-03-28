@@ -1,5 +1,4 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   authProfileSchema,
@@ -1450,11 +1449,9 @@ export default function App() {
             </label>
 
             <div className="topbar-search topbar-search-shell">
-              <span
-                className="topbar-search-icon topbar-search-icon-runner"
-                aria-hidden="true"
-                style={{ "--runner-icon": `url(${runnerIcon})` } as CSSProperties}
-              />
+              <span className="topbar-search-icon" aria-hidden="true">
+                <img alt="" className="topbar-search-icon-image" src={runnerIcon} />
+              </span>
               <label className="sr-only" htmlFor="topbar-runner-search">
                 Search a runner
               </label>

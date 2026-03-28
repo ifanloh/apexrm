@@ -1204,8 +1204,25 @@ a {
 }
 
 .race-card-ranking-row strong {
+  align-items: center;
+  display: inline-flex;
   font-family: "Oxanium", sans-serif;
   font-size: 1.1rem;
+  gap: 6px;
+}
+
+.race-card-podium {
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 16px;
+  width: 16px;
+}
+
+.race-card-podium img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
 }
 
 .race-card-runner {
@@ -4770,26 +4787,15 @@ body {
   color: var(--green) !important;
   display: inline-flex !important;
   flex: 0 0 auto !important;
-  height: 22px !important;
-  width: 22px !important;
+  height: 24px !important;
+  width: 24px !important;
 }
 
-.topbar-search-icon svg {
+.topbar-search-icon img {
   display: block !important;
   height: 100% !important;
+  object-fit: contain !important;
   width: 100% !important;
-}
-
-.topbar-search-icon-runner {
-  background: var(--green) !important;
-  mask-image: var(--runner-icon);
-  mask-position: center;
-  mask-repeat: no-repeat;
-  mask-size: contain;
-  -webkit-mask-image: var(--runner-icon);
-  -webkit-mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size: contain;
 }
 
 .topbar-search-submit {
