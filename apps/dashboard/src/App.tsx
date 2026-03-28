@@ -1585,7 +1585,7 @@ export default function App() {
   }
 
   function focusRanking(view: "overall" | "women") {
-    setFullRankingView(view);
+    setFullRankingView(view === "women" ? "women" : "men");
     jumpToRaceSection("full-ranking", "ranking");
   }
 
@@ -2026,9 +2026,12 @@ export default function App() {
           <div className="ranking-toolbar">
             <div className="ranking-filters">
               <label className="ranking-toolbar-label">
-                Of which gender ?
-                <select value={fullRankingView} onChange={(event) => setFullRankingView(event.target.value as RankingView)}>
-                  <option value="overall">All genders</option>
+                Of which category ?
+                <select
+                  value={fullRankingView === "women" ? "women" : "men"}
+                  onChange={(event) => setFullRankingView(event.target.value as "women" | "men")}
+                >
+                  <option value="men">Men</option>
                   <option value="women">Women</option>
                 </select>
               </label>
