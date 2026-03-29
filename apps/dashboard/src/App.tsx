@@ -804,6 +804,8 @@ export default function App() {
   const [favoriteBibs, setFavoriteBibs] = useState<string[]>(() => loadFavoriteBibs());
   const [fullRankingPage, setFullRankingPage] = useState(1);
   const [fullRankingView, setFullRankingView] = useState<RankingView>("overall");
+  const [rankingRaceFilter, setRankingRaceFilter] = useState<string>("");
+  const [rankingCountryFilter, setRankingCountryFilter] = useState<string>("all");
   const [showRankingFilters, setShowRankingFilters] = useState(false);
   const [rankingRowsPerPage, setRankingRowsPerPage] = useState(FULL_RANKING_PAGE_SIZE);
   const [runnerDirectoryStateFilter, setRunnerDirectoryStateFilter] = useState<RunnerDirectoryState>("all");
@@ -1211,41 +1213,6 @@ export default function App() {
     isFeaturedRace && overallLeaderboard.topEntries.length > 0 ? overallLeaderboard : previewOverallLeaderboard;
   const activeWomenLeaderboard =
     isFeaturedRace && womenLeaderboard.topEntries.length > 0 ? womenLeaderboard : previewWomenLeaderboard;
-  const activeMenLeaderboard = useMemo<OverallLeaderboard>(() => {
-    const items = activeOverallLeaderboard.topEntries.filter((entry) => entry.category.toLowerCase() === "men");
-    return {
-      totalRankedRunners: items.length,
-      topEntries: items
-    };
-  }, [activeOverallLeaderboard]);
-  const genderRankByBib = useMemo(() => {
-    const next = new Map<string, number>();
-    let menRank = 0;
-    let womenRank = 0;
-
-    activeOverallLeaderboard.topEntries.forEach((entry) => {
-      const category = entry.category.toLowerCase() === "women" ? "women" : "men";
-
-      if (category === "women") {
-        womenRank += 1;
-        next.set(entry.bib, womenRank);
-        return;
-      }
-
-      menRank += 1;
-      next.set(entry.bib, menRank);
-    });
-
-    return next;
-  }, [activeOverallLeaderboard.topEntries]);
-
-  const fullRankingSource =
-    fullRankingView === "women" ? activeWomenLeaderboard : fullRankingView === "men" ? activeMenLeaderboard : activeOverallLeaderboard;
-
-  useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(fullRankingSource.topEntries.length / rankingRowsPerPage));
-    setFullRankingPage((current) => Math.min(current, totalPages));
-  }, [fullRankingSource.topEntries.length, rankingRowsPerPage]);
 
   useEffect(() => {
     setFullRankingPage(1);
@@ -1254,6 +1221,14 @@ export default function App() {
   useEffect(() => {
     setFullRankingPage(1);
   }, [runnerCheckpointFilter, runnerQuery, rankingRowsPerPage]);
+
+  useEffect(() => {
+    setRankingRaceFilter(isEditionHome ? featuredRace.slug : selectedRaceCard.slug);
+  }, [featuredRace.slug, isEditionHome, selectedRaceCard.slug]);
+
+  useEffect(() => {
+    setFullRankingPage(1);
+  }, [rankingRaceFilter, rankingCountryFilter]);
 
   useEffect(() => {
     if (!isEditionHome) {
@@ -1427,17 +1402,6 @@ export default function App() {
   const alphabeticalRunnerResults = useMemo(() => {
     return [...activeOverallLeaderboard.topEntries].sort((left, right) => left.name.localeCompare(right.name));
   }, [activeOverallLeaderboard.topEntries]);
-  const selectedRunnerEntry = useMemo(() => {
-    if (!selectedRunnerBib) {
-      return null;
-    }
-
-    return (
-      activeOverallLeaderboard.topEntries.find((entry) => entry.bib === selectedRunnerBib) ??
-      fullRankingSource.topEntries.find((entry) => entry.bib === selectedRunnerBib) ??
-      null
-    );
-  }, [activeOverallLeaderboard.topEntries, fullRankingSource.topEntries, selectedRunnerBib]);
   const recentPassingSummary = useMemo(() => {
     if (!recentPassings.length) {
       return "Belum ada passing";
@@ -1519,21 +1483,6 @@ export default function App() {
       }))
       .sort((left, right) => right.count - left.count);
   }, [activeOverallLeaderboard.topEntries, activeStarterCount]);
-  const fullRankingEntries = useMemo(() => {
-    return fullRankingSource.topEntries.filter((entry) => {
-      const matchesQuery =
-        !normalizedRunnerQuery ||
-        entry.bib.toUpperCase().includes(normalizedRunnerQuery) ||
-        entry.name.toUpperCase().includes(normalizedRunnerQuery);
-      const matchesCheckpoint = runnerCheckpointFilter === "all" || entry.checkpointId === runnerCheckpointFilter;
-      return matchesQuery && matchesCheckpoint;
-    });
-  }, [fullRankingSource.topEntries, normalizedRunnerQuery, runnerCheckpointFilter]);
-  const fullRankingPageCount = Math.max(1, Math.ceil(fullRankingEntries.length / rankingRowsPerPage));
-  const fullRankingRows = fullRankingEntries.slice(
-    (fullRankingPage - 1) * rankingRowsPerPage,
-    fullRankingPage * rankingRowsPerPage
-  );
   const getDisplayRaceTime = (bib: string, scannedAt: string) => {
     const previewTime = getPreviewRankingTime(selectedRaceCard.rankingPreview, bib);
     return previewTime ?? formatElapsedRaceTime(scannedAt, activeRaceStartAt);
@@ -1630,6 +1579,70 @@ export default function App() {
         .sort((left, right) => COUNTRY_META[left].name.localeCompare(COUNTRY_META[right].name)),
     [runnerDirectoryEntries]
   );
+  const rankingSelectedRace = useMemo(
+    () => demoRaceFestival.races.find((race) => race.slug === rankingRaceFilter) ?? (isEditionHome ? featuredRace : selectedRaceCard),
+    [featuredRace, isEditionHome, rankingRaceFilter, selectedRaceCard]
+  );
+  const rankingRaceIsLive = rankingSelectedRace.editionLabel.toLowerCase() === "live";
+  const rankingRaceEntries = useMemo(() => {
+    return runnerDirectoryEntries
+      .filter((entry) => entry.raceSlug === rankingSelectedRace.slug)
+      .filter((entry) => entry.rank !== null && (entry.state === "in-race" || entry.state === "finisher"))
+      .sort((left, right) => (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER));
+  }, [rankingSelectedRace.slug, runnerDirectoryEntries]);
+  const rankingCountries = useMemo(
+    () =>
+      [...new Set(rankingRaceEntries.map((entry) => entry.countryCode))]
+        .sort((left, right) => COUNTRY_META[left].name.localeCompare(COUNTRY_META[right].name)),
+    [rankingRaceEntries]
+  );
+  const rankingGenderRankByBib = useMemo(() => {
+    const next = new Map<string, number>();
+    let menRank = 0;
+    let womenRank = 0;
+
+    rankingRaceEntries.forEach((entry) => {
+      if (entry.category === "women") {
+        womenRank += 1;
+        next.set(entry.bib, womenRank);
+        return;
+      }
+
+      menRank += 1;
+      next.set(entry.bib, menRank);
+    });
+
+    return next;
+  }, [rankingRaceEntries]);
+  const fullRankingEntries = useMemo(() => {
+    return rankingRaceEntries.filter((entry) => {
+      const matchesCategory = fullRankingView === "women" ? entry.category === "women" : entry.category === "men";
+      const matchesCountry = rankingCountryFilter === "all" ? true : entry.countryCode === rankingCountryFilter;
+      const matchesQuery =
+        !normalizedRunnerQuery ||
+        entry.bib.toUpperCase().includes(normalizedRunnerQuery) ||
+        entry.name.toUpperCase().includes(normalizedRunnerQuery) ||
+        entry.teamName.toUpperCase().includes(normalizedRunnerQuery);
+      const matchesCheckpoint = runnerCheckpointFilter === "all" || entry.checkpointId === runnerCheckpointFilter;
+      return matchesCategory && matchesCountry && matchesQuery && matchesCheckpoint;
+    });
+  }, [fullRankingView, normalizedRunnerQuery, rankingCountryFilter, rankingRaceEntries, runnerCheckpointFilter]);
+  const fullRankingPageCount = Math.max(1, Math.ceil(fullRankingEntries.length / rankingRowsPerPage));
+  const fullRankingRows = fullRankingEntries.slice((fullRankingPage - 1) * rankingRowsPerPage, fullRankingPage * rankingRowsPerPage);
+  const getRankingEntryRaceTime = (entry: RunnerDirectoryEntry) => {
+    if (entry.raceTime && entry.raceTime !== "--:--:--") {
+      return entry.raceTime;
+    }
+
+    return formatElapsedRaceTime(entry.scannedAt, rankingSelectedRace.startAt);
+  };
+  const selectedRunnerEntry = useMemo(() => {
+    if (!selectedRunnerBib) {
+      return null;
+    }
+
+    return runnerDirectoryEntries.find((entry) => entry.bib === selectedRunnerBib) ?? null;
+  }, [runnerDirectoryEntries, selectedRunnerBib]);
   const filteredRunnerDirectoryEntries = useMemo(() => {
     return runnerDirectoryEntries.filter((entry) => {
       const matchesRace = runnerDirectoryRaceFilter ? entry.raceSlug === runnerDirectoryRaceFilter : true;
@@ -1824,6 +1837,12 @@ export default function App() {
   }, [runnerDirectoryPage, runnerDirectoryPageCount]);
 
   useEffect(() => {
+    if (fullRankingPage > fullRankingPageCount) {
+      setFullRankingPage(fullRankingPageCount);
+    }
+  }, [fullRankingPage, fullRankingPageCount]);
+
+  useEffect(() => {
     if (runnerSearchPage > runnerSearchPageCount) {
       setRunnerSearchPage(runnerSearchPageCount);
     }
@@ -2008,6 +2027,9 @@ export default function App() {
 
   function focusRanking(view: "overall" | "women") {
     setFullRankingView(view === "women" ? "women" : "men");
+    setRankingRaceFilter(isEditionHome ? featuredRace.slug : selectedRaceCard.slug);
+    setRankingCountryFilter("all");
+    setRunnerCheckpointFilter("all");
     jumpToRaceSection("full-ranking", "ranking");
   }
 
@@ -2445,6 +2467,27 @@ export default function App() {
           <div className="ranking-toolbar">
             <div className="ranking-filters">
               <label className="ranking-toolbar-label">
+                In which race ?
+                <select value={rankingRaceFilter} onChange={(event) => setRankingRaceFilter(event.target.value)}>
+                  {demoRaceFestival.races.map((race) => (
+                    <option key={`ranking-race-${race.slug}`} value={race.slug}>
+                      {race.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="ranking-toolbar-label">
+                Of what nationality ?
+                <select value={rankingCountryFilter} onChange={(event) => setRankingCountryFilter(event.target.value)}>
+                  <option value="all">All nationalities</option>
+                  {rankingCountries.map((countryCode) => (
+                    <option key={`ranking-country-${countryCode}`} value={countryCode}>
+                      {COUNTRY_META[countryCode].name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="ranking-toolbar-label">
                 Of which category ?
                 <select
                   value={fullRankingView === "women" ? "women" : "men"}
@@ -2471,7 +2514,7 @@ export default function App() {
               <div className="ranking-range-text">{fullRankingRangeLabel}</div>
               <div className="pager-actions compact">
                 <button className="theme-toggle pager-button" disabled={fullRankingPage <= 1} onClick={() => setFullRankingPage(1)} type="button">
-                  «
+                  {"<<"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -2479,7 +2522,7 @@ export default function App() {
                   onClick={() => setFullRankingPage((current) => Math.max(1, current - 1))}
                   type="button"
                 >
-                  ‹
+                  {"<"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -2487,7 +2530,7 @@ export default function App() {
                   onClick={() => setFullRankingPage((current) => Math.min(fullRankingPageCount, current + 1))}
                   type="button"
                 >
-                  ›
+                  {">"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -2495,7 +2538,7 @@ export default function App() {
                   onClick={() => setFullRankingPage(fullRankingPageCount)}
                   type="button"
                 >
-                  »
+                  {">>"}
                 </button>
               </div>
             </div>
@@ -2522,7 +2565,7 @@ export default function App() {
 
               <div className="mini-stat">
                 <span>Index source</span>
-                <strong>{runnerSearchMode === "server" ? "Live index" : "Fallback index"}</strong>
+                <strong>{rankingRaceIsLive ? "Live index" : "Preview index"}</strong>
               </div>
             </div>
           ) : null}
@@ -2538,18 +2581,21 @@ export default function App() {
           <div className="full-ranking-list full-ranking-table" role="list" aria-label="Overall leaderboard rows">
             {fullRankingRows.length ? (
               fullRankingRows.map((entry) => {
+                const statusClass =
+                  entry.state === "finisher" ? "finished" : entry.state === "withdrawn" ? "withdrawn" : entry.state === "dns" ? "dns" : "live";
+
                 return (
-                  <div className="full-ranking-row race-ranking-row" key={`${entry.checkpointId}-${entry.bib}`} role="listitem">
+                  <div className="full-ranking-row race-ranking-row" key={`${entry.raceSlug}-${entry.bib}`} role="listitem">
                     <div className="ranking-block">
                       <div className="ranking-rankline">
                         <strong>{entry.rank}</strong>
-                        {shouldShowLivePodium(entry.rank, entry.checkpointId, isActiveRaceLive) ? (
+                        {entry.rank && shouldShowLivePodium(entry.rank, entry.checkpointId ?? "", rankingRaceIsLive) ? (
                           <RankingMedal rank={entry.rank} />
                         ) : null}
                       </div>
                       <div className="ranking-submeta">
-                        <span>{fullRankingView === "women" ? "Woman" : "Overall"}</span>
-                        <small>Sex {genderRankByBib.get(entry.bib) ?? entry.rank}</small>
+                        <span>{fullRankingView === "women" ? "Women" : "Men"}</span>
+                        <small>Sex {rankingGenderRankByBib.get(entry.bib) ?? entry.rank ?? "-"}</small>
                       </div>
                     </div>
                     <div className="runner-main-cell">
@@ -2557,33 +2603,39 @@ export default function App() {
                       <div className="runner-cell">
                         <div>
                           <strong>{entry.name}</strong>
-                          <span>{getRunnerTeamName(entry.bib)}</span>
-                          <div className={`runner-status-pill ${entry.checkpointId === "finish" ? "finished" : ""}`}>
-                            {getLiveRunnerStatusLabel(entry, isActiveRaceLive)}
+                          <span>{entry.teamName}</span>
+                          <div className={`runner-status-pill ${statusClass}`}>
+                            {getLiveRunnerStatusLabel(
+                              {
+                                checkpointId: entry.checkpointId ?? "",
+                                checkpointCode: entry.checkpointCode ?? entry.statusLabel
+                              },
+                              rankingRaceIsLive
+                            )}
                           </div>
                         </div>
                       </div>
                     </div>
                     <div className="race-inline-cell gender-cell">
                       <strong>
-                        <span className={`gender-dot ${entry.category.toLowerCase() === "women" ? "women" : "men"}`} />
-                        {entry.category.toLowerCase() === "women" ? "Woman" : "Man"}
+                        <span className={`gender-dot ${entry.category === "women" ? "women" : "men"}`} />
+                        {entry.category === "women" ? "Woman" : "Man"}
                       </strong>
                     </div>
                     <div className="race-inline-cell nationality-cell">
-                      <strong aria-label={getNationalityCode(entry.bib)}>
+                      <strong aria-label={entry.countryCode}>
                         <img
-                          alt={getNationalityCode(entry.bib)}
+                          alt={entry.countryCode}
                           className="flag-icon"
                           height="18"
                           loading="lazy"
-                          src={getFlagIconUrl(getNationalityCode(entry.bib))}
+                          src={getFlagIconUrl(entry.countryCode)}
                           width="24"
                         />
                       </strong>
                     </div>
                     <div className="race-inline-cell race-time-cell">
-                      <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
+                      <strong>{getRankingEntryRaceTime(entry)}</strong>
                     </div>
                   </div>
                 );
@@ -2608,7 +2660,7 @@ export default function App() {
             <div className="ranking-range-text">{fullRankingRangeLabel}</div>
             <div className="pager-actions compact">
               <button className="theme-toggle pager-button" disabled={fullRankingPage <= 1} onClick={() => setFullRankingPage(1)} type="button">
-                «
+                {"<<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -2616,7 +2668,7 @@ export default function App() {
                 onClick={() => setFullRankingPage((current) => Math.max(1, current - 1))}
                 type="button"
               >
-                ‹
+                {"<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -2624,7 +2676,7 @@ export default function App() {
                 onClick={() => setFullRankingPage((current) => Math.min(fullRankingPageCount, current + 1))}
                 type="button"
               >
-                ›
+                {">"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -2632,7 +2684,7 @@ export default function App() {
                 onClick={() => setFullRankingPage(fullRankingPageCount)}
                 type="button"
               >
-                »
+                {">>"}
               </button>
             </div>
           </div>
@@ -2900,7 +2952,7 @@ export default function App() {
             <div className="ranking-range-text">{runnerSearchRangeLabel}</div>
             <div className="pager-actions compact">
               <button className="theme-toggle pager-button" disabled={runnerSearchPage <= 1} onClick={() => setRunnerSearchPage(1)} type="button">
-                Â«
+                {"<<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -2908,7 +2960,7 @@ export default function App() {
                 onClick={() => setRunnerSearchPage((current) => Math.max(1, current - 1))}
                 type="button"
               >
-                â€¹
+                {"<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -2916,7 +2968,7 @@ export default function App() {
                 onClick={() => setRunnerSearchPage((current) => Math.min(runnerSearchPageCount, current + 1))}
                 type="button"
               >
-                â€º
+                {">"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -2924,7 +2976,7 @@ export default function App() {
                 onClick={() => setRunnerSearchPage(runnerSearchPageCount)}
                 type="button"
               >
-                Â»
+                {">>"}
               </button>
             </div>
           </div>
@@ -3035,7 +3087,7 @@ export default function App() {
             <div className="ranking-range-text">{runnerSearchRangeLabel}</div>
             <div className="pager-actions compact">
               <button className="theme-toggle pager-button" disabled={runnerSearchPage <= 1} onClick={() => setRunnerSearchPage(1)} type="button">
-                Â«
+                {"<<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3043,7 +3095,7 @@ export default function App() {
                 onClick={() => setRunnerSearchPage((current) => Math.max(1, current - 1))}
                 type="button"
               >
-                â€¹
+                {"<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3051,7 +3103,7 @@ export default function App() {
                 onClick={() => setRunnerSearchPage((current) => Math.min(runnerSearchPageCount, current + 1))}
                 type="button"
               >
-                â€º
+                {">"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3059,7 +3111,7 @@ export default function App() {
                 onClick={() => setRunnerSearchPage(runnerSearchPageCount)}
                 type="button"
               >
-                Â»
+                {">>"}
               </button>
             </div>
           </div>
@@ -3149,7 +3201,7 @@ export default function App() {
                   onClick={() => setRunnerDirectoryPage(1)}
                   type="button"
                 >
-                  Â«
+                  {"<<"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -3157,7 +3209,7 @@ export default function App() {
                   onClick={() => setRunnerDirectoryPage((current) => Math.max(1, current - 1))}
                   type="button"
                 >
-                  â€¹
+                  {"<"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -3165,7 +3217,7 @@ export default function App() {
                   onClick={() => setRunnerDirectoryPage((current) => Math.min(runnerDirectoryPageCount, current + 1))}
                   type="button"
                 >
-                  â€º
+                  {">"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -3173,7 +3225,7 @@ export default function App() {
                   onClick={() => setRunnerDirectoryPage(runnerDirectoryPageCount)}
                   type="button"
                 >
-                  Â»
+                  {">>"}
                 </button>
               </div>
             </div>
@@ -3293,7 +3345,7 @@ export default function App() {
                   onClick={() => setRunnerDirectoryPage(1)}
                   type="button"
                 >
-                  Â«
+                  {"<<"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -3301,7 +3353,7 @@ export default function App() {
                   onClick={() => setRunnerDirectoryPage((current) => Math.max(1, current - 1))}
                   type="button"
                 >
-                  â€¹
+                  {"<"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -3309,7 +3361,7 @@ export default function App() {
                   onClick={() => setRunnerDirectoryPage((current) => Math.min(runnerDirectoryPageCount, current + 1))}
                   type="button"
                 >
-                  â€º
+                  {">"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -3317,7 +3369,7 @@ export default function App() {
                   onClick={() => setRunnerDirectoryPage(runnerDirectoryPageCount)}
                   type="button"
                 >
-                  Â»
+                  {">>"}
                 </button>
               </div>
           </div>
@@ -3379,7 +3431,7 @@ export default function App() {
             <div className="ranking-range-text">{favoritesRangeLabel}</div>
             <div className="pager-actions compact">
               <button className="theme-toggle pager-button" disabled={favoritesPage <= 1} onClick={() => setFavoritesPage(1)} type="button">
-                Â«
+                {"<<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3387,7 +3439,7 @@ export default function App() {
                 onClick={() => setFavoritesPage((current) => Math.max(1, current - 1))}
                 type="button"
               >
-                â€¹
+                {"<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3395,7 +3447,7 @@ export default function App() {
                 onClick={() => setFavoritesPage((current) => Math.min(favoritesPageCount, current + 1))}
                 type="button"
               >
-                â€º
+                {">"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3403,7 +3455,7 @@ export default function App() {
                 onClick={() => setFavoritesPage(favoritesPageCount)}
                 type="button"
               >
-                Â»
+                {">>"}
               </button>
             </div>
           </div>
@@ -3530,7 +3582,7 @@ export default function App() {
             <div className="ranking-range-text">{favoritesRangeLabel}</div>
             <div className="pager-actions compact">
               <button className="theme-toggle pager-button" disabled={favoritesPage <= 1} onClick={() => setFavoritesPage(1)} type="button">
-                Â«
+                {"<<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3538,7 +3590,7 @@ export default function App() {
                 onClick={() => setFavoritesPage((current) => Math.max(1, current - 1))}
                 type="button"
               >
-                â€¹
+                {"<"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3546,7 +3598,7 @@ export default function App() {
                 onClick={() => setFavoritesPage((current) => Math.min(favoritesPageCount, current + 1))}
                 type="button"
               >
-                â€º
+                {">"}
               </button>
               <button
                 className="theme-toggle pager-button"
@@ -3554,7 +3606,7 @@ export default function App() {
                 onClick={() => setFavoritesPage(favoritesPageCount)}
                 type="button"
               >
-                Â»
+                {">>"}
               </button>
             </div>
           </div>
@@ -4352,4 +4404,6 @@ export default function App() {
     </main>
   );
 }
+
+
 
