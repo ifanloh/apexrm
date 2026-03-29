@@ -196,7 +196,7 @@ function formatCheckpointProgress(entry: {
   return `${formatCheckpointLabel({
     code: entry.checkpointCode,
     kmMarker: entry.checkpointKmMarker
-  })} · ${entry.checkpointName}`;
+  })} Â· ${entry.checkpointName}`;
 }
 
 function getApiHost() {
@@ -269,6 +269,21 @@ function buildGenderSplit(total: number, womenRatio: number) {
   const men = Math.max(total - women, 0);
 
   return { women, men };
+}
+
+function countGenderSplit(entries: Array<{ category: "men" | "women" }>) {
+  return entries.reduce(
+    (totals, entry) => {
+      if (entry.category === "women") {
+        totals.women += 1;
+      } else {
+        totals.men += 1;
+      }
+
+      return totals;
+    },
+    { women: 0, men: 0 }
+  );
 }
 
 function getRunnerTeamName(bib: string) {
@@ -819,6 +834,7 @@ export default function App() {
   const [leadersCategoryFilter, setLeadersCategoryFilter] = useState<"all" | "men" | "women">("all");
   const [leadersPage, setLeadersPage] = useState(1);
   const [leadersRowsPerPage, setLeadersRowsPerPage] = useState(10);
+  const [statisticsRaceFilter, setStatisticsRaceFilter] = useState<string>("all");
   const [runnerSearchRaceFilter, setRunnerSearchRaceFilter] = useState<string>("all");
   const [runnerSearchPage, setRunnerSearchPage] = useState(1);
   const [runnerSearchRowsPerPage, setRunnerSearchRowsPerPage] = useState(10);
@@ -1421,68 +1437,6 @@ export default function App() {
     hour: "2-digit",
     minute: "2-digit"
   });
-  const womenRatioSeed = useMemo(() => {
-    const womenCount = activeOverallLeaderboard.topEntries.filter((entry) => entry.category.toLowerCase() === "women").length;
-
-    if (!activeOverallLeaderboard.topEntries.length) {
-      return 0.34;
-    }
-
-    return womenCount / activeOverallLeaderboard.topEntries.length;
-  }, [activeOverallLeaderboard.topEntries]);
-  const starterGenderSplit = useMemo(() => buildGenderSplit(activeStarterCount, womenRatioSeed), [activeStarterCount, womenRatioSeed]);
-  const finishGenderSplit = useMemo(
-    () => buildGenderSplit(activeFinisherCount, Math.max(womenRatioSeed - 0.02, 0.16)),
-    [activeFinisherCount, womenRatioSeed]
-  );
-  const withdrawalGenderSplit = useMemo(
-    () => buildGenderSplit(activeDnfCount, Math.min(womenRatioSeed + 0.04, 0.52)),
-    [activeDnfCount, womenRatioSeed]
-  );
-  const statisticsCards = useMemo(
-    () => [
-      {
-        key: "starters",
-        title: "Starters",
-        total: activeStarterCount,
-        accentClass: "statistics-card-starters",
-        split: starterGenderSplit
-      },
-      {
-        key: "withdrawals",
-        title: "Withdrawals",
-        total: activeDnfCount,
-        accentClass: "statistics-card-withdrawals",
-        split: withdrawalGenderSplit
-      },
-      {
-        key: "finishers",
-        title: "Finishers",
-        total: activeFinisherCount,
-        accentClass: "statistics-card-finishers",
-        split: finishGenderSplit
-      }
-    ],
-    [activeDnfCount, activeFinisherCount, activeStarterCount, finishGenderSplit, starterGenderSplit, withdrawalGenderSplit]
-  );
-  const statisticsCountries = useMemo(() => {
-    const seededCodes = [...new Set(activeOverallLeaderboard.topEntries.map((entry) => getNationalityCode(entry.bib) as CountryCode))];
-    const orderedCodes = [...new Set([...seededCodes, ...COUNTRY_PRIORITY_ORDER])] as CountryCode[];
-    const selectedCodes = orderedCodes.slice(0, 8);
-    const weights = selectedCodes.map((code) => COUNTRY_META[code].weight + (seededCodes.includes(code) ? 6 : 0));
-    const counts = distributeCounts(activeStarterCount, weights);
-
-    return selectedCodes
-      .map((code, index) => ({
-        code,
-        name: COUNTRY_META[code].name,
-        count: counts[index],
-        percent: activeStarterCount ? (counts[index] / activeStarterCount) * 100 : 0,
-        mapX: COUNTRY_META[code].mapX,
-        mapY: COUNTRY_META[code].mapY
-      }))
-      .sort((left, right) => right.count - left.count);
-  }, [activeOverallLeaderboard.topEntries, activeStarterCount]);
   const getDisplayRaceTime = (bib: string, scannedAt: string) => {
     const previewTime = getPreviewRankingTime(selectedRaceCard.rankingPreview, bib);
     return previewTime ?? formatElapsedRaceTime(scannedAt, activeRaceStartAt);
@@ -1829,6 +1783,87 @@ export default function App() {
         filteredFavoriteDirectoryEntries.length
       )} of ${filteredFavoriteDirectoryEntries.length}`
     : "0-0 of 0";
+  const statisticsSelectedRace = useMemo(
+    () => (statisticsRaceFilter === "all" ? null : demoRaceFestival.races.find((race) => race.slug === statisticsRaceFilter) ?? selectedRaceCard),
+    [selectedRaceCard, statisticsRaceFilter]
+  );
+  const statisticsEntries = useMemo(() => {
+    return statisticsRaceFilter === "all"
+      ? runnerDirectoryEntries
+      : runnerDirectoryEntries.filter((entry) => entry.raceSlug === statisticsRaceFilter);
+  }, [runnerDirectoryEntries, statisticsRaceFilter]);
+  const statisticsStarterEntries = useMemo(
+    () => statisticsEntries.filter((entry) => entry.state === "in-race" || entry.state === "finisher" || entry.state === "withdrawn"),
+    [statisticsEntries]
+  );
+  const statisticsFinisherEntries = useMemo(
+    () => statisticsEntries.filter((entry) => entry.state === "finisher"),
+    [statisticsEntries]
+  );
+  const statisticsWithdrawalEntries = useMemo(
+    () => statisticsEntries.filter((entry) => entry.state === "withdrawn"),
+    [statisticsEntries]
+  );
+  const statisticsRegisteredCount = statisticsEntries.length;
+  const statisticsStarterCount = statisticsStarterEntries.length;
+  const statisticsFinisherCount = statisticsFinisherEntries.length;
+  const statisticsWithdrawalCount = statisticsWithdrawalEntries.length;
+  const starterGenderSplit = useMemo(() => countGenderSplit(statisticsStarterEntries), [statisticsStarterEntries]);
+  const finishGenderSplit = useMemo(() => countGenderSplit(statisticsFinisherEntries), [statisticsFinisherEntries]);
+  const withdrawalGenderSplit = useMemo(() => countGenderSplit(statisticsWithdrawalEntries), [statisticsWithdrawalEntries]);
+  const statisticsCards = useMemo(
+    () => [
+      {
+        key: "starters",
+        title: "Starters",
+        total: statisticsStarterCount,
+        accentClass: "statistics-card-starters",
+        split: starterGenderSplit
+      },
+      {
+        key: "withdrawals",
+        title: "Withdrawals",
+        total: statisticsWithdrawalCount,
+        accentClass: "statistics-card-withdrawals",
+        split: withdrawalGenderSplit
+      },
+      {
+        key: "finishers",
+        title: "Finishers",
+        total: statisticsFinisherCount,
+        accentClass: "statistics-card-finishers",
+        split: finishGenderSplit
+      }
+    ],
+    [
+      finishGenderSplit,
+      starterGenderSplit,
+      statisticsFinisherCount,
+      statisticsStarterCount,
+      statisticsWithdrawalCount,
+      withdrawalGenderSplit
+    ]
+  );
+  const statisticsCountries = useMemo(() => {
+    const sourceEntries = statisticsStarterEntries.length ? statisticsStarterEntries : statisticsEntries;
+    const countsByCountry = new Map<CountryCode, number>();
+
+    sourceEntries.forEach((entry) => {
+      countsByCountry.set(entry.countryCode, (countsByCountry.get(entry.countryCode) ?? 0) + 1);
+    });
+
+    return [...countsByCountry.entries()]
+      .map(([code, count]) => ({
+        code,
+        name: COUNTRY_META[code].name,
+        count,
+        percent: sourceEntries.length ? (count / sourceEntries.length) * 100 : 0,
+        mapX: COUNTRY_META[code].mapX,
+        mapY: COUNTRY_META[code].mapY
+      }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [statisticsEntries, statisticsStarterEntries]);
 
   useEffect(() => {
     if (runnerDirectoryPage > runnerDirectoryPageCount) {
@@ -2089,6 +2124,7 @@ export default function App() {
   }
 
   function focusStatistics() {
+    setStatisticsRaceFilter(isEditionHome ? "all" : selectedRaceCard.slug);
     jumpToRaceSection("race-statistics", "statistics");
   }
 
@@ -2227,7 +2263,7 @@ export default function App() {
             )}
 
             <button className="topbar-locale-pill" type="button">
-              EN <span aria-hidden="true">▾</span>
+              EN <span aria-hidden="true">â–¾</span>
             </button>
           </div>
         </header>
@@ -2303,11 +2339,11 @@ export default function App() {
             </article>
             <article className="race-stat-strip-item">
               <span>Start</span>
-              <strong>{activeCourse.location} 7°C</strong>
+              <strong>{activeCourse.location} 7Â°C</strong>
             </article>
             <article className="race-stat-strip-item">
               <span>Finish</span>
-              <strong>{activeCourse.location} 7°C</strong>
+              <strong>{activeCourse.location} 7Â°C</strong>
             </article>
             <article className="race-stat-strip-item">
               <span>Start Date</span>
@@ -2346,16 +2382,30 @@ export default function App() {
 
           <div className="statistics-race-context">
             <span>This statistics is for</span>
-            <strong>{selectedRaceCard.title}</strong>
-            <small>{activeStarterCount.toLocaleString()} registered participants in this race category</small>
+            <strong>{statisticsSelectedRace?.title ?? `${demoRaceFestival.editionLabel} edition`}</strong>
+            <small>{statisticsRegisteredCount.toLocaleString()} registered participants in this scope</small>
           </div>
+        </div>
+
+        <div className="runner-list-toolbar statistics-toolbar">
+          <label className="ranking-toolbar-label">
+            In which race ?
+            <select value={statisticsRaceFilter} onChange={(event) => setStatisticsRaceFilter(event.target.value)}>
+              <option value="all">All races</option>
+              {demoRaceFestival.races.map((race) => (
+                <option key={`statistics-race-${race.slug}`} value={race.slug}>
+                  {race.title}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div className="statistics-card-grid">
           {statisticsCards.map((card) => {
             const womenPercent = card.total ? (card.split.women / card.total) * 100 : 0;
             const menPercent = card.total ? (card.split.men / card.total) * 100 : 0;
-            const totalPercent = activeStarterCount ? (card.total / activeStarterCount) * 100 : 0;
+            const totalPercent = statisticsStarterCount ? (card.total / statisticsStarterCount) * 100 : 0;
 
             return (
               <article className={`statistics-card ${card.accentClass}`} key={card.key}>
@@ -2394,7 +2444,7 @@ export default function App() {
               <h3>Distribution of starters by country</h3>
             </div>
             <div className="statistics-distribution-summary">
-              <strong>{activeStarterCount.toLocaleString()}</strong>
+              <strong>{statisticsStarterCount.toLocaleString()}</strong>
               <span>Starters</span>
               <strong>{statisticsCountries.length}</strong>
               <span>Countries</span>
@@ -2707,7 +2757,7 @@ export default function App() {
               <div className="pulse-card">
                 <span className="broadcast-tag">Latest passing</span>
                 <strong>
-                  {latestPassing.name} · {formatCheckpointLabel({
+                  {latestPassing.name} Â· {formatCheckpointLabel({
                     code: latestPassing.checkpointCode,
                     kmMarker: latestPassing.checkpointKmMarker
                   })}
@@ -3742,7 +3792,7 @@ export default function App() {
             <article className="my-runners-empty-card">
               <strong>Add your first runner to follow</strong>
               <div className="my-runners-empty-icon" aria-hidden="true">
-                <span className="my-runners-heart">♡</span>
+                <span className="my-runners-heart">â™¡</span>
                 <img alt="" className="my-runners-empty-runner" src={runnerIcon} />
               </div>
               <button className="my-runners-empty-action" onClick={focusRunnerSearch} type="button">
@@ -3985,7 +4035,7 @@ export default function App() {
               <div className="ranking-range-text">{raceLeadersRangeLabel}</div>
               <div className="pager-actions compact">
                 <button className="theme-toggle pager-button" disabled={leadersPage <= 1} onClick={() => setLeadersPage(1)} type="button">
-                  «
+                  {"<<"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -3993,7 +4043,7 @@ export default function App() {
                   onClick={() => setLeadersPage((current) => Math.max(1, current - 1))}
                   type="button"
                 >
-                  ‹
+                  {"<"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -4001,7 +4051,7 @@ export default function App() {
                   onClick={() => setLeadersPage((current) => Math.min(raceLeadersPageCount, current + 1))}
                   type="button"
                 >
-                  ›
+                  {">"}
                 </button>
                 <button
                   className="theme-toggle pager-button"
@@ -4009,7 +4059,7 @@ export default function App() {
                   onClick={() => setLeadersPage(raceLeadersPageCount)}
                   type="button"
                 >
-                  »
+                  {">>"}
                 </button>
               </div>
             </div>
@@ -4082,7 +4132,7 @@ export default function App() {
                             onClick={() => toggleFavoriteBib(entry.bib)}
                             type="button"
                           >
-                            ♡
+                            â™¡
                           </button>
                           <button
                             aria-label={`Open ${entry.name}`}
@@ -4094,7 +4144,7 @@ export default function App() {
                             }}
                             type="button"
                           >
-                            ↗
+                            â†—
                           </button>
                         </div>
                       </article>
@@ -4137,7 +4187,7 @@ export default function App() {
                 onClick={() => setIsLoginModalOpen(false)}
                 type="button"
               >
-                ×
+                Ã—
               </button>
             </div>
 
