@@ -3788,6 +3788,94 @@ export default function App() {
           </article>
         </div>
       </section>
+
+      <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "race-page" || isActiveRaceLive} id="race-ranking-preview">
+        <div className="panel-head compact">
+          <div>
+            <p className="section-label">Follow the race</p>
+            <h3>Race ranking</h3>
+          </div>
+          <div className="panel-badge compact-badge">
+            <span>Boards</span>
+            <strong>2</strong>
+            <span>overall + women</span>
+          </div>
+        </div>
+
+        <div className="leaders-grid">
+          <article className="leader-card">
+            <div className="leader-card-head">
+              <span>Overall</span>
+              <button className="toolbar-link" onClick={() => focusRanking("overall")} type="button">
+                See ranking
+              </button>
+            </div>
+            <div className="leader-list">
+              {sidebarOverallRows.length ? (
+                sidebarOverallRows.map((entry) => (
+                  <button
+                    className="leader-list-row"
+                    key={`ranking-overall-${entry.bib}`}
+                    onClick={() => {
+                      setSelectedRunnerBib(entry.bib);
+                      jumpToRaceSection("my-runners", "my-runners");
+                    }}
+                    type="button"
+                  >
+                    <strong>
+                      #{entry.rank}
+                      {shouldShowLivePodium(entry.rank, entry.checkpointId, false) ? <RankingMedal rank={entry.rank} /> : null}
+                    </strong>
+                    <div>
+                      <span>{entry.name}</span>
+                      <small>{getLiveRunnerStatusLabel(entry, false)}</small>
+                    </div>
+                    <time>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</time>
+                  </button>
+                ))
+              ) : (
+                <div className="empty-compact">Belum ada hasil overall untuk race ini.</div>
+              )}
+            </div>
+          </article>
+
+          <article className="leader-card">
+            <div className="leader-card-head">
+              <span>Woman</span>
+              <button className="toolbar-link" onClick={() => focusRanking("women")} type="button">
+                See ranking
+              </button>
+            </div>
+            <div className="leader-list">
+              {sidebarWomenRows.length ? (
+                sidebarWomenRows.map((entry) => (
+                  <button
+                    className="leader-list-row"
+                    key={`ranking-women-${entry.bib}`}
+                    onClick={() => {
+                      setSelectedRunnerBib(entry.bib);
+                      jumpToRaceSection("my-runners", "my-runners");
+                    }}
+                    type="button"
+                  >
+                    <strong>
+                      #{entry.rank}
+                      {shouldShowLivePodium(entry.rank, entry.checkpointId, false) ? <RankingMedal rank={entry.rank} /> : null}
+                    </strong>
+                    <div>
+                      <span>{entry.name}</span>
+                      <small>{getLiveRunnerStatusLabel(entry, false)}</small>
+                    </div>
+                    <time>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</time>
+                  </button>
+                ))
+              ) : (
+                <div className="empty-compact">Belum ada women ranking untuk race ini.</div>
+              )}
+            </div>
+          </article>
+        </div>
+      </section>
           </>
         ) : null}
 
