@@ -1,5 +1,5 @@
 import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
-import { getDemoCourseForRace, type DemoCourseCheckpoint } from "./demoCourseVariants";
+import { getDemoCourseForRace, type DemoCourse, type DemoCourseCheckpoint } from "./demoCourseVariants";
 
 export const ORGANIZER_SETUP_STORAGE_KEY = "trailnesia:organizer-setup";
 
@@ -36,6 +36,11 @@ export type OrganizerRaceDraft = {
   accentSoft: string;
   profileSeed: number;
   rankingPreview: DemoRaceCard["rankingPreview"];
+  descentM: number;
+  waypoints: DemoCourse["waypoints"];
+  profilePoints: DemoCourse["profilePoints"];
+  gpxFileName: string | null;
+  gpxFileSize: number | null;
   checkpoints: DemoCourseCheckpoint[];
   participants: OrganizerParticipantDraft[];
 };
@@ -60,6 +65,7 @@ export type ParticipantImportPreview = {
 };
 
 export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerRaceDraft {
+  const course = getDemoCourseForRace(race);
   return {
     slug: race.slug,
     title: race.title,
@@ -77,13 +83,25 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
     accentSoft: race.accentSoft,
     profileSeed: race.profileSeed,
     rankingPreview: race.rankingPreview,
-    checkpoints: getDemoCourseForRace(race).checkpoints,
+    descentM: course.descentM,
+    waypoints: course.waypoints,
+    profilePoints: course.profilePoints,
+    gpxFileName: null,
+    gpxFileSize: null,
+    checkpoints: course.checkpoints,
     participants: []
   };
 }
 
 export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
   const slug = `custom-race-${index}`;
+  const course = getDemoCourseForRace({
+    slug,
+    title: `Custom Race ${index}`,
+    distanceKm: 25,
+    ascentM: 1400,
+    startTown: "Start Town"
+  });
   return {
     slug,
     title: `Custom Race ${index}`,
@@ -101,13 +119,12 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
     accentSoft: "rgba(214, 163, 65, 0.18)",
     profileSeed: index + 10,
     rankingPreview: [],
-    checkpoints: getDemoCourseForRace({
-      slug,
-      title: `Custom Race ${index}`,
-      distanceKm: 25,
-      ascentM: 1400,
-      startTown: "Start Town"
-    }).checkpoints,
+    descentM: course.descentM,
+    waypoints: course.waypoints,
+    profilePoints: course.profilePoints,
+    gpxFileName: null,
+    gpxFileSize: null,
+    checkpoints: course.checkpoints,
     participants: []
   };
 }
@@ -160,6 +177,8 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
         return {
           ...race,
           ...(override ?? {}),
+          waypoints: Array.isArray(override?.waypoints) && override.waypoints.length ? override.waypoints : race.waypoints,
+          profilePoints: Array.isArray(override?.profilePoints) && override.profilePoints.length ? override.profilePoints : race.profilePoints,
           checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
           participants: Array.isArray(override?.participants) ? override.participants : race.participants
         };
@@ -169,6 +188,11 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
           .map((race) => ({
             ...createOrganizerRaceTemplate(fallback.races.length + 1),
             ...race,
+            waypoints: Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : createOrganizerRaceTemplate(fallback.races.length + 1).waypoints,
+            profilePoints:
+              Array.isArray(race.profilePoints) && race.profilePoints.length
+                ? race.profilePoints
+                : createOrganizerRaceTemplate(fallback.races.length + 1).profilePoints,
             checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(fallback.races.length + 1).checkpoints,
             participants: Array.isArray(race.participants) ? race.participants : []
           }))
@@ -181,6 +205,25 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
 
 export function getOrganizerCheckpointsForRace(race: OrganizerRaceDraft): DemoCourseCheckpoint[] {
   return race.checkpoints?.length ? race.checkpoints : getDemoCourseForRace(race).checkpoints;
+}
+
+export function buildOrganizerCourseFromRaceDraft(race: OrganizerRaceDraft): DemoCourse {
+  const fallbackCourse = getDemoCourseForRace(race);
+  return {
+    slug: race.slug,
+    title: race.title,
+    subtitle: race.courseDescription,
+    location: race.startTown,
+    distanceKm: race.distanceKm,
+    ascentM: race.ascentM,
+    descentM: race.descentM || fallbackCourse.descentM,
+    checkpoints:
+      Array.isArray(race.checkpoints) && race.checkpoints.length
+        ? [...race.checkpoints].sort((left, right) => left.order - right.order)
+        : fallbackCourse.checkpoints,
+    waypoints: Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : fallbackCourse.waypoints,
+    profilePoints: Array.isArray(race.profilePoints) && race.profilePoints.length ? race.profilePoints : fallbackCourse.profilePoints
+  };
 }
 
 export function parseParticipantImportText(text: string): ParticipantImportPreview {
@@ -256,4 +299,124 @@ export function parseParticipantImportRows(text: string): OrganizerParticipantDr
       countryCode: countryIndex === -1 ? "ID" : normalizeCountryCode(row[countryIndex] ?? ""),
       club: clubIndex === -1 ? "" : row[clubIndex] ?? ""
     }));
+}
+
+function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function sampleTrackPoints<T>(points: T[], maxPoints: number) {
+  if (points.length <= maxPoints) {
+    return points;
+  }
+
+  return Array.from({ length: maxPoints }, (_, index) => {
+    const ratio = index / Math.max(maxPoints - 1, 1);
+    return points[Math.round(ratio * (points.length - 1))];
+  });
+}
+
+export function parseOrganizerGpxFile(
+  xmlText: string,
+  fileMeta: { name: string; size: number },
+  race: OrganizerRaceDraft
+): Partial<OrganizerRaceDraft> | null {
+  const parser = new DOMParser();
+  const documentNode = parser.parseFromString(xmlText, "application/xml");
+  const parserError = documentNode.querySelector("parsererror");
+
+  if (parserError) {
+    return null;
+  }
+
+  const trackPointNodes = Array.from(documentNode.getElementsByTagName("trkpt"));
+  const routePointNodes = Array.from(documentNode.getElementsByTagName("rtept"));
+  const sourceNodes = trackPointNodes.length >= 2 ? trackPointNodes : routePointNodes;
+
+  if (sourceNodes.length < 2) {
+    return null;
+  }
+
+  const rawPoints = sourceNodes
+    .map((node) => {
+      const lat = Number.parseFloat(node.getAttribute("lat") ?? "");
+      const lon = Number.parseFloat(node.getAttribute("lon") ?? "");
+      const eleNode = node.getElementsByTagName("ele")[0];
+      const ele = Number.parseFloat(eleNode?.textContent ?? "0");
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        return null;
+      }
+
+      return {
+        lat,
+        lon,
+        ele: Number.isFinite(ele) ? ele : 0
+      };
+    })
+    .filter((point): point is { lat: number; lon: number; ele: number } => point !== null);
+
+  if (rawPoints.length < 2) {
+    return null;
+  }
+
+  let cumulativeKm = 0;
+  let ascentM = 0;
+  let descentM = 0;
+
+  const enrichedPoints = rawPoints.map((point, index) => {
+    if (index > 0) {
+      const previous = rawPoints[index - 1];
+      cumulativeKm += haversineDistanceKm(previous.lat, previous.lon, point.lat, point.lon);
+      const elevationDelta = point.ele - previous.ele;
+      if (elevationDelta > 0) {
+        ascentM += elevationDelta;
+      } else {
+        descentM += Math.abs(elevationDelta);
+      }
+    }
+
+    return {
+      ...point,
+      km: Number(cumulativeKm.toFixed(3))
+    };
+  });
+
+  const totalDistanceKm = Number(cumulativeKm.toFixed(1));
+  const waypoints = sampleTrackPoints(enrichedPoints, 220).map((point, index, points) => ({
+    id: `${race.slug}-gpx-${index + 1}`,
+    name: index === 0 ? `${race.startTown} start` : index === points.length - 1 ? `${race.startTown} finish` : `${race.title} waypoint ${index + 1}`,
+    km: Number(point.km.toFixed(1)),
+    ele: Math.round(point.ele),
+    lat: Number(point.lat.toFixed(6)),
+    lon: Number(point.lon.toFixed(6))
+  }));
+  const profilePoints = sampleTrackPoints(enrichedPoints, 180).map((point) => ({
+    km: Number(point.km.toFixed(1)),
+    ele: Math.round(point.ele)
+  }));
+  const sourceCheckpoints = race.checkpoints?.length ? race.checkpoints : getDemoCourseForRace(race).checkpoints;
+  const currentMaxKm = Math.max(sourceCheckpoints[sourceCheckpoints.length - 1]?.kmMarker ?? race.distanceKm, 1);
+  const checkpoints = sourceCheckpoints.map((checkpoint) => ({
+    ...checkpoint,
+    kmMarker: Number(((checkpoint.kmMarker / currentMaxKm) * totalDistanceKm).toFixed(1))
+  }));
+
+  return {
+    distanceKm: totalDistanceKm,
+    ascentM: Math.round(ascentM),
+    descentM: Math.round(descentM),
+    waypoints,
+    profilePoints,
+    checkpoints,
+    gpxFileName: fileMeta.name,
+    gpxFileSize: fileMeta.size
+  };
 }

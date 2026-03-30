@@ -123,7 +123,7 @@ export function OrganizerConsole({
           <div className="panel-head compact">
             <div>
               <p className="section-label">Assets</p>
-              <h3>Event logo & GPX draft</h3>
+              <h3>Event logo & selected race GPX</h3>
             </div>
           </div>
 
@@ -139,10 +139,14 @@ export function OrganizerConsole({
             </div>
 
             <div className="organizer-gpx-draft">
-              <strong>Course file draft</strong>
-              <p>{branding.gpxFileName ? `${branding.gpxFileName} (${Math.round((branding.gpxFileSize ?? 0) / 1024)} KB)` : "No GPX uploaded yet."}</p>
+              <strong>{selectedRace ? `Course file for ${selectedRace.title}` : "Course file draft"}</strong>
+              <p>
+                {selectedRace?.gpxFileName
+                  ? `${selectedRace.gpxFileName} (${Math.round((selectedRace.gpxFileSize ?? 0) / 1024)} KB)`
+                  : "No GPX uploaded yet for the selected race."}
+              </p>
               <label className="toolbar-link organizer-file-trigger">
-                Upload GPX draft
+                Upload GPX for selected race
                 <input accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden onChange={onGpxChange} type="file" />
               </label>
             </div>

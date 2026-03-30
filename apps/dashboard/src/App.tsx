@@ -32,11 +32,13 @@ import { getDemoCourseForRace } from "./demoCourseVariants";
 import { demoRaceFestival, type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
 import {
+  buildOrganizerCourseFromRaceDraft,
   createOrganizerRaceTemplate,
   createDefaultOrganizerSetup,
   getOrganizerCheckpointsForRace,
   loadOrganizerSetup,
   ORGANIZER_SETUP_STORAGE_KEY,
+  parseOrganizerGpxFile,
   parseParticipantImportRows,
   parseParticipantImportText,
   type OrganizerBrandingDraft,
@@ -813,6 +815,24 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+function readFileAsText(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Unable to read file as text."));
+    };
+    reader.onerror = () => {
+      reject(reader.error ?? new Error("Unable to read file."));
+    };
+    reader.readAsText(file);
+  });
+}
+
 export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -915,17 +935,13 @@ export default function App() {
   const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
   const isFeaturedRace = selectedRaceCard.slug === featuredRace.slug;
   const activeCourse = useMemo(() => {
-    const baseCourse = getDemoCourseForRace(selectedRaceCard);
     const organizerRaceDraft = organizerSetup.races.find((race) => race.slug === selectedRaceCard.slug);
 
-    if (!organizerRaceDraft?.checkpoints?.length) {
-      return baseCourse;
+    if (!organizerRaceDraft) {
+      return getDemoCourseForRace(selectedRaceCard);
     }
 
-    return {
-      ...baseCourse,
-      checkpoints: [...organizerRaceDraft.checkpoints].sort((left, right) => left.order - right.order)
-    };
+    return buildOrganizerCourseFromRaceDraft(organizerRaceDraft);
   }, [organizerSetup.races, selectedRaceCard]);
   const showEditionHome = isEditionHome && raceDetailView === "race-page";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
@@ -2436,17 +2452,35 @@ export default function App() {
     event.target.value = "";
   }
 
-  function handleOrganizerGpxChange(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleOrganizerGpxChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
-    if (!file) {
+    if (!file || !organizerSelectedRace) {
       return;
     }
 
-    updateOrganizerBranding({
-      gpxFileName: file.name,
-      gpxFileSize: file.size
-    });
+    const xmlText = await readFileAsText(file).catch(() => null);
+
+    if (!xmlText) {
+      event.target.value = "";
+      return;
+    }
+
+    const racePatch = parseOrganizerGpxFile(
+      xmlText,
+      {
+        name: file.name,
+        size: file.size
+      },
+      organizerSelectedRace
+    );
+
+    if (!racePatch) {
+      event.target.value = "";
+      return;
+    }
+
+    updateOrganizerRace(organizerSelectedRace.slug, racePatch);
     event.target.value = "";
   }
 
