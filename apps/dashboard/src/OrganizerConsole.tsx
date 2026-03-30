@@ -19,6 +19,8 @@ type OrganizerConsoleProps = {
   onImportTextChange: (value: string) => void;
   onApplyImport: () => void;
   onCheckpointChange: (checkpointId: string, patch: Partial<DemoCourseCheckpoint>) => void;
+  onAddCheckpoint: () => void;
+  onRemoveCheckpoint: (checkpointId: string) => void;
   onEventLogoChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onGpxChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
@@ -40,6 +42,8 @@ export function OrganizerConsole({
   onImportTextChange,
   onApplyImport,
   onCheckpointChange,
+  onAddCheckpoint,
+  onRemoveCheckpoint,
   onEventLogoChange,
   onGpxChange
 }: OrganizerConsoleProps) {
@@ -251,6 +255,9 @@ export function OrganizerConsole({
               <p className="section-label">Checkpoints</p>
               <h3>Checkpoint setup</h3>
             </div>
+            <button className="toolbar-link organizer-apply-button" onClick={onAddCheckpoint} type="button">
+              Add checkpoint
+            </button>
           </div>
 
           <label className="organizer-field">
@@ -285,12 +292,18 @@ export function OrganizerConsole({
                 </label>
                 <label className="organizer-field">
                   <span>Order</span>
-                  <input
-                    type="number"
-                    value={checkpoint.order}
-                    onChange={(event) => onCheckpointChange(checkpoint.id, { order: Number(event.target.value) || 0 })}
-                  />
+                  <input readOnly value={checkpoint.order + 1} />
                 </label>
+                <div className="organizer-checkpoint-actions">
+                  <button
+                    className="toolbar-link organizer-remove-race"
+                    disabled={checkpoint.id === "cp-start" || checkpoint.id === "finish"}
+                    onClick={() => onRemoveCheckpoint(checkpoint.id)}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </div>
               </article>
             ))}
           </div>

@@ -2391,6 +2391,14 @@ export default function App() {
       return;
     }
 
+    const normalizeCheckpoints = (checkpoints: typeof organizerCheckpointDraft) =>
+      [...checkpoints]
+        .sort((left, right) => left.kmMarker - right.kmMarker)
+        .map((checkpoint, index) => ({
+          ...checkpoint,
+          order: index
+        }));
+
     setOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
@@ -2398,16 +2406,84 @@ export default function App() {
           ? race
           : {
               ...race,
-              checkpoints: race.checkpoints.map((checkpoint) =>
-                checkpoint.id === checkpointId
-                  ? {
-                      ...checkpoint,
-                      ...patch
-                    }
-                  : checkpoint
+              checkpoints: normalizeCheckpoints(
+                race.checkpoints.map((checkpoint) =>
+                  checkpoint.id === checkpointId
+                    ? {
+                        ...checkpoint,
+                        ...patch
+                      }
+                    : checkpoint
+                )
               )
             }
       )
+    }));
+  }
+
+  function addOrganizerCheckpoint() {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) => {
+        if (race.slug !== organizerSelectedRace.slug) {
+          return race;
+        }
+
+        const sorted = [...race.checkpoints].sort((left, right) => left.kmMarker - right.kmMarker);
+        const finish = sorted.find((checkpoint) => checkpoint.id === "finish") ?? sorted[sorted.length - 1];
+        const previous = finish ? sorted[Math.max(sorted.indexOf(finish) - 1, 0)] : sorted[sorted.length - 1];
+        const baseKm = previous ? previous.kmMarker : 0;
+        const finishKm = finish ? finish.kmMarker : race.distanceKm;
+        const nonTerminalCount = sorted.filter((checkpoint) => checkpoint.id !== "cp-start" && checkpoint.id !== "finish").length;
+        const nextKm = Number((finish && finish !== previous ? (baseKm + finishKm) / 2 : Math.min(baseKm + 5, race.distanceKm)).toFixed(1));
+        const nextCheckpoint = {
+          id: `${race.slug}-cp-${Date.now()}`,
+          code: `CP${nonTerminalCount + 1}`,
+          name: `Checkpoint ${nonTerminalCount + 1}`,
+          kmMarker: nextKm,
+          order: sorted.length
+        };
+
+        return {
+          ...race,
+          checkpoints: [...sorted, nextCheckpoint]
+            .sort((left, right) => left.kmMarker - right.kmMarker)
+            .map((checkpoint, index) => ({
+              ...checkpoint,
+              order: index
+            }))
+        };
+      })
+    }));
+  }
+
+  function removeOrganizerCheckpoint(checkpointId: string) {
+    if (!organizerSelectedRace || checkpointId === "cp-start" || checkpointId === "finish") {
+      return;
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) => {
+        if (race.slug !== organizerSelectedRace.slug) {
+          return race;
+        }
+
+        return {
+          ...race,
+          checkpoints: race.checkpoints
+            .filter((checkpoint) => checkpoint.id !== checkpointId)
+            .sort((left, right) => left.kmMarker - right.kmMarker)
+            .map((checkpoint, index) => ({
+              ...checkpoint,
+              order: index
+            }))
+        };
+      })
     }));
   }
 
@@ -2772,6 +2848,7 @@ export default function App() {
             importPreview={organizerImportPreview}
             importText={organizerImportText}
             onAddRace={addOrganizerRace}
+            onAddCheckpoint={addOrganizerCheckpoint}
             onApplyImport={applyOrganizerImport}
             onBackToSpectator={() => setOrganizerWorkspaceView("spectator")}
             onBrandingChange={updateOrganizerBranding}
@@ -2779,6 +2856,7 @@ export default function App() {
             onEventLogoChange={handleOrganizerEventLogoChange}
             onGpxChange={handleOrganizerGpxChange}
             onImportTextChange={setOrganizerImportText}
+            onRemoveCheckpoint={removeOrganizerCheckpoint}
             onRemoveRace={removeOrganizerRace}
             onRaceChange={updateOrganizerRace}
             onSelectRace={setOrganizerSetupRaceSlug}

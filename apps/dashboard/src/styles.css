@@ -6432,6 +6432,25 @@ body {
   border: 1px solid rgba(225, 183, 76, 0.28);
 }
 
+.organizer-checkpoint-row .organizer-field:last-of-type input[readonly] {
+  background: rgba(250, 241, 220, 0.95);
+  color: #7b5b22;
+  font-weight: 800;
+  cursor: default;
+}
+
+.organizer-checkpoint-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 88px;
+}
+
+.organizer-checkpoint-actions .toolbar-link[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .organizer-checkpoint-meta {
   display: flex;
   gap: 0.9rem;
