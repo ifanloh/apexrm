@@ -2874,18 +2874,10 @@ export default function App() {
           <div className="race-course-info-head">
             <span className="detail-label">Info deskripsi course</span>
             <h2>{eventTitle}</h2>
-            <small>{selectedRaceCard.editionLabel}</small>
           </div>
 
           <div className="race-course-info-body">
             <p>{selectedRaceCard.courseDescription}</p>
-            <div className="race-course-info-tags" aria-label="Course highlights">
-              {selectedRaceCard.courseHighlights.map((highlight) => (
-                <span className="race-course-info-tag" key={highlight}>
-                  {highlight}
-                </span>
-              ))}
-            </div>
             <div className="race-course-info-meta">
               <article>
                 <span>Start</span>
@@ -2898,10 +2890,6 @@ export default function App() {
               <article>
                 <span>Ascent</span>
                 <strong>{activeAscentM} m+</strong>
-              </article>
-              <article>
-                <span>Race state</span>
-                <strong>{isActiveRaceLive ? "Live race" : "Finished race"}</strong>
               </article>
             </div>
           </div>
