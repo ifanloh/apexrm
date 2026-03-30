@@ -6203,3 +6203,263 @@ body {
   }
 }
 
+.event-logo-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 92px;
+  height: 56px;
+  border-radius: 18px;
+  border: 1px dashed rgba(225, 183, 76, 0.6);
+  background: rgba(255, 248, 233, 0.9);
+  color: var(--brand-red, #ff1515);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  overflow: hidden;
+}
+
+.event-logo-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  padding: 0.25rem;
+}
+
+.organizer-console-shell {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.organizer-console-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.5rem 1.75rem;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(118, 18, 18, 0.96), rgba(32, 37, 26, 0.94));
+  color: #fff7ed;
+  box-shadow: 0 24px 64px rgba(89, 24, 18, 0.18);
+}
+
+.organizer-console-header h2 {
+  margin: 0.2rem 0 0.45rem;
+  font-size: 2rem;
+  color: #fff7ed;
+}
+
+.organizer-console-copy {
+  max-width: 48rem;
+  margin: 0;
+  color: rgba(255, 247, 237, 0.86);
+}
+
+.organizer-console-actions {
+  display: grid;
+  justify-items: end;
+  gap: 0.75rem;
+}
+
+.organizer-console-back {
+  border-color: rgba(255, 247, 237, 0.5);
+  color: #fff7ed;
+}
+
+.organizer-console-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.organizer-console-wide {
+  grid-column: 1 / -1;
+}
+
+.organizer-console-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.organizer-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.organizer-form-grid.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.organizer-field {
+  display: grid;
+  gap: 0.4rem;
+  color: #5f4a22;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.organizer-field span {
+  color: #8d6a2a;
+}
+
+.organizer-field input,
+.organizer-field select,
+.organizer-field textarea {
+  width: 100%;
+  border: 1px solid rgba(225, 183, 76, 0.48);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.95);
+  color: #3b2a12;
+  padding: 0.85rem 1rem;
+  font: inherit;
+}
+
+.organizer-field textarea {
+  resize: vertical;
+  min-height: 104px;
+}
+
+.organizer-field-wide {
+  grid-column: 1 / -1;
+}
+
+.organizer-assets-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.organizer-logo-dropzone,
+.organizer-gpx-draft {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.organizer-logo-preview {
+  min-height: 176px;
+  border-radius: 24px;
+  border: 1px dashed rgba(225, 183, 76, 0.55);
+  background: linear-gradient(180deg, rgba(255, 252, 245, 0.96), rgba(255, 247, 232, 0.92));
+  display: grid;
+  place-items: center;
+  color: #9d7b33;
+  font-weight: 700;
+}
+
+.organizer-logo-preview img {
+  max-width: 100%;
+  max-height: 160px;
+  object-fit: contain;
+}
+
+.organizer-file-trigger {
+  width: fit-content;
+}
+
+.organizer-race-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.organizer-race-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem 1.05rem;
+  border-radius: 22px;
+  border: 1px solid rgba(225, 183, 76, 0.35);
+  background: rgba(255, 251, 242, 0.95);
+}
+
+.organizer-race-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.organizer-status-pill {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.organizer-status-pill.live {
+  background: rgba(255, 45, 45, 0.14);
+  color: #d82626;
+}
+
+.organizer-status-pill.finished {
+  background: rgba(39, 197, 95, 0.14);
+  color: #147a3b;
+}
+
+.organizer-checkpoint-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.organizer-checkpoint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(255, 252, 245, 0.92);
+  border: 1px solid rgba(225, 183, 76, 0.28);
+}
+
+.organizer-checkpoint-meta {
+  display: flex;
+  gap: 0.9rem;
+  color: #7f6734;
+  font-size: 0.9rem;
+}
+
+.organizer-import-preview {
+  display: grid;
+  border: 1px solid rgba(225, 183, 76, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.organizer-import-head,
+.organizer-import-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+
+.organizer-import-head {
+  background: rgba(255, 247, 232, 0.92);
+  color: #7d5f26;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.organizer-import-row {
+  background: #fffdf7;
+  border-top: 1px solid rgba(225, 183, 76, 0.18);
+  color: #3b2a12;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 1200px) {
+  .organizer-console-grid,
+  .organizer-race-grid,
+  .organizer-assets-grid,
+  .organizer-form-grid.compact {
+    grid-template-columns: 1fr;
+  }
+}
+
