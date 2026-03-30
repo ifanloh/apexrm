@@ -36,8 +36,10 @@ import {
   getOrganizerCheckpointsForRace,
   loadOrganizerSetup,
   ORGANIZER_SETUP_STORAGE_KEY,
+  parseParticipantImportRows,
   parseParticipantImportText,
   type OrganizerBrandingDraft,
+  type OrganizerParticipantDraft,
   type OrganizerRaceDraft
 } from "./organizerSetup";
 import { supabase } from "./supabase";
@@ -234,6 +236,11 @@ function getNationalityCode(bib: string) {
 
 function getFlagIconUrl(countryCode: string) {
   return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
+}
+
+function normalizeCountryCodeValue(value: string) {
+  const normalized = value.trim().toUpperCase();
+  return COUNTRY_CODES.includes(normalized as CountryCode) ? (normalized as CountryCode) : "ID";
 }
 
 function formatPercent(value: number) {
@@ -912,7 +919,19 @@ export default function App() {
     festivalData.races[0];
   const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
   const isFeaturedRace = selectedRaceCard.slug === featuredRace.slug;
-  const activeCourse = useMemo(() => getDemoCourseForRace(selectedRaceCard), [selectedRaceCard]);
+  const activeCourse = useMemo(() => {
+    const baseCourse = getDemoCourseForRace(selectedRaceCard);
+    const organizerRaceDraft = organizerSetup.races.find((race) => race.slug === selectedRaceCard.slug);
+
+    if (!organizerRaceDraft?.checkpoints?.length) {
+      return baseCourse;
+    }
+
+    return {
+      ...baseCourse,
+      checkpoints: [...organizerRaceDraft.checkpoints].sort((left, right) => left.order - right.order)
+    };
+  }, [organizerSetup.races, selectedRaceCard]);
   const showEditionHome = isEditionHome && raceDetailView === "race-page";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
   const organizerSelectedRace =
@@ -1523,6 +1542,7 @@ export default function App() {
   };
   const runnerDirectoryEntries = useMemo<RunnerDirectoryEntry[]>(() => {
     return festivalData.races.flatMap((race) => {
+      const organizerRaceDraft = organizerSetup.races.find((item) => item.slug === race.slug);
       const useLiveEntries = race.slug === featuredRace.slug && overallLeaderboard.topEntries.length > 0;
       const rankedRows: RunnerDirectoryEntry[] = (useLiveEntries
         ? overallLeaderboard.topEntries.map((entry) => ({
@@ -1573,7 +1593,52 @@ export default function App() {
           checkpointOrder: (entry as { checkpointOrder?: number | null }).checkpointOrder ?? null
         }));
 
-      const extraRows = Array.from({ length: Math.max(0, 12 - rankedRows.length) }, (_, index) => {
+      const organizerParticipantRows = (organizerRaceDraft?.participants ?? []).map((participant): RunnerDirectoryEntry => {
+        const existing = rankedRows.find((entry) => entry.bib.toUpperCase() === participant.bib.toUpperCase());
+        const countryCode = normalizeCountryCodeValue(participant.countryCode);
+        const teamName = participant.club.trim() || existing?.teamName || getRunnerTeamName(participant.bib);
+
+        if (existing) {
+          return {
+            ...existing,
+            name: participant.name,
+            teamName,
+            countryCode,
+            category: participant.gender,
+            infoLabel: teamName ? `Club ${teamName}` : existing.infoLabel
+          };
+        }
+
+        return {
+          raceSlug: race.slug,
+          raceTitle: race.title,
+          bib: participant.bib.toUpperCase(),
+          name: participant.name,
+          teamName,
+          countryCode,
+          category: participant.gender,
+          state: "registered",
+          statusLabel: "Registered",
+          infoLabel: teamName ? `Club ${teamName}` : "Participant import",
+          raceTime: "--:--:--",
+          rank: null,
+          scannedAt: race.startAt,
+          checkpointId: null,
+          checkpointCode: null,
+          checkpointName: null,
+          checkpointKmMarker: null,
+          checkpointOrder: null
+        };
+      });
+
+      const mergedRows = [
+        ...organizerParticipantRows,
+        ...rankedRows.filter(
+          (entry) => !organizerParticipantRows.some((participant) => participant.bib.toUpperCase() === entry.bib.toUpperCase())
+        )
+      ];
+
+      const extraRows = Array.from({ length: Math.max(0, 12 - mergedRows.length) }, (_, index) => {
         const profile = RUNNER_DIRECTORY_EXTRA_PROFILES[index % RUNNER_DIRECTORY_EXTRA_PROFILES.length];
         const bib = `${race.slug.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase()}${String(index + 701)}`;
         const state = normalizeRunnerDirectoryState(profile.state);
@@ -1600,9 +1665,9 @@ export default function App() {
           } satisfies RunnerDirectoryEntry;
       });
 
-      return [...rankedRows, ...extraRows];
+      return [...mergedRows, ...extraRows];
     });
-  }, [featuredRace.slug, overallLeaderboard.topEntries]);
+  }, [festivalData.races, featuredRace.slug, organizerSetup.races, overallLeaderboard.topEntries]);
   const runnerDirectoryCountries = useMemo(
     () =>
       [...new Set(runnerDirectoryEntries.map((entry) => entry.countryCode))]
@@ -2267,6 +2332,55 @@ export default function App() {
     }));
   }
 
+  function updateOrganizerCheckpoint(checkpointId: string, patch: Partial<(typeof organizerCheckpointDraft)[number]>) {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) =>
+        race.slug !== organizerSelectedRace.slug
+          ? race
+          : {
+              ...race,
+              checkpoints: race.checkpoints.map((checkpoint) =>
+                checkpoint.id === checkpointId
+                  ? {
+                      ...checkpoint,
+                      ...patch
+                    }
+                  : checkpoint
+              )
+            }
+      )
+    }));
+  }
+
+  function applyOrganizerImport() {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    const importedRows = parseParticipantImportRows(organizerImportText);
+
+    if (!importedRows.length) {
+      return;
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) =>
+        race.slug !== organizerSelectedRace.slug
+          ? race
+          : {
+              ...race,
+              participants: importedRows
+            }
+      )
+    }));
+  }
+
   async function handleOrganizerEventLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
@@ -2585,8 +2699,10 @@ export default function App() {
             checkpoints={organizerCheckpointDraft}
             importPreview={organizerImportPreview}
             importText={organizerImportText}
+            onApplyImport={applyOrganizerImport}
             onBackToSpectator={() => setOrganizerWorkspaceView("spectator")}
             onBrandingChange={updateOrganizerBranding}
+            onCheckpointChange={updateOrganizerCheckpoint}
             onEventLogoChange={handleOrganizerEventLogoChange}
             onGpxChange={handleOrganizerGpxChange}
             onImportTextChange={setOrganizerImportText}

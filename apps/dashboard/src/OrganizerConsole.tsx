@@ -15,6 +15,8 @@ type OrganizerConsoleProps = {
   onRaceChange: (slug: string, patch: Partial<OrganizerRaceDraft>) => void;
   onSelectRace: (slug: string) => void;
   onImportTextChange: (value: string) => void;
+  onApplyImport: () => void;
+  onCheckpointChange: (checkpointId: string, patch: Partial<DemoCourseCheckpoint>) => void;
   onEventLogoChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onGpxChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
@@ -32,9 +34,13 @@ export function OrganizerConsole({
   onRaceChange,
   onSelectRace,
   onImportTextChange,
+  onApplyImport,
+  onCheckpointChange,
   onEventLogoChange,
   onGpxChange
 }: OrganizerConsoleProps) {
+  const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
+
   return (
     <section className="organizer-console-shell" id="organizer-console">
       <div className="organizer-console-header">
@@ -219,14 +225,30 @@ export function OrganizerConsole({
           <div className="organizer-checkpoint-list">
             {checkpoints.map((checkpoint) => (
               <article className="organizer-checkpoint-row" key={checkpoint.id}>
-                <div>
-                  <span className="detail-label">{checkpoint.code}</span>
-                  <strong>{checkpoint.name}</strong>
-                </div>
-                <div className="organizer-checkpoint-meta">
-                  <span>KM {checkpoint.kmMarker}</span>
-                  <span>Order {checkpoint.order}</span>
-                </div>
+                <label className="organizer-field">
+                  <span>Code</span>
+                  <input value={checkpoint.code} onChange={(event) => onCheckpointChange(checkpoint.id, { code: event.target.value.toUpperCase() })} />
+                </label>
+                <label className="organizer-field organizer-field-wide">
+                  <span>Name</span>
+                  <input value={checkpoint.name} onChange={(event) => onCheckpointChange(checkpoint.id, { name: event.target.value })} />
+                </label>
+                <label className="organizer-field">
+                  <span>KM marker</span>
+                  <input
+                    type="number"
+                    value={checkpoint.kmMarker}
+                    onChange={(event) => onCheckpointChange(checkpoint.id, { kmMarker: Number(event.target.value) || 0 })}
+                  />
+                </label>
+                <label className="organizer-field">
+                  <span>Order</span>
+                  <input
+                    type="number"
+                    value={checkpoint.order}
+                    onChange={(event) => onCheckpointChange(checkpoint.id, { order: Number(event.target.value) || 0 })}
+                  />
+                </label>
               </article>
             ))}
           </div>
@@ -255,6 +277,16 @@ export function OrganizerConsole({
             <strong>{importPreview.totalRows}</strong>
             <span>entries</span>
           </div>
+
+          <div className="panel-badge compact-badge">
+            <span>Applied to race</span>
+            <strong>{selectedRace?.participants.length ?? 0}</strong>
+            <span>participants</span>
+          </div>
+
+          <button className="toolbar-link organizer-apply-button" onClick={onApplyImport} type="button">
+            Apply import to selected race
+          </button>
 
           {importPreview.columns.length ? (
             <div className="organizer-import-preview">

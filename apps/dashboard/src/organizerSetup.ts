@@ -27,11 +27,21 @@ export type OrganizerRaceDraft = {
   startTown: string;
   distanceKm: number;
   ascentM: number;
+  checkpoints: DemoCourseCheckpoint[];
+  participants: OrganizerParticipantDraft[];
 };
 
 export type OrganizerSetupDraft = {
   branding: OrganizerBrandingDraft;
   races: OrganizerRaceDraft[];
+};
+
+export type OrganizerParticipantDraft = {
+  bib: string;
+  name: string;
+  gender: "men" | "women";
+  countryCode: string;
+  club: string;
 };
 
 export type ParticipantImportPreview = {
@@ -64,7 +74,9 @@ export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
       scheduleLabel: race.scheduleLabel,
       startTown: race.startTown,
       distanceKm: race.distanceKm,
-      ascentM: race.ascentM
+      ascentM: race.ascentM,
+      checkpoints: getDemoCourseForRace(race).checkpoints,
+      participants: []
     }))
   };
 }
@@ -94,7 +106,9 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
         const override = parsed?.races?.find((item) => item.slug === race.slug);
         return {
           ...race,
-          ...(override ?? {})
+          ...(override ?? {}),
+          checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
+          participants: Array.isArray(override?.participants) ? override.participants : race.participants
         };
       })
     };
@@ -104,7 +118,7 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
 }
 
 export function getOrganizerCheckpointsForRace(race: OrganizerRaceDraft): DemoCourseCheckpoint[] {
-  return getDemoCourseForRace(race).checkpoints;
+  return race.checkpoints?.length ? race.checkpoints : getDemoCourseForRace(race).checkpoints;
 }
 
 export function parseParticipantImportText(text: string): ParticipantImportPreview {
@@ -134,4 +148,50 @@ export function parseParticipantImportText(text: string): ParticipantImportPrevi
     rows: rows.slice(0, 6),
     totalRows: rows.length
   };
+}
+
+function normalizeGender(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return normalized === "woman" || normalized === "women" || normalized === "female" || normalized === "f" ? "women" : "men";
+}
+
+function normalizeCountryCode(value: string) {
+  return value.trim().toUpperCase().slice(0, 2) || "ID";
+}
+
+export function parseParticipantImportRows(text: string): OrganizerParticipantDraft[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length < 2) {
+    return [];
+  }
+
+  const delimiter = lines[0].includes("\t") ? "\t" : ",";
+  const columns = lines[0].split(delimiter).map((value) => value.trim().toLowerCase());
+  const findIndex = (keys: string[]) => columns.findIndex((column) => keys.includes(column));
+
+  const bibIndex = findIndex(["bib", "bib_number", "racebib"]);
+  const nameIndex = findIndex(["name", "runner", "runner_name"]);
+  const genderIndex = findIndex(["gender", "sex", "category"]);
+  const countryIndex = findIndex(["country", "countrycode", "nationality"]);
+  const clubIndex = findIndex(["club", "team", "team_name"]);
+
+  if (bibIndex === -1 || nameIndex === -1) {
+    return [];
+  }
+
+  return lines
+    .slice(1)
+    .map((line) => line.split(delimiter).map((value) => value.trim()))
+    .filter((row) => row[bibIndex] && row[nameIndex])
+    .map((row) => ({
+      bib: row[bibIndex].toUpperCase(),
+      name: row[nameIndex],
+      gender: genderIndex === -1 ? "men" : normalizeGender(row[genderIndex] ?? ""),
+      countryCode: countryIndex === -1 ? "ID" : normalizeCountryCode(row[countryIndex] ?? ""),
+      club: clubIndex === -1 ? "" : row[clubIndex] ?? ""
+    }));
 }
