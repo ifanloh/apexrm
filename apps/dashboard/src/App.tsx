@@ -3160,9 +3160,10 @@ export default function App() {
               <label className="ranking-toolbar-label">
                 Of which category ?
                 <select
-                  value={fullRankingView === "women" ? "women" : "men"}
-                  onChange={(event) => setFullRankingView(event.target.value as "women" | "men")}
+                  value={fullRankingView}
+                  onChange={(event) => setFullRankingView(event.target.value as RankingView)}
                 >
+                  <option value="overall">Overall</option>
                   <option value="men">Men</option>
                   <option value="women">Women</option>
                 </select>
