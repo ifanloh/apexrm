@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { authenticateToken, getBearerToken } from "../src/auth.js";
-import { handlePreflight, sendError, sendJson } from "./_shared.js";
+import { handlePreflight, sendError, sendJson } from "../src/vercel-shared.js";
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   if (handlePreflight(request, response)) {

@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { authenticateToken, getBearerToken, requireRole } from "../src/auth.js";
 import { sql } from "../src/db.js";
-import { getNotificationFeed } from "../src/repository.js";
+import { getDuplicateAuditLog, getNotificationFeed } from "../src/repository.js";
 import { ensureCheckpointBootstrap } from "../src/service.js";
-import { handlePreflight, sendError, sendJson } from "./_shared.js";
+import { handlePreflight, sendError, sendJson } from "../src/vercel-shared.js";
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   if (handlePreflight(request, response)) {
@@ -21,6 +21,16 @@ export default async function handler(request: IncomingMessage, response: Server
     const actor = await authenticateToken(token);
     requireRole(actor, ["admin", "panitia"]);
     await ensureCheckpointBootstrap();
+
+    const url = new URL(request.url ?? "/api/signals", "https://arm.local");
+    const view = url.searchParams.get("view");
+
+    if (view === "duplicates") {
+      sendJson(request, response, 200, {
+        items: await getDuplicateAuditLog(sql)
+      });
+      return;
+    }
 
     sendJson(request, response, 200, {
       items: await getNotificationFeed(sql)

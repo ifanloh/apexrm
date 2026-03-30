@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { sql } from "../../../src/db.js";
 import { getCheckpointLeaderboard } from "../../../src/repository.js";
 import { ensureCheckpointBootstrap } from "../../../src/service.js";
-import { handlePreflight, sendError, sendJson } from "../../_shared.js";
+import { handlePreflight, sendError, sendJson } from "../../../src/vercel-shared.js";
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   if (handlePreflight(request, response)) {

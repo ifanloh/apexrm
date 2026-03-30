@@ -5,7 +5,7 @@ import { authenticateToken, getBearerToken, requireRole } from "../src/auth.js";
 import { sql } from "../src/db.js";
 import { syncOfflineScans } from "../src/repository.js";
 import { ensureCheckpointBootstrap } from "../src/service.js";
-import { handlePreflight, readJsonBody, sendError, sendJson } from "./_shared.js";
+import { handlePreflight, readJsonBody, sendError, sendJson } from "../src/vercel-shared.js";
 
 const syncOfflineSchema = z.object({
   scans: z.array(scanSubmissionSchema).min(1)

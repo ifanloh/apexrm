@@ -4,7 +4,7 @@ import { authenticateToken, getBearerToken, requireRole } from "../src/auth.js";
 import { sql } from "../src/db.js";
 import { processSingleScan } from "../src/repository.js";
 import { ensureCheckpointBootstrap } from "../src/service.js";
-import { handlePreflight, readJsonBody, sendError, sendJson } from "./_shared.js";
+import { handlePreflight, readJsonBody, sendError, sendJson } from "../src/vercel-shared.js";
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
   if (handlePreflight(request, response)) {

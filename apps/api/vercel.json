@@ -45,6 +45,22 @@
     {
       "source": "/health",
       "destination": "/api/health"
+    },
+    {
+      "source": "/api/notifications",
+      "destination": "/api/signals?view=notifications"
+    },
+    {
+      "source": "/api/audit/duplicates",
+      "destination": "/api/signals?view=duplicates"
+    },
+    {
+      "source": "/api/runners/search",
+      "destination": "/api/runners?view=search"
+    },
+    {
+      "source": "/api/runners/detail",
+      "destination": "/api/runners?view=detail"
     }
   ]
 }
