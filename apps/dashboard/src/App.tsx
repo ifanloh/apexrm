@@ -946,6 +946,7 @@ export default function App() {
   }, [organizerSetup.races, selectedRaceCard]);
   const showEditionHome = isEditionHome && raceDetailView === "race-page";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
+  const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && raceDetailView === "race-page";
   const organizerSelectedRace =
     organizerSetup.races.find((race) => race.slug === organizerSetupRaceSlug) ?? organizerSetup.races[0] ?? null;
   const organizerCheckpointDraft = organizerSelectedRace ? getOrganizerCheckpointsForRace(organizerSelectedRace) : [];
@@ -4768,7 +4769,7 @@ export default function App() {
       ) : null}
       </div>
 
-      {!isEditionHome && !isOrganizerConsoleOpen ? (
+      {showSidebarRail ? (
       <aside className="dashboard-rail live-ranking-rail">
         <div className="rail">
               <article className="panel rail-panel rail-ranking-panel" id="race-leaders-sidebar">
