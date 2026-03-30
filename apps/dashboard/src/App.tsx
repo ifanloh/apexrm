@@ -2143,25 +2143,9 @@ export default function App() {
       .sort((left, right) => right.count - left.count)
       .slice(0, 8);
   }, [statisticsEntries, statisticsStarterEntries]);
-  const statisticsScopeItems = useMemo(() => {
-    if (statisticsSelectedRace) {
-      return [
-        { label: "Status", value: statisticsSelectedRace.editionLabel },
-        { label: "Distance", value: `${statisticsSelectedRace.distanceKm.toFixed(1)} km` },
-        { label: "Ascent", value: `${statisticsSelectedRace.ascentM} m+` },
-        { label: "Registered", value: statisticsRegisteredCount.toLocaleString() }
-      ];
-    }
-
-    const liveRaceCount = festivalData.races.filter((race) => race.editionLabel.toLowerCase() === "live").length;
-
-    return [
-      { label: "Races", value: String(festivalData.races.length) },
-      { label: "Live", value: String(liveRaceCount) },
-      { label: "Finished", value: String(festivalData.races.length - liveRaceCount) },
-      { label: "Registered", value: statisticsRegisteredCount.toLocaleString() }
-    ];
-  }, [festivalData.races, statisticsRegisteredCount, statisticsSelectedRace]);
+  const statisticsContextLabel = statisticsSelectedRace
+    ? `${statisticsSelectedRace.title} · ${statisticsSelectedRace.distanceKm.toFixed(1)} km · ${statisticsSelectedRace.ascentM} m+`
+    : `${festivalData.races.length} races · ${statisticsRegisteredCount.toLocaleString()} registered runners`;
   const leadersScopeItems = useMemo(() => {
     if (leadersSelectedRace) {
       return [
@@ -2980,13 +2964,15 @@ export default function App() {
           </div>
         </div>
 
-        <div className="statistics-scope-strip">
-          {statisticsScopeItems.map((item) => (
-            <article className="statistics-scope-item" key={`statistics-scope-${item.label}`}>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </article>
-          ))}
+        <div className="utility-scope-strip">
+          <div className="utility-scope-item">
+            <span>Scope</span>
+            <strong>{statisticsSelectedRace ? "Current race" : "Edition overview"}</strong>
+          </div>
+          <div className="utility-scope-item">
+            <span>Context</span>
+            <strong>{statisticsContextLabel}</strong>
+          </div>
         </div>
 
         <div className="runner-list-toolbar statistics-toolbar">
