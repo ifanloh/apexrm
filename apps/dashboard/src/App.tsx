@@ -193,10 +193,12 @@ function formatCheckpointProgress(entry: {
   checkpointKmMarker: number;
   checkpointName: string;
 }) {
-  return `${formatCheckpointLabel({
+  const checkpointLabel = formatCheckpointLabel({
     code: entry.checkpointCode,
     kmMarker: entry.checkpointKmMarker
-  })} Â· ${entry.checkpointName}`;
+  });
+
+  return `${checkpointLabel} - ${entry.checkpointName}`;
 }
 
 function getApiHost() {
@@ -2424,7 +2426,7 @@ export default function App() {
             )}
 
             <button className="topbar-locale-pill" type="button">
-              EN <span aria-hidden="true">â–¾</span>
+              EN <span aria-hidden="true">v</span>
             </button>
           </div>
         </header>
@@ -2500,11 +2502,11 @@ export default function App() {
             </article>
             <article className="race-stat-strip-item">
               <span>Start</span>
-              <strong>{activeCourse.location} 7Â°C</strong>
+              <strong>{activeCourse.location} 7 C</strong>
             </article>
             <article className="race-stat-strip-item">
               <span>Finish</span>
-              <strong>{activeCourse.location} 7Â°C</strong>
+              <strong>{activeCourse.location} 7 C</strong>
             </article>
             <article className="race-stat-strip-item">
               <span>Start Date</span>
@@ -2927,7 +2929,7 @@ export default function App() {
               <div className="pulse-card">
                 <span className="broadcast-tag">Latest passing</span>
                 <strong>
-                  {latestPassing.name} Â· {formatCheckpointLabel({
+                  {latestPassing.name} - {formatCheckpointLabel({
                     code: latestPassing.checkpointCode,
                     kmMarker: latestPassing.checkpointKmMarker
                   })}
@@ -3128,9 +3130,16 @@ export default function App() {
       ) : null}
 
       <section className="panel runner-search-panel public-runner-search-panel search-runner-view" hidden={raceDetailView !== "runner-search"} id="runner-search">
-        <div className="search-runner-head">
-          <p className="section-label">The runners</p>
-          <h2>Search a runner</h2>
+        <div className="panel-head compact utility-panel-head">
+          <div>
+            <p className="section-label">The runners</p>
+            <h3>Search a runner</h3>
+          </div>
+          <div className="panel-badge compact-badge">
+            <span>Visible</span>
+            <strong>{searchRunnerEntries.length}</strong>
+            <span>runner entries</span>
+          </div>
         </div>
 
         <div className="utility-scope-strip">
@@ -3616,9 +3625,16 @@ export default function App() {
       </section>
 
       <section className="panel menu-feature-panel favorites-list-view" hidden={raceDetailView !== "favorites"} id="favorites-list">
-        <div className="search-runner-head">
-          <p className="section-label">The runners</p>
-          <h2>Favorites list</h2>
+        <div className="panel-head compact utility-panel-head">
+          <div>
+            <p className="section-label">The runners</p>
+            <h3>Favorites list</h3>
+          </div>
+          <div className="panel-badge compact-badge">
+            <span>Tracked</span>
+            <strong>{favoriteDirectoryEntries.length}</strong>
+            <span>favorite runners</span>
+          </div>
         </div>
 
         <div className="utility-scope-strip">
@@ -3861,9 +3877,16 @@ export default function App() {
       </section>
 
       <section className="panel menu-feature-panel runner-detail-panel my-runners-panel" hidden={raceDetailView !== "my-runners"} id="my-runners">
-        <div className="search-runner-head">
-          <p className="section-label">The runners</p>
-          <h2>My followed runners</h2>
+        <div className="panel-head compact utility-panel-head">
+          <div>
+            <p className="section-label">The runners</p>
+            <h3>My followed runners</h3>
+          </div>
+          <div className="panel-badge compact-badge">
+            <span>Tracked</span>
+            <strong>{favoriteDirectoryEntries.length}</strong>
+            <span>followed runners</span>
+          </div>
         </div>
 
         <div className="utility-scope-strip">
@@ -4345,11 +4368,11 @@ export default function App() {
                         <div className="runner-list-actions">
                           <button
                             aria-label={favoriteBibs.includes(entry.bib) ? `Remove ${entry.name} from favorites` : `Add ${entry.name} to favorites`}
-                            className={`runner-action ghost ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}
-                            onClick={() => toggleFavoriteBib(entry.bib)}
-                            type="button"
-                          >
-                            â™¡
+                          className={`runner-action ghost ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}
+                          onClick={() => toggleFavoriteBib(entry.bib)}
+                          type="button"
+                        >
+                            <NavIcon name="favorite" />
                           </button>
                           <button
                             aria-label={`Open ${entry.name}`}
@@ -4361,7 +4384,7 @@ export default function App() {
                             }}
                             type="button"
                           >
-                            â†—
+                            <NavIcon name="search" />
                           </button>
                         </div>
                       </article>
@@ -4404,7 +4427,7 @@ export default function App() {
                 onClick={() => setIsLoginModalOpen(false)}
                 type="button"
               >
-                Ã—
+                x
               </button>
             </div>
 

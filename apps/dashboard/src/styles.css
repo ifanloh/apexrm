@@ -3070,6 +3070,14 @@ body {
   text-align: center;
 }
 
+.utility-panel-head {
+  align-items: end;
+}
+
+.utility-panel-head .panel-badge {
+  justify-self: end;
+}
+
 .search-runner-head h2 {
   color: var(--green);
   font-size: clamp(2rem, 3.4vw, 2.5rem);
@@ -3082,7 +3090,7 @@ body {
 .search-runner-toolbar {
   display: grid;
   gap: 14px;
-  justify-items: center;
+  justify-items: start;
 }
 
 .search-runner-input-shell {
@@ -3112,7 +3120,7 @@ body {
 }
 
 .search-runner-shell .ranking-toolbar-label {
-  justify-items: center;
+  justify-items: start;
   width: min(100%, 200px);
 }
 
@@ -3137,7 +3145,7 @@ body {
 }
 
 .favorite-list-toolbar .ranking-toolbar-label {
-  justify-items: center;
+  justify-items: start;
   width: min(100%, 220px);
 }
 
@@ -3185,7 +3193,7 @@ body {
 }
 
 .race-leaders-toolbar .ranking-toolbar-label {
-  justify-items: center;
+  justify-items: start;
   width: min(100%, 220px);
 }
 
