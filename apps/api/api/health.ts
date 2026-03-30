@@ -13,6 +13,7 @@ function getHealthPayload() {
 }
 
 export default function handler(_request: IncomingMessage, response: ServerResponse) {
+  // Health endpoint stays intentionally lightweight so serverless redeploys can be verified quickly.
   const origin = _request.headers.origin;
   response.setHeader("Access-Control-Allow-Origin", origin ?? "*");
   response.setHeader("Vary", "Origin");
