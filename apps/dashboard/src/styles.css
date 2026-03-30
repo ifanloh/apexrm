@@ -3489,16 +3489,12 @@ body {
 }
 
 .runner-directory-list,
-.favorite-summary-grid,
-.leaders-grid,
-.comparison-grid {
+.leaders-grid {
   display: grid;
   gap: 12px;
 }
 
 .runner-directory-row,
-.favorite-summary-card,
-.comparison-card,
 .leader-card {
   background: var(--surface);
   border: 1px solid rgba(20, 22, 24, 0.08);
@@ -3520,15 +3516,13 @@ body {
 
 .runner-directory-main,
 .runner-directory-meta,
-.favorite-summary-head,
-.comparison-head {
+.leader-card-head {
   display: grid;
   gap: 4px;
 }
 
 .runner-directory-main strong,
-.favorite-summary-head strong,
-.comparison-head strong,
+.leader-card-head strong,
 .leader-list-row div span {
   color: var(--ink);
   font-size: 1rem;
@@ -3537,8 +3531,7 @@ body {
 
 .runner-directory-main span,
 .runner-directory-meta span,
-.favorite-summary-head span,
-.comparison-head span,
+.leader-card-head span,
 .leader-list-row div small {
   color: var(--ink-soft);
   font-size: 0.82rem;
@@ -3555,19 +3548,10 @@ body {
   font-size: 0.92rem;
 }
 
-.favorite-summary-grid,
-.comparison-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.favorite-summary-card,
-.comparison-card,
 .leader-card {
   padding: 16px;
 }
 
-.favorite-summary-head,
-.comparison-head,
 .leader-card-head {
   align-items: start;
   display: flex;
@@ -3575,50 +3559,12 @@ body {
   justify-content: space-between;
 }
 
-.favorite-summary-stats,
-.comparison-stats-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 12px;
-}
-
-.comparison-stats-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.favorite-summary-open {
-  background: transparent;
-  border: 1px solid rgba(13, 115, 80, 0.28);
-  border-radius: 999px;
-  color: var(--brand);
-  font: inherit;
-  font-weight: 700;
-  margin-top: 12px;
-  min-height: 40px;
-  padding: 0 16px;
-}
-
-.comparison-progress {
-  border-top: 1px solid rgba(20, 22, 24, 0.08);
-  display: grid;
-  gap: 4px;
-  margin-top: 12px;
-  padding-top: 12px;
-}
-
-.comparison-progress span,
 .leader-card-head span {
   color: var(--ink-muted);
   font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-}
-
-.comparison-progress strong {
-  color: var(--ink);
-  font-size: 0.92rem;
 }
 
 .leaders-grid {
@@ -3669,8 +3615,6 @@ body {
 
 @media (max-width: 1280px) {
   .menu-feature-grid,
-  .favorite-summary-grid,
-  .comparison-grid,
   .leaders-grid {
     grid-template-columns: 1fr;
   }

@@ -376,7 +376,7 @@ function RankingMedal({ rank }: { rank: number }) {
   );
 }
 
-function NavIcon({ name }: { name: "home" | "search" | "runners" | "favorite" | "heart" | "compare" | "podium" | "passings" | "leaders" | "stats" | "contact" }) {
+function NavIcon({ name }: { name: "home" | "search" | "runners" | "favorite" | "heart" | "podium" | "leaders" | "stats" | "contact" }) {
   switch (name) {
     case "home":
       return (
@@ -413,23 +413,10 @@ function NavIcon({ name }: { name: "home" | "search" | "runners" | "favorite" | 
           <path d="M8 13.2 3.2 8.5A3.1 3.1 0 0 1 7.6 4l.4.4.4-.4a3.1 3.1 0 0 1 4.4 4.4L8 13.2Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.5" />
         </svg>
       );
-    case "compare":
-      return (
-        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M3 4h8.8M8.8 1.8 11.8 4l-3 2.2M13 12H4.2M7.2 9.8 4.2 12l3 2.2" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
-        </svg>
-      );
     case "podium":
       return (
         <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M2.5 13.2h11M3.5 13.2V8.9h2.5v4.3M6.8 13.2V6.5h2.5v6.7M10.1 13.2V9.9h2.4v3.3" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
-        </svg>
-      );
-    case "passings":
-      return (
-        <svg className="nav-icon-svg" viewBox="0 0 16 16" aria-hidden="true">
-          <circle cx="8" cy="8" r="4.9" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M8 5.3v3.1l2 1.4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
         </svg>
       );
     case "leaders":
