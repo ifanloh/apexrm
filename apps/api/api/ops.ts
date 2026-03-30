@@ -3,7 +3,7 @@ import { z } from "zod";
 import { scanSubmissionSchema } from "../src/contracts.js";
 import { authenticateToken, getBearerToken, requireRole } from "../src/auth.js";
 import { sql } from "../src/db.js";
-import { syncOfflineScans } from "../src/repository.js";
+import { processSingleScan, syncOfflineScans } from "../src/repository.js";
 import { ensureCheckpointBootstrap } from "../src/service.js";
 import { handlePreflight, readJsonBody, sendError, sendJson } from "../src/vercel-shared.js";
 
@@ -28,9 +28,19 @@ export default async function handler(request: IncomingMessage, response: Server
     requireRole(actor, ["crew", "panitia", "admin"]);
     await ensureCheckpointBootstrap();
 
-    const payload = syncOfflineSchema.parse(await readJsonBody(request));
-    const result = await syncOfflineScans(sql, payload.scans, actor);
-    sendJson(request, response, 200, result);
+    const url = new URL(request.url ?? "/api/ops", "https://arm.local");
+    const view = url.searchParams.get("view");
+
+    if (view === "sync-offline") {
+      const payload = syncOfflineSchema.parse(await readJsonBody(request));
+      const result = await syncOfflineScans(sql, payload.scans, actor);
+      sendJson(request, response, 200, result);
+      return;
+    }
+
+    const payload = scanSubmissionSchema.parse(await readJsonBody(request));
+    const result = await processSingleScan(sql, payload, actor);
+    sendJson(request, response, result.status === "accepted" ? 201 : 200, result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const statusCode =

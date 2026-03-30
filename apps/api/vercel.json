@@ -44,7 +44,31 @@
   "rewrites": [
     {
       "source": "/health",
-      "destination": "/api/health"
+      "destination": "/api/core?view=health"
+    },
+    {
+      "source": "/api/me",
+      "destination": "/api/core?view=me"
+    },
+    {
+      "source": "/api/scan",
+      "destination": "/api/ops?view=scan"
+    },
+    {
+      "source": "/api/sync-offline",
+      "destination": "/api/ops?view=sync-offline"
+    },
+    {
+      "source": "/api/leaderboard/overall",
+      "destination": "/api/leaderboard?view=overall"
+    },
+    {
+      "source": "/api/leaderboard/live",
+      "destination": "/api/leaderboard?view=live"
+    },
+    {
+      "source": "/api/leaderboard/live/(.*)",
+      "destination": "/api/leaderboard?view=checkpoint&checkpointId=$1"
     },
     {
       "source": "/api/notifications",
