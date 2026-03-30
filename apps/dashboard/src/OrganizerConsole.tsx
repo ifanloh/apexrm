@@ -48,6 +48,48 @@ export function OrganizerConsole({
   onGpxChange
 }: OrganizerConsoleProps) {
   const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
+  const raceReadiness = races.map((race) => {
+    const checks = [
+      {
+        label: "Event logo uploaded",
+        pass: Boolean(branding.eventLogoDataUrl)
+      },
+      {
+        label: "GPX linked to race",
+        pass: Boolean(race.gpxFileName)
+      },
+      {
+        label: "Course description filled",
+        pass: race.courseDescription.trim().length >= 24
+      },
+      {
+        label: "Highlights defined",
+        pass: race.courseHighlights.filter(Boolean).length >= 2
+      },
+      {
+        label: "Checkpoint plan ready",
+        pass: race.checkpoints.length >= 3
+      },
+      {
+        label: "Participants imported",
+        pass: race.participants.length > 0
+      },
+      {
+        label: "Start schedule set",
+        pass: Boolean(race.startAt.trim()) && Boolean(race.scheduleLabel.trim())
+      }
+    ];
+
+    const passCount = checks.filter((check) => check.pass).length;
+
+    return {
+      race,
+      checks,
+      passCount,
+      ready: passCount === checks.length
+    };
+  });
+  const readyRaceCount = raceReadiness.filter((item) => item.ready).length;
 
   return (
     <section className="organizer-console-shell" id="organizer-console">
@@ -154,6 +196,45 @@ export function OrganizerConsole({
                 <input accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden onChange={onGpxChange} type="file" />
               </label>
             </div>
+          </div>
+        </article>
+
+        <article className="panel organizer-console-panel organizer-console-wide">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Readiness</p>
+              <h3>Category publish readiness</h3>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Ready races</span>
+              <strong>{readyRaceCount}</strong>
+              <span>of {races.length}</span>
+            </div>
+          </div>
+
+          <div className="organizer-readiness-grid">
+            {raceReadiness.map(({ race, checks, passCount, ready }) => (
+              <article className={`organizer-readiness-card ${ready ? "ready" : "draft"}`} key={`readiness-${race.slug}`}>
+                <div className="organizer-readiness-head">
+                  <div>
+                    <strong>{race.title}</strong>
+                    <p>
+                      {passCount}/{checks.length} setup checks complete
+                    </p>
+                  </div>
+                  <span className={`organizer-readiness-pill ${ready ? "ready" : "draft"}`}>{ready ? "Ready" : "Needs setup"}</span>
+                </div>
+
+                <div className="organizer-readiness-list">
+                  {checks.map((check) => (
+                    <div className={`organizer-readiness-item ${check.pass ? "pass" : "pending"}`} key={`${race.slug}-${check.label}`}>
+                      <span className="organizer-readiness-dot" aria-hidden="true" />
+                      <span>{check.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            ))}
           </div>
         </article>
 
