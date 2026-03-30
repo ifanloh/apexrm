@@ -60,8 +60,13 @@ export type OrganizerParticipantDraft = {
 
 export type ParticipantImportPreview = {
   columns: string[];
+  previewColumns: string[];
   rows: string[][];
   totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  duplicateBibs: number;
+  sampleErrors: string[];
 };
 
 export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerRaceDraft {
@@ -235,8 +240,13 @@ export function parseParticipantImportText(text: string): ParticipantImportPrevi
   if (!lines.length) {
     return {
       columns: [],
+      previewColumns: [],
       rows: [],
-      totalRows: 0
+      totalRows: 0,
+      validRows: 0,
+      invalidRows: 0,
+      duplicateBibs: 0,
+      sampleErrors: []
     };
   }
 
@@ -245,13 +255,17 @@ export function parseParticipantImportText(text: string): ParticipantImportPrevi
     .split(delimiter)
     .map((value) => value.trim())
     .filter(Boolean);
-
-  const rows = lines.slice(1).map((line) => line.split(delimiter).map((value) => value.trim()));
+  const parsed = parseParticipantImportDraft(lines, delimiter);
 
   return {
     columns,
-    rows: rows.slice(0, 6),
-    totalRows: rows.length
+    previewColumns: ["BIB", "Name", "Gender", "Country", "Club"],
+    rows: parsed.previewRows,
+    totalRows: parsed.totalRows,
+    validRows: parsed.validRows,
+    invalidRows: parsed.invalidRows,
+    duplicateBibs: parsed.duplicateBibs,
+    sampleErrors: parsed.sampleErrors
   };
 }
 
@@ -275,30 +289,93 @@ export function parseParticipantImportRows(text: string): OrganizerParticipantDr
   }
 
   const delimiter = lines[0].includes("\t") ? "\t" : ",";
+  return parseParticipantImportDraft(lines, delimiter).participants;
+}
+
+function parseParticipantImportDraft(lines: string[], delimiter: string) {
   const columns = lines[0].split(delimiter).map((value) => value.trim().toLowerCase());
   const findIndex = (keys: string[]) => columns.findIndex((column) => keys.includes(column));
 
-  const bibIndex = findIndex(["bib", "bib_number", "racebib"]);
-  const nameIndex = findIndex(["name", "runner", "runner_name"]);
+  const bibIndex = findIndex(["bib", "bib_number", "racebib", "bibnumber"]);
+  const nameIndex = findIndex(["name", "runner", "runner_name", "fullname"]);
   const genderIndex = findIndex(["gender", "sex", "category"]);
-  const countryIndex = findIndex(["country", "countrycode", "nationality"]);
+  const countryIndex = findIndex(["country", "countrycode", "country_code", "nationality"]);
   const clubIndex = findIndex(["club", "team", "team_name"]);
 
   if (bibIndex === -1 || nameIndex === -1) {
-    return [];
+    return {
+      participants: [] as OrganizerParticipantDraft[],
+      previewRows: [] as string[][],
+      totalRows: Math.max(lines.length - 1, 0),
+      validRows: 0,
+      invalidRows: Math.max(lines.length - 1, 0),
+      duplicateBibs: 0,
+      sampleErrors: ["Required columns are missing. Include at least 'bib' and 'name'."]
+    };
   }
 
-  return lines
-    .slice(1)
-    .map((line) => line.split(delimiter).map((value) => value.trim()))
-    .filter((row) => row[bibIndex] && row[nameIndex])
-    .map((row) => ({
-      bib: row[bibIndex].toUpperCase(),
-      name: row[nameIndex],
+  const seenBibs = new Set<string>();
+  const participants: OrganizerParticipantDraft[] = [];
+  const previewRows: string[][] = [];
+  const sampleErrors: string[] = [];
+  let invalidRows = 0;
+  let duplicateBibs = 0;
+
+  lines.slice(1).forEach((line, rowIndex) => {
+    const row = line.split(delimiter).map((value) => value.trim());
+    const rawBib = row[bibIndex] ?? "";
+    const rawName = row[nameIndex] ?? "";
+    const bib = rawBib.toUpperCase();
+    const name = rawName.trim();
+
+    if (!bib || !name) {
+      invalidRows += 1;
+      if (sampleErrors.length < 4) {
+        sampleErrors.push(`Row ${rowIndex + 2}: missing bib or runner name.`);
+      }
+      return;
+    }
+
+    if (seenBibs.has(bib)) {
+      duplicateBibs += 1;
+      if (sampleErrors.length < 4) {
+        sampleErrors.push(`Row ${rowIndex + 2}: duplicate bib ${bib} ignored.`);
+      }
+      return;
+    }
+
+    seenBibs.add(bib);
+
+    const participant: OrganizerParticipantDraft = {
+      bib,
+      name,
       gender: genderIndex === -1 ? "men" : normalizeGender(row[genderIndex] ?? ""),
       countryCode: countryIndex === -1 ? "ID" : normalizeCountryCode(row[countryIndex] ?? ""),
       club: clubIndex === -1 ? "" : row[clubIndex] ?? ""
-    }));
+    };
+
+    participants.push(participant);
+
+    if (previewRows.length < 6) {
+      previewRows.push([
+        participant.bib,
+        participant.name,
+        participant.gender,
+        participant.countryCode,
+        participant.club || "-"
+      ]);
+    }
+  });
+
+  return {
+    participants,
+    previewRows,
+    totalRows: Math.max(lines.length - 1, 0),
+    validRows: participants.length,
+    invalidRows,
+    duplicateBibs,
+    sampleErrors
+  };
 }
 
 function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {

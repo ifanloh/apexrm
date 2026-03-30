@@ -321,25 +321,51 @@ export function OrganizerConsole({
           </div>
 
           <div className="panel-badge compact-badge">
+            <span>Valid</span>
+            <strong>{importPreview.validRows}</strong>
+            <span>ready to apply</span>
+          </div>
+
+          <div className="panel-badge compact-badge">
+            <span>Invalid</span>
+            <strong>{importPreview.invalidRows}</strong>
+            <span>rows skipped</span>
+          </div>
+
+          <div className="panel-badge compact-badge">
+            <span>Duplicate BIB</span>
+            <strong>{importPreview.duplicateBibs}</strong>
+            <span>ignored in import</span>
+          </div>
+
+          <div className="panel-badge compact-badge">
             <span>Applied to race</span>
             <strong>{selectedRace?.participants.length ?? 0}</strong>
             <span>participants</span>
           </div>
 
           <button className="toolbar-link organizer-apply-button" onClick={onApplyImport} type="button">
-            Apply import to selected race
+            Apply valid rows to selected race
           </button>
+
+          {importPreview.sampleErrors.length ? (
+            <div className="organizer-import-errors">
+              {importPreview.sampleErrors.map((error) => (
+                <p key={error}>{error}</p>
+              ))}
+            </div>
+          ) : null}
 
           {importPreview.columns.length ? (
             <div className="organizer-import-preview">
               <div className="organizer-import-head">
-                {importPreview.columns.map((column) => (
+                {importPreview.previewColumns.map((column) => (
                   <strong key={column}>{column}</strong>
                 ))}
               </div>
               {importPreview.rows.map((row, index) => (
                 <div className="organizer-import-row" key={`import-row-${index}`}>
-                  {importPreview.columns.map((column, columnIndex) => (
+                  {importPreview.previewColumns.map((column, columnIndex) => (
                     <span key={`${column}-${columnIndex}`}>{row[columnIndex] ?? "-"}</span>
                   ))}
                 </div>
