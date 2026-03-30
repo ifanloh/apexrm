@@ -19,6 +19,7 @@ type Props = {
   bannerTagline: string;
   homeTitle: string;
   homeSubtitle: string;
+  heroBackgroundImageUrl?: string | null;
   cards: RaceHomeCard[];
   onOpenRace: (slug: string) => void;
 };
@@ -138,6 +139,7 @@ export function RaceEditionHome({
   bannerTagline,
   homeTitle,
   homeSubtitle,
+  heroBackgroundImageUrl,
   cards,
   onOpenRace
 }: Props) {
@@ -148,6 +150,7 @@ export function RaceEditionHome({
         brandStack={brandStack}
         dateRibbon={dateRibbon}
         editionLabel={editionLabel}
+        backgroundImageUrl={heroBackgroundImageUrl}
         homeSubtitle={homeSubtitle}
         locationRibbon={locationRibbon}
       />

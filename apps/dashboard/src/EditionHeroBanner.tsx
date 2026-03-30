@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 type Props = {
   brandStack: string[];
   editionLabel: string;
@@ -5,6 +7,7 @@ type Props = {
   locationRibbon: string;
   bannerTagline: string;
   homeSubtitle: string;
+  backgroundImageUrl?: string | null;
   className?: string;
 };
 
@@ -15,10 +18,17 @@ export function EditionHeroBanner({
   locationRibbon,
   bannerTagline,
   homeSubtitle,
+  backgroundImageUrl,
   className
 }: Props) {
+  const style = backgroundImageUrl
+    ? ({
+        "--edition-hero-image": `url("${backgroundImageUrl}")`
+      } as CSSProperties)
+    : undefined;
+
   return (
-    <article className={`panel edition-banner-panel ${className ?? ""}`.trim()}>
+    <article className={`panel edition-banner-panel ${backgroundImageUrl ? "has-custom-image" : ""} ${className ?? ""}`.trim()} style={style}>
       <div className="edition-banner-copy">
         <span className="status-chip active">{editionLabel}</span>
         <strong>{bannerTagline}</strong>

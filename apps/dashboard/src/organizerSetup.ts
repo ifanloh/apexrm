@@ -15,6 +15,7 @@ export type OrganizerBrandingDraft = {
   dateRibbon: string;
   locationRibbon: string;
   eventLogoDataUrl: string | null;
+  heroBackgroundImageDataUrl: string | null;
   gpxFileName: string | null;
   gpxFileSize: number | null;
 };
@@ -148,6 +149,7 @@ export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
       dateRibbon: demoRaceFestival.dateRibbon,
       locationRibbon: demoRaceFestival.locationRibbon,
       eventLogoDataUrl: null,
+      heroBackgroundImageDataUrl: null,
       gpxFileName: null,
       gpxFileSize: null
     },

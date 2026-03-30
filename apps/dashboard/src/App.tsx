@@ -2519,6 +2519,23 @@ export default function App() {
     event.target.value = "";
   }
 
+  async function handleOrganizerHeroBackgroundChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const dataUrl = await readFileAsDataUrl(file).catch(() => null);
+
+    if (!dataUrl) {
+      return;
+    }
+
+    updateOrganizerBranding({ heroBackgroundImageDataUrl: dataUrl });
+    event.target.value = "";
+  }
+
   async function handleOrganizerGpxChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
@@ -2847,6 +2864,7 @@ export default function App() {
             onBrandingChange={updateOrganizerBranding}
             onCheckpointChange={updateOrganizerCheckpoint}
             onEventLogoChange={handleOrganizerEventLogoChange}
+            onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
             onGpxChange={handleOrganizerGpxChange}
             onImportTextChange={setOrganizerImportText}
             onRemoveCheckpoint={removeOrganizerCheckpoint}
@@ -2865,6 +2883,7 @@ export default function App() {
               cards={raceHomeCards}
               dateRibbon={festivalData.dateRibbon}
               editionLabel={festivalData.editionLabel}
+              heroBackgroundImageUrl={organizerSetup.branding.heroBackgroundImageDataUrl}
               homeSubtitle={festivalData.homeSubtitle}
               homeTitle={festivalData.homeTitle}
               locationRibbon={festivalData.locationRibbon}

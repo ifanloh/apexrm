@@ -22,6 +22,7 @@ type OrganizerConsoleProps = {
   onAddCheckpoint: () => void;
   onRemoveCheckpoint: (checkpointId: string) => void;
   onEventLogoChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onHeroBackgroundChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onGpxChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -45,6 +46,7 @@ export function OrganizerConsole({
   onAddCheckpoint,
   onRemoveCheckpoint,
   onEventLogoChange,
+  onHeroBackgroundChange,
   onGpxChange
 }: OrganizerConsoleProps) {
   const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
@@ -53,6 +55,10 @@ export function OrganizerConsole({
       {
         label: "Event logo uploaded",
         pass: Boolean(branding.eventLogoDataUrl)
+      },
+      {
+        label: "Hero background uploaded",
+        pass: Boolean(branding.heroBackgroundImageDataUrl)
       },
       {
         label: "GPX linked to race",
@@ -169,7 +175,7 @@ export function OrganizerConsole({
           <div className="panel-head compact">
             <div>
               <p className="section-label">Assets</p>
-              <h3>Event logo & selected race GPX</h3>
+              <h3>Event hero, logo & selected race GPX</h3>
             </div>
           </div>
 
@@ -181,6 +187,20 @@ export function OrganizerConsole({
               <label className="toolbar-link organizer-file-trigger">
                 Upload event logo
                 <input accept="image/*" hidden onChange={onEventLogoChange} type="file" />
+              </label>
+            </div>
+
+            <div className="organizer-logo-dropzone">
+              <div className="organizer-logo-preview organizer-hero-preview">
+                {branding.heroBackgroundImageDataUrl ? (
+                  <img alt="Hero background preview" src={branding.heroBackgroundImageDataUrl} />
+                ) : (
+                  <span>Hero background preview</span>
+                )}
+              </div>
+              <label className="toolbar-link organizer-file-trigger">
+                Upload hero background
+                <input accept="image/*" hidden onChange={onHeroBackgroundChange} type="file" />
               </label>
             </div>
 

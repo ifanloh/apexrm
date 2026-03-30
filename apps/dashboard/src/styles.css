@@ -858,6 +858,13 @@ a {
   position: relative;
 }
 
+.edition-banner-panel.has-custom-image {
+  background:
+    linear-gradient(135deg, rgba(20, 31, 25, 0.18), rgba(20, 31, 25, 0.58)),
+    linear-gradient(180deg, rgba(255, 191, 110, 0.08), rgba(255, 255, 255, 0.02)),
+    var(--edition-hero-image) center/cover no-repeat;
+}
+
 .edition-banner-panel::before,
 .edition-banner-panel::after {
   content: "";
@@ -874,6 +881,12 @@ a {
   opacity: 0.9;
 }
 
+.edition-banner-panel.has-custom-image::before {
+  background:
+    linear-gradient(92deg, rgba(13, 25, 21, 0.76) 0 28%, rgba(13, 25, 21, 0.28) 52%, rgba(13, 25, 21, 0.06) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 42%);
+}
+
 .edition-banner-panel::after {
   background:
     linear-gradient(120deg, rgba(12, 41, 32, 0.94) 0 22%, transparent 22%),
@@ -883,6 +896,13 @@ a {
   opacity: 0.72;
   right: 0;
   width: 100%;
+}
+
+.edition-banner-panel.has-custom-image::after {
+  background:
+    linear-gradient(120deg, rgba(12, 41, 32, 0.7) 0 22%, transparent 22%),
+    linear-gradient(155deg, rgba(40, 80, 63, 0.52) 0 35%, transparent 35%),
+    linear-gradient(175deg, rgba(20, 52, 40, 0.68) 0 48%, transparent 48%);
 }
 
 .edition-banner-copy,
@@ -6380,7 +6400,7 @@ body {
 
 .organizer-assets-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -6406,6 +6426,13 @@ body {
   max-width: 100%;
   max-height: 160px;
   object-fit: contain;
+}
+
+.organizer-hero-preview img {
+  border-radius: 18px;
+  height: 160px;
+  object-fit: cover;
+  width: 100%;
 }
 
 .organizer-file-trigger {
