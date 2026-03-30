@@ -3115,6 +3115,35 @@ body {
   gap: 18px;
 }
 
+.leaders-scope-strip {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.leaders-scope-item {
+  background: #fffdf9;
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 16px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.leaders-scope-item span {
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.leaders-scope-item strong {
+  color: var(--ink);
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 1rem;
+}
+
 .race-leaders-toolbar {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   justify-items: center;
@@ -3610,6 +3639,11 @@ body {
   }
 
   .race-leaders-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .leaders-scope-strip,
+  .statistics-scope-strip {
     grid-template-columns: 1fr;
   }
 
@@ -4738,6 +4772,35 @@ body {
   color: var(--ink-soft);
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+.statistics-scope-strip {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.statistics-scope-item {
+  background: rgba(255, 253, 249, 0.96);
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 16px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.statistics-scope-item span {
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.statistics-scope-item strong {
+  color: var(--ink);
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 1rem;
 }
 
 .statistics-card-grid {

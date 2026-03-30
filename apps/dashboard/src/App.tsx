@@ -1689,6 +1689,10 @@ export default function App() {
         .sort((left, right) => COUNTRY_META[left].name.localeCompare(COUNTRY_META[right].name)),
     [raceLeaderEntries]
   );
+  const leadersSelectedRace = useMemo(
+    () => (leadersRaceFilter === "all" ? null : demoRaceFestival.races.find((race) => race.slug === leadersRaceFilter) ?? selectedRaceCard),
+    [leadersRaceFilter, selectedRaceCard]
+  );
   const filteredRaceLeaderEntries = useMemo(() => {
     return raceLeaderEntries.filter((entry) => {
       const matchesRace = leadersRaceFilter === "all" ? true : entry.raceSlug === leadersRaceFilter;
@@ -1702,6 +1706,10 @@ export default function App() {
   const raceLeadersRangeLabel = filteredRaceLeaderEntries.length
     ? `${(leadersPage - 1) * leadersRowsPerPage + 1}-${Math.min(leadersPage * leadersRowsPerPage, filteredRaceLeaderEntries.length)} of ${filteredRaceLeaderEntries.length}`
     : "0-0 of 0";
+  const leadersRaceCount = useMemo(
+    () => new Set(filteredRaceLeaderEntries.map((entry) => entry.raceSlug)).size,
+    [filteredRaceLeaderEntries]
+  );
   const searchRunnerEntries = useMemo(() => {
     if (!normalizedRunnerQuery) {
       return [] as RunnerDirectoryEntry[];
@@ -1864,6 +1872,42 @@ export default function App() {
       .sort((left, right) => right.count - left.count)
       .slice(0, 8);
   }, [statisticsEntries, statisticsStarterEntries]);
+  const statisticsScopeItems = useMemo(() => {
+    if (statisticsSelectedRace) {
+      return [
+        { label: "Status", value: statisticsSelectedRace.editionLabel },
+        { label: "Distance", value: `${statisticsSelectedRace.distanceKm.toFixed(1)} km` },
+        { label: "Ascent", value: `${statisticsSelectedRace.ascentM} m+` },
+        { label: "Registered", value: statisticsRegisteredCount.toLocaleString() }
+      ];
+    }
+
+    const liveRaceCount = demoRaceFestival.races.filter((race) => race.editionLabel.toLowerCase() === "live").length;
+
+    return [
+      { label: "Races", value: String(demoRaceFestival.races.length) },
+      { label: "Live", value: String(liveRaceCount) },
+      { label: "Finished", value: String(demoRaceFestival.races.length - liveRaceCount) },
+      { label: "Registered", value: statisticsRegisteredCount.toLocaleString() }
+    ];
+  }, [statisticsRegisteredCount, statisticsSelectedRace]);
+  const leadersScopeItems = useMemo(() => {
+    if (leadersSelectedRace) {
+      return [
+        { label: "Status", value: leadersSelectedRace.editionLabel },
+        { label: "Distance", value: `${leadersSelectedRace.distanceKm.toFixed(1)} km` },
+        { label: "Ascent", value: `${leadersSelectedRace.ascentM} m+` },
+        { label: "Visible", value: `${filteredRaceLeaderEntries.length} runners` }
+      ];
+    }
+
+    return [
+      { label: "Scope", value: `${leadersRaceCount} races` },
+      { label: "Visible", value: `${filteredRaceLeaderEntries.length} runners` },
+      { label: "Category", value: leadersCategoryFilter === "all" ? "All" : formatCategoryLabel(leadersCategoryFilter) },
+      { label: "Nationality", value: leadersCountryFilter === "all" ? "All" : COUNTRY_META[leadersCountryFilter as CountryCode].name }
+    ];
+  }, [filteredRaceLeaderEntries.length, leadersCategoryFilter, leadersCountryFilter, leadersRaceCount, leadersSelectedRace]);
 
   useEffect(() => {
     if (runnerDirectoryPage > runnerDirectoryPageCount) {
@@ -2385,6 +2429,15 @@ export default function App() {
             <strong>{statisticsSelectedRace?.title ?? `${demoRaceFestival.editionLabel} edition`}</strong>
             <small>{statisticsRegisteredCount.toLocaleString()} registered participants in this scope</small>
           </div>
+        </div>
+
+        <div className="statistics-scope-strip">
+          {statisticsScopeItems.map((item) => (
+            <article className="statistics-scope-item" key={`statistics-scope-${item.label}`}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </article>
+          ))}
         </div>
 
         <div className="runner-list-toolbar statistics-toolbar">
@@ -3985,6 +4038,15 @@ export default function App() {
           <div className="search-runner-head">
             <p className="section-label">Follow the race</p>
             <h2>Race leaders</h2>
+          </div>
+
+          <div className="leaders-scope-strip">
+            {leadersScopeItems.map((item) => (
+              <article className="leaders-scope-item" key={`leaders-scope-${item.label}`}>
+                <span>{item.label}</span>
+                <strong>{item.value}</strong>
+              </article>
+            ))}
           </div>
 
           <div className="runner-list-shell race-leaders-directory-shell">
