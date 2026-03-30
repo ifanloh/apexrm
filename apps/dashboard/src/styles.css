@@ -2906,6 +2906,35 @@ body {
   gap: 22px;
 }
 
+.utility-scope-strip {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.utility-scope-item {
+  background: #fffdf9;
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 16px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.utility-scope-item span {
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.utility-scope-item strong {
+  color: var(--ink);
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 1rem;
+}
+
 .my-followed-layout {
   display: grid;
   gap: 18px;
@@ -2997,10 +3026,16 @@ body {
 }
 
 .my-runners-heart {
+  align-items: center;
   color: #fffdf9;
-  font-size: 5rem;
-  line-height: 1;
+  display: inline-flex;
+  justify-content: center;
   transform: translateY(-2px);
+}
+
+.my-runners-heart .nav-icon-svg {
+  height: 72px;
+  width: 72px;
 }
 
 .my-runners-empty-runner {
@@ -3643,7 +3678,8 @@ body {
   }
 
   .leaders-scope-strip,
-  .statistics-scope-strip {
+  .statistics-scope-strip,
+  .utility-scope-strip {
     grid-template-columns: 1fr;
   }
 

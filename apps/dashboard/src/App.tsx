@@ -1736,6 +1736,67 @@ export default function App() {
         searchRunnerEntries.length
       )} of ${searchRunnerEntries.length}`
     : "0-0 of 0";
+  const runnerSearchSelectedRace = useMemo(
+    () => (runnerSearchRaceFilter === "all" ? null : demoRaceFestival.races.find((race) => race.slug === runnerSearchRaceFilter) ?? selectedRaceCard),
+    [runnerSearchRaceFilter, selectedRaceCard]
+  );
+  const runnerSearchScopeItems = useMemo(
+    () => [
+      {
+        label: "Scope",
+        value: runnerSearchSelectedRace?.title ?? `${demoRaceFestival.editionLabel} edition`
+      },
+      {
+        label: "Query",
+        value: normalizedRunnerQuery || "Type a bib, name, or club"
+      },
+      {
+        label: "Visible",
+        value: `${searchRunnerEntries.length} runners`
+      },
+      {
+        label: "Source",
+        value: runnerSearchMode === "server" ? "Live directory" : "Fallback directory"
+      }
+    ],
+    [demoRaceFestival.editionLabel, normalizedRunnerQuery, runnerSearchMode, runnerSearchSelectedRace, searchRunnerEntries.length]
+  );
+  const runnerDirectorySelectedRace = useMemo(
+    () => (runnerDirectoryRaceFilter ? demoRaceFestival.races.find((race) => race.slug === runnerDirectoryRaceFilter) ?? selectedRaceCard : selectedRaceCard),
+    [runnerDirectoryRaceFilter, selectedRaceCard]
+  );
+  const runnerDirectoryScopeItems = useMemo(
+    () => [
+      {
+        label: "Race",
+        value: runnerDirectorySelectedRace.title
+      },
+      {
+        label: "State",
+        value:
+          runnerDirectoryStateFilter === "all"
+            ? "All states"
+            : runnerDirectoryStateFilter === "registered"
+              ? "Registered"
+              : runnerDirectoryStateFilter === "in-race"
+                ? "In race"
+                : runnerDirectoryStateFilter === "finisher"
+                  ? "Finisher"
+                  : runnerDirectoryStateFilter === "dns"
+                    ? "DNS"
+                    : "DNF"
+      },
+      {
+        label: "Visible",
+        value: `${filteredRunnerDirectoryEntries.length} runners`
+      },
+      {
+        label: "Category",
+        value: runnerDirectoryCategoryFilter === "all" ? "All categories" : formatCategoryLabel(runnerDirectoryCategoryFilter)
+      }
+    ],
+    [filteredRunnerDirectoryEntries.length, runnerDirectoryCategoryFilter, runnerDirectorySelectedRace, runnerDirectoryStateFilter]
+  );
   const favoriteGenderRankMap = useMemo(() => {
     const next = new Map<string, number>();
     const grouped = new Map<string, RunnerDirectoryEntry[]>();
@@ -1791,6 +1852,62 @@ export default function App() {
         filteredFavoriteDirectoryEntries.length
       )} of ${filteredFavoriteDirectoryEntries.length}`
     : "0-0 of 0";
+  const favoritesSelectedRace = useMemo(
+    () => (favoritesRaceFilter === "all" ? null : demoRaceFestival.races.find((race) => race.slug === favoritesRaceFilter) ?? selectedRaceCard),
+    [favoritesRaceFilter, selectedRaceCard]
+  );
+  const favoritesScopeItems = useMemo(
+    () => [
+      {
+        label: "Scope",
+        value: favoritesSelectedRace?.title ?? `${demoRaceFestival.editionLabel} edition`
+      },
+      {
+        label: "Tracked",
+        value: `${favoriteDirectoryEntries.length} runners`
+      },
+      {
+        label: "Visible",
+        value: `${filteredFavoriteDirectoryEntries.length} runners`
+      },
+      {
+        label: "Category",
+        value: favoritesCategoryFilter === "all" ? "All categories" : formatCategoryLabel(favoritesCategoryFilter)
+      }
+    ],
+    [
+      demoRaceFestival.editionLabel,
+      favoriteDirectoryEntries.length,
+      favoritesCategoryFilter,
+      favoritesSelectedRace,
+      filteredFavoriteDirectoryEntries.length
+    ]
+  );
+  const selectedFavoriteRunner = useMemo(
+    () => favoriteDirectoryEntries.find((entry) => entry.bib === selectedRunnerBib) ?? favoriteDirectoryEntries[0] ?? null,
+    [favoriteDirectoryEntries, selectedRunnerBib]
+  );
+  const myRunnersScopeItems = useMemo(
+    () => [
+      {
+        label: "Tracked",
+        value: `${favoriteDirectoryEntries.length} runners`
+      },
+      {
+        label: "Selected",
+        value: selectedFavoriteRunner?.name ?? "No runner selected"
+      },
+      {
+        label: "Race",
+        value: selectedFavoriteRunner?.raceTitle ?? "Choose a followed runner"
+      },
+      {
+        label: "Status",
+        value: selectedFavoriteRunner?.statusLabel ?? "Waiting for favorites"
+      }
+    ],
+    [favoriteDirectoryEntries.length, selectedFavoriteRunner]
+  );
   const statisticsSelectedRace = useMemo(
     () => (statisticsRaceFilter === "all" ? null : demoRaceFestival.races.find((race) => race.slug === statisticsRaceFilter) ?? selectedRaceCard),
     [selectedRaceCard, statisticsRaceFilter]
@@ -3016,6 +3133,15 @@ export default function App() {
           <h2>Search a runner</h2>
         </div>
 
+        <div className="utility-scope-strip">
+          {runnerSearchScopeItems.map((item) => (
+            <div className="utility-scope-item" key={`runner-search-scope-${item.label}`}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+
         <div className="runner-list-shell search-runner-shell">
           <div className="search-runner-toolbar">
             <div className="search-runner-input-shell">
@@ -3233,6 +3359,15 @@ export default function App() {
               <span>runner entries</span>
             </div>
           </div>
+
+        <div className="utility-scope-strip">
+          {runnerDirectoryScopeItems.map((item) => (
+            <div className="utility-scope-item" key={`runner-directory-scope-${item.label}`}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
 
         <div className="runner-list-shell">
             <div className="runner-list-toolbar">
@@ -3486,6 +3621,15 @@ export default function App() {
           <h2>Favorites list</h2>
         </div>
 
+        <div className="utility-scope-strip">
+          {favoritesScopeItems.map((item) => (
+            <div className="utility-scope-item" key={`favorites-scope-${item.label}`}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+
         <div className="runner-list-shell favorites-list-shell">
           <div className="runner-list-toolbar favorite-list-toolbar">
             <label className="ranking-toolbar-label">
@@ -3722,6 +3866,15 @@ export default function App() {
           <h2>My followed runners</h2>
         </div>
 
+        <div className="utility-scope-strip">
+          {myRunnersScopeItems.map((item) => (
+            <div className="utility-scope-item" key={`my-runners-scope-${item.label}`}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+
         {favoriteDirectoryEntries.length ? (
           <div className="my-followed-layout">
             <div className="my-followed-grid">
@@ -3845,7 +3998,9 @@ export default function App() {
             <article className="my-runners-empty-card">
               <strong>Add your first runner to follow</strong>
               <div className="my-runners-empty-icon" aria-hidden="true">
-                <span className="my-runners-heart">â™¡</span>
+                <span className="my-runners-heart">
+                  <NavIcon name="heart" />
+                </span>
                 <img alt="" className="my-runners-empty-runner" src={runnerIcon} />
               </div>
               <button className="my-runners-empty-action" onClick={focusRunnerSearch} type="button">
