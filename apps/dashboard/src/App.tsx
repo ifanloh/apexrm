@@ -77,20 +77,20 @@ type CountryCode = (typeof COUNTRY_CODES)[number];
 
 const COUNTRY_META: Record<
   CountryCode,
-  { name: string; latitude: number; longitude: number; mapX: number; mapY: number; weight: number }
+  { name: string; weight: number }
 > = {
-  ID: { name: "Indonesia", latitude: -2, longitude: 118, mapX: 565, mapY: 235, weight: 40 },
-  MY: { name: "Malaysia", latitude: 4, longitude: 102, mapX: 545, mapY: 210, weight: 16 },
-  SG: { name: "Singapore", latitude: 1, longitude: 104, mapX: 552, mapY: 223, weight: 12 },
-  AU: { name: "Australia", latitude: -25, longitude: 133, mapX: 636, mapY: 282, weight: 10 },
-  JP: { name: "Japan", latitude: 36, longitude: 138, mapX: 638, mapY: 146, weight: 8 },
-  TH: { name: "Thailand", latitude: 15, longitude: 101, mapX: 539, mapY: 188, weight: 10 },
-  PH: { name: "Philippines", latitude: 12, longitude: 122, mapX: 593, mapY: 194, weight: 8 },
-  KR: { name: "South Korea", latitude: 36, longitude: 128, mapX: 613, mapY: 152, weight: 6 },
-  CN: { name: "China", latitude: 35, longitude: 104, mapX: 556, mapY: 160, weight: 7 },
-  VN: { name: "Vietnam", latitude: 16, longitude: 108, mapX: 555, mapY: 197, weight: 7 },
-  US: { name: "United States", latitude: 39, longitude: -98, mapX: 145, mapY: 150, weight: 5 },
-  FR: { name: "France", latitude: 46, longitude: 2, mapX: 360, mapY: 136, weight: 4 }
+  ID: { name: "Indonesia", weight: 40 },
+  MY: { name: "Malaysia", weight: 16 },
+  SG: { name: "Singapore", weight: 12 },
+  AU: { name: "Australia", weight: 10 },
+  JP: { name: "Japan", weight: 8 },
+  TH: { name: "Thailand", weight: 10 },
+  PH: { name: "Philippines", weight: 8 },
+  KR: { name: "South Korea", weight: 6 },
+  CN: { name: "China", weight: 7 },
+  VN: { name: "Vietnam", weight: 7 },
+  US: { name: "United States", weight: 5 },
+  FR: { name: "France", weight: 4 }
 };
 
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
@@ -2143,9 +2143,7 @@ export default function App() {
         code,
         name: COUNTRY_META[code].name,
         count,
-        percent: sourceEntries.length ? (count / sourceEntries.length) * 100 : 0,
-        mapX: COUNTRY_META[code].mapX,
-        mapY: COUNTRY_META[code].mapY
+        percent: sourceEntries.length ? (count / sourceEntries.length) * 100 : 0
       }))
       .sort((left, right) => right.count - left.count)
       .slice(0, 8);
@@ -2280,9 +2278,6 @@ export default function App() {
     });
   }, [dnfDnsCount, featuredRace.slug, finisherCount, overallLeaderboard.topEntries, previewOverallLeaderboard.topEntries, selectedRaceCard.slug]);
   const eventTitle = isEditionHome ? festivalData.brandName : selectedRaceCard.title;
-  const eventSubtitleText = isEditionHome
-    ? `${featuredRace.startTown} | ${festivalData.editionLabel}`
-    : `${selectedRaceCard.startTown} | ${festivalData.brandName} spectator preview`;
   const liveStatusLabel =
     liveStatus === "live"
       ? "Live Realtime"
@@ -2299,32 +2294,6 @@ export default function App() {
         ? `Akun role ${profile.role} tetap berada di spectator view. Login dengan admin, panitia, atau observer untuk tools organizer.`
         : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
   const showAccessNotice = organizerSessionActive;
-  const raceStatistics = [
-    {
-      label: "Starters",
-      value: `${isFeaturedRace ? starterCount : selectedRaceCard.finishers + selectedRaceCard.dnf}`,
-      note: "Runner yang sudah tercatat mulai race."
-    },
-    {
-      label: "DNF / DNS",
-      value: `${activeDnfCount}`,
-      note: "Gabungan runner yang belum finish."
-    },
-    {
-      label: "Finishers",
-      value: `${activeFinisherCount}`,
-      note: "Runner yang sudah mencapai finish."
-    }
-  ];
-  const raceOverviewStats = [
-    { label: "Distance", value: `${totalDistanceKm.toFixed(1)} KM` },
-    { label: "Ascent", value: `${activeAscentM} M+` },
-    { label: "Start", value: selectedRaceCard.startTown },
-    { label: "Finish", value: "Kaliandra Resort" },
-    { label: "Start Date", value: selectedRaceCard.scheduleLabel },
-    { label: "Finishers", value: `${activeFinisherCount}` },
-    { label: "DNF / DNS", value: `${activeDnfCount}` }
-  ];
   const topbarSearchPlaceholder = "Search a runner ...";
   const activeRaceStartAt = selectedRaceCard.startAt;
   const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
