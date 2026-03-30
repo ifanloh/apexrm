@@ -2671,6 +2671,15 @@ body {
   grid-template-columns: 142px minmax(0, 1fr) 228px;
 }
 
+.live-trail-shell.no-sidebar-rail,
+.live-trail-shell.race-detail-mode.no-sidebar-rail {
+  grid-template-columns: 142px minmax(0, 1fr);
+}
+
+.live-trail-shell.no-sidebar-rail .dashboard-main.dashboard-main-scroll {
+  padding-right: 24px;
+}
+
 .dashboard-sidebar.live-sidebar,
 .dashboard-rail.live-ranking-rail {
   border: 0;

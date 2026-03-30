@@ -2709,7 +2709,9 @@ export default function App() {
   }
 
   return (
-      <main className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"}`}>
+      <main
+        className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
+      >
         <aside className="dashboard-sidebar live-sidebar">
           <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
             <button className="live-sidebar-logo" onClick={focusHome} type="button" aria-label="Back to edition home">
