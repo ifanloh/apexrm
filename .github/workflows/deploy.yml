@@ -135,7 +135,12 @@ jobs:
         run: npx vercel pull --yes --environment=production --token="$env:VERCEL_TOKEN"
         shell: pwsh
 
+      - name: Build API
+        working-directory: apps/api
+        run: npx vercel build --prod --token="$env:VERCEL_TOKEN"
+        shell: pwsh
+
       - name: Deploy API
         working-directory: apps/api
-        run: npx vercel deploy --prod --token="$env:VERCEL_TOKEN"
+        run: npx vercel deploy --prebuilt --prod --token="$env:VERCEL_TOKEN"
         shell: pwsh
