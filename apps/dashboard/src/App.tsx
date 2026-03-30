@@ -3040,6 +3040,13 @@ export default function App() {
                     top: `${(country.mapY / 360) * 100}%`
                   }}
                 >
+                  <span
+                    className="statistics-world-marker-halo"
+                    style={{
+                      width: `${30 + Math.min(country.percent, 28) * 1.8}px`,
+                      height: `${30 + Math.min(country.percent, 28) * 1.8}px`
+                    }}
+                  />
                   <span className="statistics-world-marker-rank">#{index + 1}</span>
                   <span className="statistics-world-marker-dot" />
                 </div>

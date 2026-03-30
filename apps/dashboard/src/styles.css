@@ -4943,10 +4943,10 @@ body {
 .statistics-world-map-shell {
   background: #eef5ea;
   border: 1px solid rgba(20, 22, 24, 0.08);
-  border-radius: 22px;
+  border-radius: 0;
   min-height: 360px;
-  overflow: hidden;
-  padding: 12px;
+  overflow: visible;
+  padding: 0;
   position: relative;
 }
 
@@ -4967,6 +4967,13 @@ body {
   transform: translate(-50%, -50%);
 }
 
+.statistics-world-marker-halo {
+  background: radial-gradient(circle, rgba(255, 70, 70, 0.24) 0%, rgba(255, 70, 70, 0.08) 55%, rgba(255, 70, 70, 0) 100%);
+  border-radius: 999px;
+  position: absolute;
+  z-index: 0;
+}
+
 .statistics-world-marker-rank {
   background: rgba(15, 123, 84, 0.9);
   border-radius: 999px;
@@ -4977,7 +4984,9 @@ body {
   letter-spacing: 0.04em;
   min-width: 30px;
   padding: 3px 8px;
+  position: relative;
   text-align: center;
+  z-index: 2;
 }
 
 .statistics-world-marker-dot {
@@ -4987,7 +4996,9 @@ body {
   box-shadow: 0 10px 20px rgba(20, 22, 24, 0.16);
   display: block;
   height: 16px;
+  position: relative;
   width: 16px;
+  z-index: 2;
 }
 
 .statistics-country-list {
