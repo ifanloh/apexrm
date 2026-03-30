@@ -4941,64 +4941,81 @@ body {
 }
 
 .statistics-world-map-shell {
-  background: #eef5ea;
+  align-items: stretch;
+  background: #f5f8f2;
   border: 1px solid rgba(20, 22, 24, 0.08);
   border-radius: 0;
+  display: flex;
+  justify-content: center;
   min-height: 360px;
-  overflow: visible;
+  overflow: hidden;
   padding: 0;
   position: relative;
 }
 
 .statistics-world-map {
   display: block;
-  height: 100%;
+  height: auto;
   min-height: 336px;
-  object-fit: contain;
-  opacity: 0.9;
   width: 100%;
 }
 
-.statistics-world-marker {
-  display: grid;
-  gap: 6px;
-  justify-items: center;
-  position: absolute;
-  transform: translate(-50%, -50%);
+.statistics-world-map #world,
+.statistics-world-map #rim {
+  display: none;
 }
 
-.statistics-world-marker-halo {
-  background: radial-gradient(circle, rgba(255, 70, 70, 0.24) 0%, rgba(255, 70, 70, 0.08) 55%, rgba(255, 70, 70, 0) 100%);
-  border-radius: 999px;
-  position: absolute;
-  z-index: 0;
+.statistics-world-country,
+.statistics-world-country path {
+  fill: #dfe7df;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-linejoin: round;
+  stroke-width: 1.2;
+  transition: fill 160ms ease, opacity 160ms ease;
 }
 
-.statistics-world-marker-rank {
-  background: rgba(15, 123, 84, 0.9);
-  border-radius: 999px;
-  color: #fff;
-  font-family: "Red Hat Display", sans-serif;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  min-width: 30px;
-  padding: 3px 8px;
-  position: relative;
-  text-align: center;
-  z-index: 2;
+.statistics-world-country {
+  opacity: 0.95;
 }
 
-.statistics-world-marker-dot {
-  background: #0f7b54;
-  border: 3px solid rgba(255, 255, 255, 0.94);
-  border-radius: 999px;
-  box-shadow: 0 10px 20px rgba(20, 22, 24, 0.16);
+.statistics-world-country.is-active,
+.statistics-world-country.is-active path {
+  fill: #0f7b54;
+  opacity: 1;
+}
+
+.statistics-world-country.is-active:nth-of-type(odd),
+.statistics-world-country.is-active:nth-of-type(odd) path {
+  fill: #176f52;
+}
+
+.statistics-world-country.is-active:nth-of-type(3n),
+.statistics-world-country.is-active:nth-of-type(3n) path {
+  fill: #2a9367;
+}
+
+.statistics-world-country:hover,
+.statistics-world-country:hover path {
+  fill: #d8b351;
+  opacity: 1;
+}
+
+.statistics-world-map text {
+  display: none;
+}
+
+.statistics-world-map [class="mainland"] {
+  fill: inherit;
+}
+
+.statistics-world-map > g {
+  transform: translateY(6px);
+  transform-origin: center;
+}
+
+.statistics-world-map svg {
   display: block;
-  height: 16px;
-  position: relative;
-  width: 16px;
-  z-index: 2;
+  width: 100%;
 }
 
 .statistics-country-list {

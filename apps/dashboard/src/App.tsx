@@ -28,7 +28,7 @@ import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
 import trailnesiaLogo from "./assets/trailnesia.png";
-import worldMapSvg from "./assets/world-map.svg";
+import worldMapSvgRaw from "./assets/world-map-detailed.svg?raw";
 import { getDemoCourseForRace } from "./demoCourseVariants";
 import { demoRaceFestival, type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
@@ -2144,6 +2144,37 @@ export default function App() {
       .sort((left, right) => right.count - left.count)
       .slice(0, 8);
   }, [statisticsEntries, statisticsStarterEntries]);
+  const statisticsWorldMapMarkup = useMemo(() => {
+    if (typeof DOMParser === "undefined") {
+      return worldMapSvgRaw;
+    }
+
+    const parser = new DOMParser();
+    const svgDocument = parser.parseFromString(worldMapSvgRaw, "image/svg+xml");
+    const svgElement = svgDocument.querySelector("svg");
+    if (!svgElement) {
+      return worldMapSvgRaw;
+    }
+
+    svgElement.setAttribute("class", "statistics-world-map");
+    svgElement.removeAttribute("width");
+    svgElement.removeAttribute("height");
+
+    const activeCountryCodes = new Set(statisticsCountries.map((country) => country.code.toLowerCase()));
+    svgElement.querySelectorAll("[id]").forEach((element) => {
+      const elementId = element.getAttribute("id")?.toLowerCase() ?? "";
+      if (!elementId || elementId === "world" || elementId === "rim") {
+        return;
+      }
+
+      element.classList.add("statistics-world-country");
+      if (activeCountryCodes.has(elementId)) {
+        element.classList.add("is-active");
+      }
+    });
+
+    return svgElement.outerHTML;
+  }, [statisticsCountries]);
   const statisticsContextLabel = statisticsSelectedRace
     ? `${statisticsSelectedRace.title} · ${statisticsSelectedRace.distanceKm.toFixed(1)} km · ${statisticsSelectedRace.ascentM} m+`
     : `${festivalData.races.length} races · ${statisticsRegisteredCount.toLocaleString()} registered runners`;
@@ -3029,29 +3060,11 @@ export default function App() {
           </div>
 
           <div className="statistics-distribution-grid">
-            <div className="statistics-world-map-shell" aria-label="Distribution of starters by country">
-              <img alt="" className="statistics-world-map" src={worldMapSvg} />
-              {statisticsCountries.map((country, index) => (
-                <div
-                  className="statistics-world-marker"
-                  key={`country-marker-${country.code}`}
-                  style={{
-                    left: `${(country.mapX / 760) * 100}%`,
-                    top: `${(country.mapY / 360) * 100}%`
-                  }}
-                >
-                  <span
-                    className="statistics-world-marker-halo"
-                    style={{
-                      width: `${30 + Math.min(country.percent, 28) * 1.8}px`,
-                      height: `${30 + Math.min(country.percent, 28) * 1.8}px`
-                    }}
-                  />
-                  <span className="statistics-world-marker-rank">#{index + 1}</span>
-                  <span className="statistics-world-marker-dot" />
-                </div>
-              ))}
-            </div>
+            <div
+              aria-label="Distribution of starters by country"
+              className="statistics-world-map-shell"
+              dangerouslySetInnerHTML={{ __html: statisticsWorldMapMarkup }}
+            />
 
             <div className="statistics-country-list">
               {statisticsCountries.map((country) => (
