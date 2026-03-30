@@ -2205,7 +2205,7 @@ export default function App() {
     return [
       { label: "Race", value: rankingSelectedRace.title },
       { label: "Status", value: rankingSelectedRace.editionLabel },
-      { label: "Category", value: fullRankingView === "women" ? "Women" : "Men" },
+      { label: "Category", value: fullRankingView === "overall" ? "Overall" : fullRankingView === "women" ? "Women" : "Men" },
       { label: "Visible", value: `${fullRankingEntries.length} runners` }
     ];
   }, [fullRankingEntries.length, fullRankingView, rankingSelectedRace.editionLabel, rankingSelectedRace.title]);
@@ -2640,7 +2640,7 @@ export default function App() {
   }
 
   function focusRanking(view: "overall" | "women") {
-    setFullRankingView(view === "women" ? "women" : "men");
+    setFullRankingView(view === "women" ? "women" : "overall");
     setRankingRaceFilter(isEditionHome ? featuredRace.slug : selectedRaceCard.slug);
     setRankingCountryFilter("all");
     setRunnerCheckpointFilter("all");
