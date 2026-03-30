@@ -1726,7 +1726,12 @@ export default function App() {
   }, [rankingRaceEntries]);
   const fullRankingEntries = useMemo(() => {
     return rankingRaceEntries.filter((entry) => {
-      const matchesCategory = fullRankingView === "women" ? entry.category === "women" : entry.category === "men";
+      const matchesCategory =
+        fullRankingView === "overall"
+          ? true
+          : fullRankingView === "women"
+            ? entry.category === "women"
+            : entry.category === "men";
       const matchesCountry = rankingCountryFilter === "all" ? true : entry.countryCode === rankingCountryFilter;
       const matchesQuery =
         !normalizedRunnerQuery ||
@@ -3244,7 +3249,7 @@ export default function App() {
                         ) : null}
                       </div>
                       <div className="ranking-submeta">
-                        <span>{fullRankingView === "women" ? "Women" : "Men"}</span>
+                        <span>{fullRankingView === "overall" ? "Overall" : fullRankingView === "women" ? "Women" : "Men"}</span>
                         <small>Sex {rankingGenderRankByBib.get(entry.bib) ?? entry.rank ?? "-"}</small>
                       </div>
                     </div>
