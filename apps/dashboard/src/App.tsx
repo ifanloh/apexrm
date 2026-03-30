@@ -3028,40 +3028,23 @@ export default function App() {
           </div>
 
           <div className="statistics-distribution-grid">
-            <div className="statistics-world-map-shell">
-              <svg className="statistics-world-map" viewBox="0 0 760 360" aria-label="Distribution of starters by country">
-                <path
-                  className="statistics-world-continent"
-                  d="M68 94 94 75 143 70 182 92 211 114 207 146 190 171 154 174 119 165 89 143 70 120Z"
-                />
-                <path
-                  className="statistics-world-continent"
-                  d="M187 203 212 220 227 257 214 307 188 338 171 310 174 271 176 233Z"
-                />
-                <path
-                  className="statistics-world-continent"
-                  d="M327 104 360 89 392 97 409 121 386 135 352 132 332 123Z"
-                />
-                <path
-                  className="statistics-world-continent"
-                  d="M369 148 394 157 408 189 397 243 372 282 339 258 336 212 348 177Z"
-                />
-                <path
-                  className="statistics-world-continent"
-                  d="M409 104 468 85 548 90 621 120 679 152 683 199 655 232 603 226 566 244 536 222 503 229 474 202 446 168 412 147Z"
-                />
-                <path
-                  className="statistics-world-continent"
-                  d="M590 256 624 247 660 263 680 290 672 322 633 328 596 311 576 285Z"
-                />
-
-                {statisticsCountries.map((country) => (
-                  <g key={`country-marker-${country.code}`} transform={`translate(${country.mapX}, ${country.mapY})`}>
-                    <circle className="statistics-world-marker-ring" cx="0" cy="0" r="10" />
-                    <circle className="statistics-world-marker-core" cx="0" cy="0" r="5" />
-                  </g>
-                ))}
-              </svg>
+            <div className="statistics-country-spotlight-grid">
+              {statisticsCountries.slice(0, 4).map((country, index) => (
+                <article className="statistics-country-spotlight" key={`country-spotlight-${country.code}`}>
+                  <span className="statistics-country-rank">#{index + 1}</span>
+                  <div className="statistics-country-label">
+                    <img alt={country.code} className="flag-icon" height="18" loading="lazy" src={getFlagIconUrl(country.code)} width="24" />
+                    <strong>{country.name}</strong>
+                  </div>
+                  <div className="statistics-country-spotlight-metric">
+                    <strong>{country.count.toLocaleString()}</strong>
+                    <span>{formatPercent(country.percent)}</span>
+                  </div>
+                  <div className="statistics-country-bar" aria-hidden="true">
+                    <span style={{ width: `${country.percent}%` }} />
+                  </div>
+                </article>
+              ))}
             </div>
 
             <div className="statistics-country-list">
