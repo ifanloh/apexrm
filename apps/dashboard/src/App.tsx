@@ -715,6 +715,35 @@ function buildRecentPassingsFallback(leaderboards: CheckpointLeaderboard[]): Rec
     .slice(0, 8);
 }
 
+function buildCheckpointLeaderboardsFallback(race: DemoRaceCard): CheckpointLeaderboard[] {
+  const previewEntries = [...race.rankingPreview]
+    .filter((entry) => entry.status !== "No ranking")
+    .sort((left, right) => left.rank - right.rank);
+
+  return defaultCheckpoints.map((checkpoint) => {
+    const matches = previewEntries.filter((entry) => {
+      if (entry.checkpointId) {
+        return entry.checkpointId === checkpoint.id;
+      }
+
+      return checkpoint.id === "finish" && entry.status === "Finisher";
+    });
+
+    return {
+      checkpointId: checkpoint.id,
+      totalOfficialScans: matches.length,
+      topEntries: matches.slice(0, 10).map((entry) => ({
+        bib: entry.bib,
+        checkpointId: entry.checkpointId ?? checkpoint.id,
+        position: entry.rank,
+        scannedAt: new Date(new Date(race.startAt).getTime() + entry.rank * 13 * 60 * 1000).toISOString(),
+        crewId: checkpoint.id === "finish" ? "finish-crew" : "demo-crew",
+        deviceId: checkpoint.id === "finish" ? "finish-device" : "demo-device"
+      }))
+    };
+  });
+}
+
 async function buildRunnerDetailFromCheckpointBoards(
   bib: string,
   accessToken: string | null,
@@ -997,10 +1026,21 @@ export default function App() {
           return;
         }
 
-        setFetchError(error instanceof Error ? error.message : "Dashboard tidak bisa mengambil data terbaru dari server.");
-
         if (!token) {
+          const fallbackRace = isFeaturedRace ? featuredRace : selectedRaceCard;
+          const fallbackOverall = buildPreviewLeaderboard(fallbackRace);
+          const fallbackWomen = buildPreviewLeaderboard(fallbackRace, "women");
+          const fallbackLeaderboards = buildCheckpointLeaderboardsFallback(fallbackRace);
+
+          setOverallLeaderboard(fallbackOverall);
+          setWomenLeaderboard(normalizeWomenLeaderboard(fallbackOverall, fallbackWomen));
+          setLeaderboards((current) => mergeCheckpointBoards(current, fallbackLeaderboards));
+          setRecentPassings(buildRecentPassingsFallback(fallbackLeaderboards));
+          setRecentPassingsMode("fallback");
+          setFetchError(null);
           setLiveStatus("fallback");
+        } else {
+          setFetchError(error instanceof Error ? error.message : "Dashboard tidak bisa mengambil data terbaru dari server.");
         }
       } finally {
         if (isMounted) {
@@ -1342,7 +1382,7 @@ export default function App() {
           buildRunnerDetailFallback(overallLeaderboard.topEntries, runnerBib);
 
         setRunnerDetail(fallbackDetail);
-        setRunnerDetailError(error instanceof Error ? error.message : "Detail pelari belum tersedia.");
+        setRunnerDetailError(token ? (error instanceof Error ? error.message : "Detail pelari belum tersedia.") : null);
       } finally {
         if (isMounted) {
           setIsLoadingRunnerDetail(false);
