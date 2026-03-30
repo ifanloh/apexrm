@@ -28,6 +28,7 @@ import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
 import trailnesiaLogo from "./assets/trailnesia.png";
+import worldMapSvg from "./assets/world-map.svg";
 import { getDemoCourseForRace } from "./demoCourseVariants";
 import { demoRaceFestival, type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
@@ -3028,22 +3029,20 @@ export default function App() {
           </div>
 
           <div className="statistics-distribution-grid">
-            <div className="statistics-country-spotlight-grid">
-              {statisticsCountries.slice(0, 4).map((country, index) => (
-                <article className="statistics-country-spotlight" key={`country-spotlight-${country.code}`}>
-                  <span className="statistics-country-rank">#{index + 1}</span>
-                  <div className="statistics-country-label">
-                    <img alt={country.code} className="flag-icon" height="18" loading="lazy" src={getFlagIconUrl(country.code)} width="24" />
-                    <strong>{country.name}</strong>
-                  </div>
-                  <div className="statistics-country-spotlight-metric">
-                    <strong>{country.count.toLocaleString()}</strong>
-                    <span>{formatPercent(country.percent)}</span>
-                  </div>
-                  <div className="statistics-country-bar" aria-hidden="true">
-                    <span style={{ width: `${country.percent}%` }} />
-                  </div>
-                </article>
+            <div className="statistics-world-map-shell" aria-label="Distribution of starters by country">
+              <img alt="" className="statistics-world-map" src={worldMapSvg} />
+              {statisticsCountries.map((country, index) => (
+                <div
+                  className="statistics-world-marker"
+                  key={`country-marker-${country.code}`}
+                  style={{
+                    left: `${(country.mapX / 760) * 100}%`,
+                    top: `${(country.mapY / 360) * 100}%`
+                  }}
+                >
+                  <span className="statistics-world-marker-rank">#{index + 1}</span>
+                  <span className="statistics-world-marker-dot" />
+                </div>
               ))}
             </div>
 
