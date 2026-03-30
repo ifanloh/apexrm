@@ -9,7 +9,6 @@ import {
   type DuplicateScan,
   type NotificationEvent,
   type OverallLeaderboard,
-  type RecentPassing,
   type RunnerDetail,
   type RunnerPassing,
   type RunnerSearchEntry
@@ -19,7 +18,6 @@ import {
   fetchCheckpointLeaderboards,
   fetchOrganizerSignals,
   fetchOverallLeaderboard,
-  fetchRecentPassings,
   fetchRunnerDetail,
   fetchRunnerSearch
 } from "./api";
@@ -691,30 +689,6 @@ function buildRunnerDetailFallback(
   };
 }
 
-function buildRecentPassingsFallback(leaderboards: CheckpointLeaderboard[]): RecentPassing[] {
-  return leaderboards
-    .flatMap((board) =>
-      board.topEntries.map((entry) => {
-        const checkpoint = defaultCheckpoints.find((item) => item.id === entry.checkpointId);
-
-        return {
-          bib: entry.bib,
-          name: `Runner ${entry.bib}`,
-          checkpointId: entry.checkpointId,
-          checkpointCode: checkpoint?.code ?? entry.checkpointId,
-          checkpointName: checkpoint?.name ?? entry.checkpointId,
-          checkpointKmMarker: checkpoint?.kmMarker ?? 0,
-          scannedAt: entry.scannedAt,
-          crewId: entry.crewId,
-          deviceId: entry.deviceId,
-          position: entry.position
-        };
-      })
-    )
-    .sort((left, right) => right.scannedAt.localeCompare(left.scannedAt))
-    .slice(0, 8);
-}
-
 function buildCheckpointLeaderboardsFallback(race: DemoRaceCard): CheckpointLeaderboard[] {
   const previewEntries = [...race.rankingPreview]
     .filter((entry) => entry.status !== "No ranking")
@@ -824,7 +798,6 @@ export default function App() {
   const [leaderboards, setLeaderboards] = useState<CheckpointLeaderboard[]>([]);
   const [duplicates, setDuplicates] = useState<DuplicateScan[]>([]);
   const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
-  const [recentPassings, setRecentPassings] = useState<RecentPassing[]>([]);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [selectedCheckpointId, setSelectedCheckpointId] = useState("cp-10");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(null);
@@ -842,7 +815,6 @@ export default function App() {
   const [runnerSearchError, setRunnerSearchError] = useState<string | null>(null);
   const [isSearchingRunners, setIsSearchingRunners] = useState(false);
   const [runnerSearchMode, setRunnerSearchMode] = useState<"server" | "fallback">("server");
-  const [recentPassingsMode, setRecentPassingsMode] = useState<"server" | "fallback">("server");
   const [selectedRunnerBib, setSelectedRunnerBib] = useState<string | null>(null);
   const [runnerDetail, setRunnerDetail] = useState<RunnerDetail | null>(null);
   const [runnerDetailError, setRunnerDetailError] = useState<string | null>(null);
@@ -987,12 +959,11 @@ export default function App() {
           setIsRefreshing(true);
         }
 
-        const [nextOverallLeaderboard, nextWomenLeaderboard, checkpointLeaderboards, nextRecentPassings, organizerSignals] =
+        const [nextOverallLeaderboard, nextWomenLeaderboard, checkpointLeaderboards, organizerSignals] =
           await Promise.all([
             fetchOverallLeaderboard(token, undefined, 120),
             fetchOverallLeaderboard(token, "women", 12).catch(() => emptyOverallLeaderboard),
             fetchCheckpointLeaderboards(token),
-            fetchRecentPassings(token).catch(() => null),
             token ? fetchOrganizerSignals(token).catch(() => null) : Promise.resolve(null)
           ]);
 
@@ -1007,8 +978,6 @@ export default function App() {
         setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
         setDuplicates(organizerSignals?.duplicates ?? []);
         setNotifications(organizerSignals?.notifications ?? []);
-        setRecentPassings(nextRecentPassings ?? buildRecentPassingsFallback(checkpointLeaderboards));
-        setRecentPassingsMode(nextRecentPassings ? "server" : "fallback");
         setLastUpdatedAt(
           new Date().toLocaleTimeString([], {
             hour: "2-digit",
@@ -1035,8 +1004,6 @@ export default function App() {
           setOverallLeaderboard(fallbackOverall);
           setWomenLeaderboard(normalizeWomenLeaderboard(fallbackOverall, fallbackWomen));
           setLeaderboards((current) => mergeCheckpointBoards(current, fallbackLeaderboards));
-          setRecentPassings(buildRecentPassingsFallback(fallbackLeaderboards));
-          setRecentPassingsMode("fallback");
           setFetchError(null);
           setLiveStatus("fallback");
         } else {
@@ -1087,12 +1054,11 @@ export default function App() {
 
       debounceId = window.setTimeout(async () => {
         try {
-          const [nextOverallLeaderboard, nextWomenLeaderboard, checkpointLeaderboards, nextRecentPassings, organizerSignals] =
+          const [nextOverallLeaderboard, nextWomenLeaderboard, checkpointLeaderboards, organizerSignals] =
             await Promise.all([
               fetchOverallLeaderboard(token, undefined, 120),
               fetchOverallLeaderboard(token, "women", 12).catch(() => emptyOverallLeaderboard),
               fetchCheckpointLeaderboards(token),
-              fetchRecentPassings(token).catch(() => null),
               fetchOrganizerSignals(token).catch(() => null)
             ]);
 
@@ -1103,8 +1069,6 @@ export default function App() {
           setLeaderboards((current) => mergeCheckpointBoards(current, checkpointLeaderboards));
           setDuplicates(organizerSignals?.duplicates ?? []);
           setNotifications(organizerSignals?.notifications ?? []);
-          setRecentPassings(nextRecentPassings ?? buildRecentPassingsFallback(checkpointLeaderboards));
-          setRecentPassingsMode(nextRecentPassings ? "server" : "fallback");
           setLastUpdatedAt(
             new Date().toLocaleTimeString([], {
               hour: "2-digit",
@@ -1444,7 +1408,6 @@ export default function App() {
   const sidebarWomenRows = activeWomenLeaderboard.topEntries.slice(0, 5);
 
   const lastBroadcast = notifications[0] ?? null;
-  const latestPassing = recentPassings[0] ?? null;
   const selectedCheckpointMeta = defaultCheckpoints.find((item) => item.id === selectedBoard?.checkpointId) ?? null;
   const runnerSearchSummary = useMemo(() => {
     if (runnerQuery.trim() || runnerCheckpointFilter !== "all") {
@@ -1460,13 +1423,6 @@ export default function App() {
   const alphabeticalRunnerResults = useMemo(() => {
     return [...activeOverallLeaderboard.topEntries].sort((left, right) => left.name.localeCompare(right.name));
   }, [activeOverallLeaderboard.topEntries]);
-  const recentPassingSummary = useMemo(() => {
-    if (!recentPassings.length) {
-      return "Belum ada passing";
-    }
-
-    return `${recentPassings.length} passing terbaru`;
-  }, [recentPassings.length]);
   const totalDistanceKm = selectedRaceCard.distanceKm;
   const activeAscentM = selectedRaceCard.ascentM;
   const activeFinisherCount = isFeaturedRace ? finisherCount : selectedRaceCard.finishers;
@@ -4492,57 +4448,6 @@ export default function App() {
                   See More
                 </button>
               </article>
-
-              {organizerSessionActive ? (
-              <article className="panel rail-panel" id="recent-passings-sidebar">
-                <div className="panel-head">
-                  <div>
-                    <p className="section-label">Race Pulse</p>
-                    <h3>Recent Passings</h3>
-                  </div>
-                  <div className="panel-badge compact-badge">
-                    <span>Source</span>
-                    <strong>{recentPassingSummary}</strong>
-                    <span>{recentPassingsMode === "server" ? "live feed" : "fallback feed"}</span>
-                  </div>
-                </div>
-                {latestPassing ? (
-                  <div className="pulse-card">
-                    <span className="broadcast-tag">Latest passing</span>
-                    <strong>
-                      {latestPassing.name} | {formatCheckpointLabel({
-                        code: latestPassing.checkpointCode,
-                        kmMarker: latestPassing.checkpointKmMarker
-                      })}
-                    </strong>
-                    <p>
-                      BIB {latestPassing.bib} | Posisi #{latestPassing.position} | {formatRelativeTime(latestPassing.scannedAt)}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="empty-compact">Belum ada passing resmi yang masuk.</div>
-                )}
-                <ul className="feed-list compact-feed-list">
-                  {recentPassings.slice(0, 8).map((passing) => (
-                    <li key={`${passing.bib}-${passing.checkpointId}-${passing.scannedAt}`}>
-                      <strong>{passing.name}</strong>
-                      <span>
-                        {formatCheckpointLabel({
-                          code: passing.checkpointCode,
-                          kmMarker: passing.checkpointKmMarker
-                        })}{" "}
-                        | Pos #{passing.position}
-                      </span>
-                      <span>
-                        Crew {passing.crewId} | {passing.deviceId}
-                      </span>
-                      <time>{formatRelativeTime(passing.scannedAt)}</time>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-              ) : null}
-
               {organizerSessionActive ? (
                 <article className="panel rail-panel" id="signals-sidebar">
                   <div className="panel-head">
