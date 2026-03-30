@@ -13,6 +13,8 @@ type OrganizerConsoleProps = {
   onBackToSpectator: () => void;
   onBrandingChange: (patch: Partial<OrganizerBrandingDraft>) => void;
   onRaceChange: (slug: string, patch: Partial<OrganizerRaceDraft>) => void;
+  onAddRace: () => void;
+  onRemoveRace: (slug: string) => void;
   onSelectRace: (slug: string) => void;
   onImportTextChange: (value: string) => void;
   onApplyImport: () => void;
@@ -32,6 +34,8 @@ export function OrganizerConsole({
   onBackToSpectator,
   onBrandingChange,
   onRaceChange,
+  onAddRace,
+  onRemoveRace,
   onSelectRace,
   onImportTextChange,
   onApplyImport,
@@ -151,6 +155,9 @@ export function OrganizerConsole({
               <p className="section-label">Race Categories</p>
               <h3>Edition race setup</h3>
             </div>
+            <button className="toolbar-link organizer-apply-button" onClick={onAddRace} type="button">
+              Add race category
+            </button>
           </div>
 
           <div className="organizer-race-grid">
@@ -158,7 +165,12 @@ export function OrganizerConsole({
               <article className="organizer-race-card" key={race.slug}>
                 <div className="organizer-race-card-head">
                   <strong>{race.title}</strong>
-                  <span className={`organizer-status-pill ${race.editionLabel.toLowerCase() === "live" ? "live" : "finished"}`}>{race.editionLabel}</span>
+                  <div className="organizer-race-card-actions">
+                    <span className={`organizer-status-pill ${race.editionLabel.toLowerCase() === "live" ? "live" : "finished"}`}>{race.editionLabel}</span>
+                    <button className="toolbar-link organizer-remove-race" onClick={() => onRemoveRace(race.slug)} type="button">
+                      Remove
+                    </button>
+                  </div>
                 </div>
 
                 <div className="organizer-form-grid compact">
@@ -178,6 +190,10 @@ export function OrganizerConsole({
                     <input value={race.scheduleLabel} onChange={(event) => onRaceChange(race.slug, { scheduleLabel: event.target.value })} />
                   </label>
                   <label className="organizer-field">
+                    <span>Start ISO time</span>
+                    <input value={race.startAt} onChange={(event) => onRaceChange(race.slug, { startAt: event.target.value })} />
+                  </label>
+                  <label className="organizer-field">
                     <span>Start town</span>
                     <input value={race.startTown} onChange={(event) => onRaceChange(race.slug, { startTown: event.target.value })} />
                   </label>
@@ -195,6 +211,28 @@ export function OrganizerConsole({
                       type="number"
                       value={race.ascentM}
                       onChange={(event) => onRaceChange(race.slug, { ascentM: Number(event.target.value) || 0 })}
+                    />
+                  </label>
+                  <label className="organizer-field organizer-field-wide">
+                    <span>Course description</span>
+                    <textarea
+                      rows={3}
+                      value={race.courseDescription}
+                      onChange={(event) => onRaceChange(race.slug, { courseDescription: event.target.value })}
+                    />
+                  </label>
+                  <label className="organizer-field organizer-field-wide">
+                    <span>Course highlights</span>
+                    <input
+                      value={race.courseHighlights.join(", ")}
+                      onChange={(event) =>
+                        onRaceChange(race.slug, {
+                          courseHighlights: event.target.value
+                            .split(",")
+                            .map((value) => value.trim())
+                            .filter(Boolean)
+                        })
+                      }
                     />
                   </label>
                 </div>

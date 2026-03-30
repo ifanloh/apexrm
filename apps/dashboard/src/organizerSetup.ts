@@ -1,4 +1,4 @@
-import { demoRaceFestival } from "./demoRaceFestival";
+import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { getDemoCourseForRace, type DemoCourseCheckpoint } from "./demoCourseVariants";
 
 export const ORGANIZER_SETUP_STORAGE_KEY = "trailnesia:organizer-setup";
@@ -24,9 +24,18 @@ export type OrganizerRaceDraft = {
   title: string;
   editionLabel: string;
   scheduleLabel: string;
+  startAt: string;
   startTown: string;
+  courseDescription: string;
+  courseHighlights: string[];
   distanceKm: number;
   ascentM: number;
+  finishers: number;
+  dnf: number;
+  accent: string;
+  accentSoft: string;
+  profileSeed: number;
+  rankingPreview: DemoRaceCard["rankingPreview"];
   checkpoints: DemoCourseCheckpoint[];
   participants: OrganizerParticipantDraft[];
 };
@@ -50,6 +59,59 @@ export type ParticipantImportPreview = {
   totalRows: number;
 };
 
+export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerRaceDraft {
+  return {
+    slug: race.slug,
+    title: race.title,
+    editionLabel: race.editionLabel,
+    scheduleLabel: race.scheduleLabel,
+    startAt: race.startAt,
+    startTown: race.startTown,
+    courseDescription: race.courseDescription,
+    courseHighlights: race.courseHighlights,
+    distanceKm: race.distanceKm,
+    ascentM: race.ascentM,
+    finishers: race.finishers,
+    dnf: race.dnf,
+    accent: race.accent,
+    accentSoft: race.accentSoft,
+    profileSeed: race.profileSeed,
+    rankingPreview: race.rankingPreview,
+    checkpoints: getDemoCourseForRace(race).checkpoints,
+    participants: []
+  };
+}
+
+export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
+  const slug = `custom-race-${index}`;
+  return {
+    slug,
+    title: `Custom Race ${index}`,
+    editionLabel: "Live",
+    scheduleLabel: "Sun 01 Jan 05:00",
+    startAt: "2026-01-01T05:00:00+07:00",
+    startTown: "Start Town",
+    courseDescription: "Describe this course for spectators. Include terrain, challenge profile, and what makes this category unique.",
+    courseHighlights: ["Signature climb", "Technical descent", "Scenic finish"],
+    distanceKm: 25,
+    ascentM: 1400,
+    finishers: 0,
+    dnf: 0,
+    accent: "#d6a341",
+    accentSoft: "rgba(214, 163, 65, 0.18)",
+    profileSeed: index + 10,
+    rankingPreview: [],
+    checkpoints: getDemoCourseForRace({
+      slug,
+      title: `Custom Race ${index}`,
+      distanceKm: 25,
+      ascentM: 1400,
+      startTown: "Start Town"
+    }).checkpoints,
+    participants: []
+  };
+}
+
 export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
   return {
     branding: {
@@ -67,17 +129,7 @@ export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
       gpxFileName: null,
       gpxFileSize: null
     },
-    races: demoRaceFestival.races.map((race) => ({
-      slug: race.slug,
-      title: race.title,
-      editionLabel: race.editionLabel,
-      scheduleLabel: race.scheduleLabel,
-      startTown: race.startTown,
-      distanceKm: race.distanceKm,
-      ascentM: race.ascentM,
-      checkpoints: getDemoCourseForRace(race).checkpoints,
-      participants: []
-    }))
+    races: demoRaceFestival.races.map((race) => createOrganizerRaceDraftFromCard(race))
   };
 }
 
@@ -102,7 +154,8 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
         ...fallback.branding,
         ...(parsed?.branding ?? {})
       },
-      races: fallback.races.map((race) => {
+      races: [
+        ...fallback.races.map((race) => {
         const override = parsed?.races?.find((item) => item.slug === race.slug);
         return {
           ...race,
@@ -110,7 +163,16 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
           checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
           participants: Array.isArray(override?.participants) ? override.participants : race.participants
         };
-      })
+      }),
+        ...(parsed?.races ?? [])
+          .filter((race) => race.slug && !fallback.races.some((fallbackRace) => fallbackRace.slug === race.slug))
+          .map((race) => ({
+            ...createOrganizerRaceTemplate(fallback.races.length + 1),
+            ...race,
+            checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(fallback.races.length + 1).checkpoints,
+            participants: Array.isArray(race.participants) ? race.participants : []
+          }))
+      ]
     };
   } catch {
     return fallback;

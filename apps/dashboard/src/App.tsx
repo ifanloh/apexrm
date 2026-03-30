@@ -32,6 +32,7 @@ import { getDemoCourseForRace } from "./demoCourseVariants";
 import { demoRaceFestival, type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
 import {
+  createOrganizerRaceTemplate,
   createDefaultOrganizerSetup,
   getOrganizerCheckpointsForRace,
   loadOrganizerSetup,
@@ -883,20 +884,14 @@ export default function App() {
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
   const festivalData = useMemo(() => {
-    const races = demoRaceFestival.races.map((race) => {
-      const override = organizerSetup.races.find((item) => item.slug === race.slug);
+    const demoRaceBySlug = new Map(demoRaceFestival.races.map((race) => [race.slug, race]));
+    const races = organizerSetup.races.map((raceDraft) => {
+      const baseRace = demoRaceBySlug.get(raceDraft.slug);
 
-      return override
-        ? {
-            ...race,
-            title: override.title,
-            editionLabel: override.editionLabel,
-            scheduleLabel: override.scheduleLabel,
-            startTown: override.startTown,
-            distanceKm: override.distanceKm,
-            ascentM: override.ascentM
-          }
-        : race;
+      return {
+        ...(baseRace ?? {}),
+        ...raceDraft
+      } as DemoRaceCard;
     });
 
     return {
@@ -1561,7 +1556,9 @@ export default function App() {
         : race.rankingPreview.map((entry) => {
             const state = normalizeRunnerDirectoryState(entry.status);
             const inRaceCheckpoint =
-              entry.status === "In race" && "checkpointCode" in entry && "checkpointKmMarker" in entry
+              entry.status === "In race" &&
+              typeof entry.checkpointCode === "string" &&
+              typeof entry.checkpointKmMarker === "number"
                 ? formatCheckpointLabel({ code: entry.checkpointCode, kmMarker: entry.checkpointKmMarker })
                 : null;
 
@@ -2332,6 +2329,47 @@ export default function App() {
     }));
   }
 
+  function addOrganizerRace() {
+    let nextIndex = organizerSetup.races.length + 1;
+    let nextRace = createOrganizerRaceTemplate(nextIndex);
+
+    while (organizerSetup.races.some((race) => race.slug === nextRace.slug)) {
+      nextIndex += 1;
+      nextRace = createOrganizerRaceTemplate(nextIndex);
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: [...current.races, nextRace]
+    }));
+    setOrganizerSetupRaceSlug(nextRace.slug);
+    setSelectedRaceSlug(nextRace.slug);
+    setRaceDetailView("race-page");
+  }
+
+  function removeOrganizerRace(slug: string) {
+    if (organizerSetup.races.length <= 1) {
+      return;
+    }
+
+    const remainingRaces = organizerSetup.races.filter((race) => race.slug !== slug);
+    const fallbackSlug = remainingRaces[0]?.slug ?? EDITION_HOME_VALUE;
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.filter((race) => race.slug !== slug)
+    }));
+
+    if (organizerSetupRaceSlug === slug) {
+      setOrganizerSetupRaceSlug(fallbackSlug);
+    }
+
+    if (selectedRaceSlug === slug) {
+      setSelectedRaceSlug(EDITION_HOME_VALUE);
+      setRaceDetailView("race-page");
+    }
+  }
+
   function updateOrganizerCheckpoint(checkpointId: string, patch: Partial<(typeof organizerCheckpointDraft)[number]>) {
     if (!organizerSelectedRace) {
       return;
@@ -2699,6 +2737,7 @@ export default function App() {
             checkpoints={organizerCheckpointDraft}
             importPreview={organizerImportPreview}
             importText={organizerImportText}
+            onAddRace={addOrganizerRace}
             onApplyImport={applyOrganizerImport}
             onBackToSpectator={() => setOrganizerWorkspaceView("spectator")}
             onBrandingChange={updateOrganizerBranding}
@@ -2706,6 +2745,7 @@ export default function App() {
             onEventLogoChange={handleOrganizerEventLogoChange}
             onGpxChange={handleOrganizerGpxChange}
             onImportTextChange={setOrganizerImportText}
+            onRemoveRace={removeOrganizerRace}
             onRaceChange={updateOrganizerRace}
             onSelectRace={setOrganizerSetupRaceSlug}
             profileLabel={profile?.displayName ?? profile?.email ?? profile?.role ?? "Organizer"}
