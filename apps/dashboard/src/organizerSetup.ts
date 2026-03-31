@@ -45,6 +45,7 @@ export type OrganizerRaceDraft = {
   gpxFileSize: number | null;
   checkpoints: DemoCourseCheckpoint[];
   participants: OrganizerParticipantDraft[];
+  crewAssignments: OrganizerCrewAssignmentDraft[];
 };
 
 export type OrganizerSetupDraft = {
@@ -58,6 +59,16 @@ export type OrganizerParticipantDraft = {
   gender: "men" | "women";
   countryCode: string;
   club: string;
+};
+
+export type OrganizerCrewAssignmentDraft = {
+  id: string;
+  name: string;
+  email: string;
+  role: "lead" | "scan" | "support";
+  checkpointId: string;
+  deviceLabel: string;
+  status: "invited" | "active" | "standby";
 };
 
 export type ParticipantImportPreview = {
@@ -97,7 +108,27 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
     gpxFileName: null,
     gpxFileSize: null,
     checkpoints: course.checkpoints,
-    participants: []
+    participants: [],
+    crewAssignments: [
+      {
+        id: `${race.slug}-crew-start`,
+        name: "Crew Start",
+        email: `start.${race.slug}@trailnesia.local`,
+        role: "scan",
+        checkpointId: "cp-start",
+        deviceLabel: "Android Start",
+        status: "active"
+      },
+      {
+        id: `${race.slug}-crew-finish`,
+        name: "Crew Finish",
+        email: `finish.${race.slug}@trailnesia.local`,
+        role: "lead",
+        checkpointId: "finish",
+        deviceLabel: "iPad Finish",
+        status: "active"
+      }
+    ]
   };
 }
 
@@ -134,7 +165,8 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
     gpxFileName: null,
     gpxFileSize: null,
     checkpoints: course.checkpoints,
-    participants: []
+    participants: [],
+    crewAssignments: []
   };
 }
 
@@ -190,7 +222,10 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
           waypoints: Array.isArray(override?.waypoints) && override.waypoints.length ? override.waypoints : race.waypoints,
           profilePoints: Array.isArray(override?.profilePoints) && override.profilePoints.length ? override.profilePoints : race.profilePoints,
           checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
-          participants: Array.isArray(override?.participants) ? override.participants : race.participants
+          participants: Array.isArray(override?.participants) ? override.participants : race.participants,
+          crewAssignments: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.crewAssignments)
+            ? (((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as OrganizerCrewAssignmentDraft[])
+            : race.crewAssignments
         };
       }),
         ...(parsed?.races ?? [])
@@ -204,7 +239,8 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
                 ? race.profilePoints
                 : createOrganizerRaceTemplate(fallback.races.length + 1).profilePoints,
             checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(fallback.races.length + 1).checkpoints,
-            participants: Array.isArray(race.participants) ? race.participants : []
+            participants: Array.isArray(race.participants) ? race.participants : [],
+            crewAssignments: Array.isArray(race.crewAssignments) ? race.crewAssignments : []
           }))
       ]
     };

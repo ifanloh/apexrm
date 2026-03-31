@@ -43,6 +43,7 @@ import {
   parseParticipantImportRows,
   parseParticipantImportText,
   type OrganizerBrandingDraft,
+  type OrganizerCrewAssignmentDraft,
   type OrganizerParticipantDraft,
   type OrganizerRaceDraft
 } from "./organizerSetup";
@@ -2501,6 +2502,71 @@ export default function App() {
     }));
   }
 
+  function updateOrganizerCrewAssignment(crewId: string, patch: Partial<OrganizerCrewAssignmentDraft>) {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) =>
+        race.slug !== organizerSelectedRace.slug
+          ? race
+          : {
+              ...race,
+              crewAssignments: race.crewAssignments.map((crew) => (crew.id === crewId ? { ...crew, ...patch } : crew))
+            }
+      )
+    }));
+  }
+
+  function addOrganizerCrewAssignment() {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    const fallbackCheckpointId = organizerSelectedRace.checkpoints[0]?.id ?? "cp-start";
+    const nextCrew: OrganizerCrewAssignmentDraft = {
+      id: `${organizerSelectedRace.slug}-crew-${Date.now()}`,
+      name: `Crew ${organizerSelectedRace.crewAssignments.length + 1}`,
+      email: "",
+      role: "scan",
+      checkpointId: fallbackCheckpointId,
+      deviceLabel: "",
+      status: "invited"
+    };
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) =>
+        race.slug !== organizerSelectedRace.slug
+          ? race
+          : {
+              ...race,
+              crewAssignments: [...race.crewAssignments, nextCrew]
+            }
+      )
+    }));
+  }
+
+  function removeOrganizerCrewAssignment(crewId: string) {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) =>
+        race.slug !== organizerSelectedRace.slug
+          ? race
+          : {
+              ...race,
+              crewAssignments: race.crewAssignments.filter((crew) => crew.id !== crewId)
+            }
+      )
+    }));
+  }
+
   function applyOrganizerImport() {
     if (!organizerSelectedRace) {
       return;
@@ -2878,20 +2944,24 @@ export default function App() {
           <OrganizerConsole
             branding={organizerSetup.branding}
             checkpoints={organizerCheckpointDraft}
+            crewAssignments={organizerSelectedRace?.crewAssignments ?? []}
             importPreview={organizerImportPreview}
             importText={organizerImportText}
             onAddRace={addOrganizerRace}
             onAddCheckpoint={addOrganizerCheckpoint}
+            onAddCrewAssignment={addOrganizerCrewAssignment}
             onApplyImport={applyOrganizerImport}
             onBackToSpectator={() => setOrganizerWorkspaceView("spectator")}
             onBrandingChange={updateOrganizerBranding}
             onCheckpointChange={updateOrganizerCheckpoint}
+            onCrewAssignmentChange={updateOrganizerCrewAssignment}
             onEventLogoChange={handleOrganizerEventLogoChange}
             onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
             onGpxChange={handleOrganizerGpxChange}
             onImportTextChange={setOrganizerImportText}
             onToggleRacePublish={toggleOrganizerRacePublish}
             onRemoveCheckpoint={removeOrganizerCheckpoint}
+            onRemoveCrewAssignment={removeOrganizerCrewAssignment}
             onRemoveRace={removeOrganizerRace}
             onRaceChange={updateOrganizerRace}
             onSelectRace={setOrganizerSetupRaceSlug}

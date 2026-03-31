@@ -1,6 +1,6 @@
 import type { ChangeEvent } from "react";
 import type { DemoCourseCheckpoint } from "./demoCourseVariants";
-import type { OrganizerBrandingDraft, OrganizerRaceDraft, ParticipantImportPreview } from "./organizerSetup";
+import type { OrganizerBrandingDraft, OrganizerCrewAssignmentDraft, OrganizerRaceDraft, ParticipantImportPreview } from "./organizerSetup";
 
 type OrganizerConsoleProps = {
   profileLabel: string;
@@ -8,6 +8,7 @@ type OrganizerConsoleProps = {
   races: OrganizerRaceDraft[];
   selectedRaceSlug: string;
   checkpoints: DemoCourseCheckpoint[];
+  crewAssignments: OrganizerCrewAssignmentDraft[];
   importPreview: ParticipantImportPreview;
   importText: string;
   onBackToSpectator: () => void;
@@ -22,6 +23,9 @@ type OrganizerConsoleProps = {
   onCheckpointChange: (checkpointId: string, patch: Partial<DemoCourseCheckpoint>) => void;
   onAddCheckpoint: () => void;
   onRemoveCheckpoint: (checkpointId: string) => void;
+  onCrewAssignmentChange: (crewId: string, patch: Partial<OrganizerCrewAssignmentDraft>) => void;
+  onAddCrewAssignment: () => void;
+  onRemoveCrewAssignment: (crewId: string) => void;
   onEventLogoChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onHeroBackgroundChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onGpxChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -33,6 +37,7 @@ export function OrganizerConsole({
   races,
   selectedRaceSlug,
   checkpoints,
+  crewAssignments,
   importPreview,
   importText,
   onBackToSpectator,
@@ -47,6 +52,9 @@ export function OrganizerConsole({
   onCheckpointChange,
   onAddCheckpoint,
   onRemoveCheckpoint,
+  onCrewAssignmentChange,
+  onAddCrewAssignment,
+  onRemoveCrewAssignment,
   onEventLogoChange,
   onHeroBackgroundChange,
   onGpxChange
@@ -77,6 +85,10 @@ export function OrganizerConsole({
       {
         label: "Checkpoint plan ready",
         pass: race.checkpoints.length >= 3
+      },
+      {
+        label: "Crew assigned",
+        pass: race.crewAssignments.length > 0
       },
       {
         label: "Participants imported",
@@ -422,6 +434,80 @@ export function OrganizerConsole({
                 </div>
               </article>
             ))}
+          </div>
+        </article>
+
+        <article className="panel organizer-console-panel">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Crew</p>
+              <h3>Crew assignment</h3>
+            </div>
+            <button className="toolbar-link organizer-apply-button" onClick={onAddCrewAssignment} type="button">
+              Add crew
+            </button>
+          </div>
+
+          <label className="organizer-field">
+            <span>Inspect race</span>
+            <select onChange={(event) => onSelectRace(event.target.value)} value={selectedRaceSlug}>
+              {races.map((race) => (
+                <option key={`crew-race-${race.slug}`} value={race.slug}>
+                  {race.title}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="organizer-crew-list">
+            {crewAssignments.map((crew) => (
+              <article className="organizer-crew-row" key={crew.id}>
+                <label className="organizer-field organizer-field-wide">
+                  <span>Name</span>
+                  <input value={crew.name} onChange={(event) => onCrewAssignmentChange(crew.id, { name: event.target.value })} />
+                </label>
+                <label className="organizer-field organizer-field-wide">
+                  <span>Email</span>
+                  <input value={crew.email} onChange={(event) => onCrewAssignmentChange(crew.id, { email: event.target.value })} />
+                </label>
+                <label className="organizer-field">
+                  <span>Role</span>
+                  <select value={crew.role} onChange={(event) => onCrewAssignmentChange(crew.id, { role: event.target.value as OrganizerCrewAssignmentDraft["role"] })}>
+                    <option value="lead">Lead</option>
+                    <option value="scan">Scan</option>
+                    <option value="support">Support</option>
+                  </select>
+                </label>
+                <label className="organizer-field">
+                  <span>Checkpoint</span>
+                  <select value={crew.checkpointId} onChange={(event) => onCrewAssignmentChange(crew.id, { checkpointId: event.target.value })}>
+                    {checkpoints.map((checkpoint) => (
+                      <option key={`crew-checkpoint-${checkpoint.id}`} value={checkpoint.id}>
+                        {checkpoint.code} - {checkpoint.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="organizer-field">
+                  <span>Device label</span>
+                  <input value={crew.deviceLabel} onChange={(event) => onCrewAssignmentChange(crew.id, { deviceLabel: event.target.value })} />
+                </label>
+                <label className="organizer-field">
+                  <span>Status</span>
+                  <select value={crew.status} onChange={(event) => onCrewAssignmentChange(crew.id, { status: event.target.value as OrganizerCrewAssignmentDraft["status"] })}>
+                    <option value="invited">Invited</option>
+                    <option value="active">Active</option>
+                    <option value="standby">Standby</option>
+                  </select>
+                </label>
+                <div className="organizer-checkpoint-actions">
+                  <button className="toolbar-link organizer-remove-race" onClick={() => onRemoveCrewAssignment(crew.id)} type="button">
+                    Remove
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!crewAssignments.length ? <div className="empty-compact">No crew assigned yet for this race.</div> : null}
           </div>
         </article>
 
