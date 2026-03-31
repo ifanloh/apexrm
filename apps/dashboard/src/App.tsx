@@ -46,6 +46,7 @@ import {
   parseParticipantImportText,
   type OrganizerBrandingDraft,
   type OrganizerCrewAssignmentDraft,
+  type OrganizerParticipantImportMode,
   type OrganizerParticipantDraft,
   type OrganizerRaceDraft
 } from "./organizerSetup";
@@ -101,6 +102,13 @@ type RankingView = "overall" | "women" | "men";
 type RaceDetailView = "race-page" | "runner-search" | "runners-list" | "favorites" | "my-runners" | "ranking" | "leaders" | "statistics";
 type OrganizerWorkspaceView = "spectator" | "console";
 type RunnerDirectoryState = "all" | "registered" | "in-race" | "finisher" | "dns" | "withdrawn";
+type ParticipantImportImpact = {
+  newRows: number;
+  updatedRows: number;
+  unchangedRows: number;
+  skippedExistingRows: number;
+  skippedNewRows: number;
+};
 type RunnerDirectoryEntry = {
   raceSlug: string;
   raceTitle: string;
@@ -384,6 +392,77 @@ function estimateNextPassing(
     }),
     time: Number.isFinite(etaMs) ? formatScanTime(new Date(etaMs).toISOString()) : entry.raceTime
   };
+}
+
+function participantDraftEquals(left: OrganizerParticipantDraft, right: OrganizerParticipantDraft) {
+  return (
+    left.bib === right.bib &&
+    left.name === right.name &&
+    left.gender === right.gender &&
+    left.countryCode === right.countryCode &&
+    left.club === right.club
+  );
+}
+
+function calculateParticipantImportImpact(
+  existingParticipants: OrganizerParticipantDraft[],
+  importedParticipants: OrganizerParticipantDraft[]
+): ParticipantImportImpact {
+  const existingByBib = new Map(existingParticipants.map((participant) => [participant.bib, participant]));
+  let newRows = 0;
+  let updatedRows = 0;
+  let unchangedRows = 0;
+
+  importedParticipants.forEach((participant) => {
+    const current = existingByBib.get(participant.bib);
+    if (!current) {
+      newRows += 1;
+      return;
+    }
+
+    if (participantDraftEquals(current, participant)) {
+      unchangedRows += 1;
+      return;
+    }
+
+    updatedRows += 1;
+  });
+
+  return {
+    newRows,
+    updatedRows,
+    unchangedRows,
+    skippedExistingRows: importedParticipants.length - newRows,
+    skippedNewRows: newRows
+  };
+}
+
+function applyParticipantImportMode(
+  currentParticipants: OrganizerParticipantDraft[],
+  importedParticipants: OrganizerParticipantDraft[],
+  mode: OrganizerParticipantImportMode
+) {
+  if (mode === "replace") {
+    return importedParticipants;
+  }
+
+  const importedByBib = new Map(importedParticipants.map((participant) => [participant.bib, participant]));
+
+  if (mode === "add") {
+    return [
+      ...currentParticipants,
+      ...importedParticipants.filter((participant) => !currentParticipants.some((current) => current.bib === participant.bib))
+    ];
+  }
+
+  if (mode === "update") {
+    return currentParticipants.map((participant) => importedByBib.get(participant.bib) ?? participant);
+  }
+
+  const mergedParticipants = currentParticipants.map((participant) => importedByBib.get(participant.bib) ?? participant);
+  const existingBibs = new Set(currentParticipants.map((participant) => participant.bib));
+
+  return [...mergedParticipants, ...importedParticipants.filter((participant) => !existingBibs.has(participant.bib))];
 }
 
 function RankingMedal({ rank }: { rank: number }) {
@@ -900,6 +979,7 @@ export default function App() {
   const [organizerSetup, setOrganizerSetup] = useState(() => loadOrganizerSetup());
   const [organizerImportText, setOrganizerImportText] = useState("");
   const [organizerImportFileName, setOrganizerImportFileName] = useState<string | null>(null);
+  const [organizerImportMode, setOrganizerImportMode] = useState<OrganizerParticipantImportMode>("merge");
   const [organizerSetupRaceSlug, setOrganizerSetupRaceSlug] = useState<string>(createDefaultOrganizerSetup().races[0]?.slug ?? "");
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
@@ -961,6 +1041,11 @@ export default function App() {
     organizerSetup.races.find((race) => race.slug === organizerSetupRaceSlug) ?? organizerSetup.races[0] ?? null;
   const organizerCheckpointDraft = organizerSelectedRace ? getOrganizerCheckpointsForRace(organizerSelectedRace) : [];
   const organizerImportPreview = useMemo(() => parseParticipantImportText(organizerImportText), [organizerImportText]);
+  const organizerImportedParticipants = useMemo(() => parseParticipantImportRows(organizerImportText), [organizerImportText]);
+  const organizerImportImpact = useMemo(
+    () => calculateParticipantImportImpact(organizerSelectedRace?.participants ?? [], organizerImportedParticipants),
+    [organizerImportedParticipants, organizerSelectedRace]
+  );
 
   useEffect(() => {
     if (!supabase) {
@@ -2603,9 +2688,7 @@ export default function App() {
       return;
     }
 
-    const importedRows = parseParticipantImportRows(organizerImportText);
-
-    if (!importedRows.length) {
+    if (!organizerImportedParticipants.length) {
       return;
     }
 
@@ -2616,7 +2699,7 @@ export default function App() {
           ? race
           : {
               ...race,
-              participants: importedRows
+              participants: applyParticipantImportMode(race.participants, organizerImportedParticipants, organizerImportMode)
           }
       )
     }));
@@ -2646,6 +2729,7 @@ export default function App() {
   function clearOrganizerImportDraft() {
     setOrganizerImportText("");
     setOrganizerImportFileName(null);
+    setOrganizerImportMode("merge");
   }
 
   async function handleOrganizerEventLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -2980,6 +3064,8 @@ export default function App() {
             crewAssignments={organizerSelectedRace?.crewAssignments ?? []}
             duplicates={duplicates}
             importFileName={organizerImportFileName}
+            importImpact={organizerImportImpact}
+            importMode={organizerImportMode}
             importPreview={organizerImportPreview}
             importText={organizerImportText}
             leaderboards={leaderboards}
@@ -2996,6 +3082,7 @@ export default function App() {
             onEventLogoChange={handleOrganizerEventLogoChange}
             onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
             onImportFileChange={handleOrganizerParticipantFileChange}
+            onImportModeChange={setOrganizerImportMode}
             onClearImport={clearOrganizerImportDraft}
             onGpxChange={handleOrganizerGpxChange}
             onRegenerateCrewInvite={regenerateOrganizerCrewInvite}

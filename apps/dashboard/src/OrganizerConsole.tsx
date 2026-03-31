@@ -6,6 +6,7 @@ import {
   createParticipantImportTemplateWorkbook,
   type OrganizerBrandingDraft,
   type OrganizerCrewAssignmentDraft,
+  type OrganizerParticipantImportMode,
   type OrganizerRaceDraft,
   type ParticipantImportPreview
 } from "./organizerSetup";
@@ -24,6 +25,14 @@ type OrganizerConsoleProps = {
   liveModeLabel: string;
   opsUpdatedAt: string | null;
   importFileName: string | null;
+  importImpact: {
+    newRows: number;
+    updatedRows: number;
+    unchangedRows: number;
+    skippedExistingRows: number;
+    skippedNewRows: number;
+  };
+  importMode: OrganizerParticipantImportMode;
   importPreview: ParticipantImportPreview;
   importText: string;
   onBackToSpectator: () => void;
@@ -33,6 +42,7 @@ type OrganizerConsoleProps = {
   onRemoveRace: (slug: string) => void;
   onSelectRace: (slug: string) => void;
   onImportFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onImportModeChange: (mode: OrganizerParticipantImportMode) => void;
   onClearImport: () => void;
   onApplyImport: () => void;
   onToggleRacePublish: (slug: string, nextPublished: boolean) => void;
@@ -63,6 +73,8 @@ export function OrganizerConsole({
   liveModeLabel,
   opsUpdatedAt,
   importFileName,
+  importImpact,
+  importMode,
   importPreview,
   importText,
   onBackToSpectator,
@@ -72,6 +84,7 @@ export function OrganizerConsole({
   onRemoveRace,
   onSelectRace,
   onImportFileChange,
+  onImportModeChange,
   onClearImport,
   onApplyImport,
   onToggleRacePublish,
@@ -88,6 +101,28 @@ export function OrganizerConsole({
 }: OrganizerConsoleProps) {
   const [activeView, setActiveView] = useState<OrganizerConsoleView>("overview");
   const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
+  const importModeCopy: Record<OrganizerParticipantImportMode, { label: string; description: string; applyLabel: string }> = {
+    merge: {
+      label: "Add + update by BIB",
+      description: "Add new participants and update existing ones for the selected race.",
+      applyLabel: "Apply add + update to selected race"
+    },
+    add: {
+      label: "Add new only",
+      description: "Only add BIBs that do not exist yet. Existing BIBs stay unchanged.",
+      applyLabel: "Add new participants to selected race"
+    },
+    update: {
+      label: "Update existing only",
+      description: "Only update BIBs that already exist. New BIBs are skipped.",
+      applyLabel: "Update existing participants"
+    },
+    replace: {
+      label: "Replace all",
+      description: "Replace the full participant roster for the selected race with this file.",
+      applyLabel: "Replace selected race roster"
+    }
+  };
   const checkpointCoverage = checkpoints.map((checkpoint) => {
     const assignedCrew = crewAssignments.filter((crew) => crew.checkpointId === checkpoint.id);
 
@@ -1120,6 +1155,7 @@ export function OrganizerConsole({
             <div>
               <p className="section-label">Participant Import</p>
               <h3>Upload CSV or Excel roster</h3>
+              <span className="organizer-inline-meta">Import participants for: {selectedRace?.title ?? "No race selected"}</span>
             </div>
           </div>
 
@@ -1176,20 +1212,59 @@ export function OrganizerConsole({
                 <span>ignored in import</span>
               </div>
               <div className="panel-badge compact-badge">
-                <span>Applied to race</span>
+                <span>Current roster</span>
                 <strong>{selectedRace?.participants.length ?? 0}</strong>
-                <span>participants</span>
+                <span>participants in selected race</span>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>New</span>
+                <strong>{importImpact.newRows}</strong>
+                <span>new bibs in file</span>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>Updated</span>
+                <strong>{importImpact.updatedRows}</strong>
+                <span>existing bibs changed</span>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>Unchanged</span>
+                <strong>{importImpact.unchangedRows}</strong>
+                <span>existing bibs identical</span>
               </div>
             </div>
 
             <div className="organizer-import-note">
               <strong>Template columns</strong>
               <p>Use exactly: <code>bib</code>, <code>name</code>, <code>gender</code>, <code>country</code>, <code>club</code>.</p>
+              <p>This import applies only to the currently selected race.</p>
+            </div>
+
+            <div className="organizer-import-mode-shell">
+              <div className="organizer-field">
+                <label htmlFor="organizer-import-mode">Import mode</label>
+                <select
+                  id="organizer-import-mode"
+                  onChange={(event) => onImportModeChange(event.target.value as OrganizerParticipantImportMode)}
+                  value={importMode}
+                >
+                  <option value="merge">Add + update by BIB</option>
+                  <option value="add">Add new only</option>
+                  <option value="update">Update existing only</option>
+                  <option value="replace">Replace all</option>
+                </select>
+              </div>
+              <div className={`organizer-import-mode-summary ${importMode === "replace" ? "warning" : ""}`}>
+                <strong>{importModeCopy[importMode].label}</strong>
+                <p>{importModeCopy[importMode].description}</p>
+                {importMode === "add" ? <span>Existing BIBs skipped: {importImpact.skippedExistingRows}</span> : null}
+                {importMode === "update" ? <span>New BIBs skipped: {importImpact.skippedNewRows}</span> : null}
+                {importMode === "replace" ? <span>This will overwrite the current roster for {selectedRace?.title ?? "the selected race"}.</span> : null}
+              </div>
             </div>
           </div>
 
           <button className="toolbar-link organizer-apply-button" disabled={!importPreview.validRows} onClick={onApplyImport} type="button">
-            Apply valid rows to selected race
+            {importModeCopy[importMode].applyLabel}
           </button>
 
           {importPreview.sampleErrors.length ? (
@@ -1216,7 +1291,7 @@ export function OrganizerConsole({
               ))}
             </div>
           ) : (
-            <div className="empty-compact">No import preview yet. Paste participant rows to review the draft.</div>
+            <div className="empty-compact">No import preview yet. Upload a participant file to review the draft.</div>
           )}
         </article>
       </div>

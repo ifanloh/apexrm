@@ -84,6 +84,8 @@ export type ParticipantImportPreview = {
   sampleErrors: string[];
 };
 
+export type OrganizerParticipantImportMode = "merge" | "add" | "update" | "replace";
+
 const PARTICIPANT_TEMPLATE_HEADERS = ["bib", "name", "gender", "country", "club"];
 const PARTICIPANT_TEMPLATE_SAMPLE_ROWS = [
   ["", "", "", "", ""],
