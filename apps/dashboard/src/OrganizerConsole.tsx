@@ -344,6 +344,38 @@ export function OrganizerConsole({
   const currentStep = currentStepIndex >= 0 ? setupSteps[currentStepIndex] : null;
   const defaultSimulationCheckpointId = checkpoints.find((checkpoint) => checkpoint.id !== "finish")?.id ?? checkpoints[0]?.id ?? "";
   const simulationCheckpointCrew = crewAssignments.filter((crew) => crew.checkpointId === simulationCheckpointId);
+  const checkpointOrderById = new Map(checkpoints.map((checkpoint) => [checkpoint.id, checkpoint.order]));
+  const checkpointScanHistory = (selectedRace?.simulatedScans ?? []).filter((scan) => scan.status === "accepted");
+  const bestAcceptedOrderByBib = checkpointScanHistory.reduce<Map<string, number>>((accumulator, scan) => {
+    const bib = scan.bib.trim().toUpperCase();
+    const order = checkpointOrderById.get(scan.checkpointId) ?? -1;
+    const current = accumulator.get(bib) ?? -1;
+
+    if (order > current) {
+      accumulator.set(bib, order);
+    }
+
+    return accumulator;
+  }, new Map<string, number>());
+  const simulationTargetOrder = checkpointOrderById.get(simulationCheckpointId) ?? -1;
+  const eligibleSimulationParticipants = (selectedRace?.participants ?? []).filter((participant) => {
+    const bib = participant.bib.trim().toUpperCase();
+    const alreadyAcceptedAtCheckpoint = checkpointScanHistory.some(
+      (scan) => scan.bib.trim().toUpperCase() === bib && scan.checkpointId === simulationCheckpointId
+    );
+
+    if (alreadyAcceptedAtCheckpoint) {
+      return false;
+    }
+
+    const bestOrder = bestAcceptedOrderByBib.get(bib) ?? -1;
+
+    if (simulationTargetOrder <= 0) {
+      return bestOrder < 0;
+    }
+
+    return bestOrder === simulationTargetOrder - 1;
+  });
   const simulationRankedCount = new Set(
     (selectedRace?.simulatedScans ?? [])
       .filter((scan) => scan.status === "accepted")
@@ -402,6 +434,40 @@ export function OrganizerConsole({
       crewAssignmentId: simulationCrewAssignmentId
     });
     setSimulationBib("");
+  }
+
+  function handleSimulateCheckpointWave() {
+    if (!simulationCheckpointId || !simulationCrewAssignmentId) {
+      return;
+    }
+
+    eligibleSimulationParticipants.slice(0, 3).forEach((participant) => {
+      onAddSimulatedScan({
+        bib: participant.bib,
+        checkpointId: simulationCheckpointId,
+        crewAssignmentId: simulationCrewAssignmentId
+      });
+    });
+  }
+
+  function handleSimulateDuplicate() {
+    if (!simulationCheckpointId || !simulationCrewAssignmentId) {
+      return;
+    }
+
+    const latestAcceptedAtCheckpoint = [...checkpointScanHistory]
+      .filter((scan) => scan.checkpointId === simulationCheckpointId)
+      .sort((left, right) => right.scannedAt.localeCompare(left.scannedAt))[0];
+
+    if (!latestAcceptedAtCheckpoint) {
+      return;
+    }
+
+    onAddSimulatedScan({
+      bib: latestAcceptedAtCheckpoint.bib,
+      checkpointId: simulationCheckpointId,
+      crewAssignmentId: simulationCrewAssignmentId
+    });
   }
 
   function downloadParticipantTemplate(kind: "csv" | "xlsx") {
@@ -676,14 +742,32 @@ export function OrganizerConsole({
                 </label>
 
                 <div className="organizer-simulator-actions">
-                  <button
-                    className="toolbar-link organizer-primary-action"
-                    disabled={!simulationBib.trim() || !selectedSimulationParticipant || !simulationCheckpointId || !simulationCrewAssignmentId}
-                    onClick={handleRecordSimulatedScan}
-                    type="button"
-                  >
-                    Record trial scan
-                  </button>
+                  <div className="organizer-simulator-button-row">
+                    <button
+                      className="toolbar-link organizer-primary-action"
+                      disabled={!simulationBib.trim() || !selectedSimulationParticipant || !simulationCheckpointId || !simulationCrewAssignmentId}
+                      onClick={handleRecordSimulatedScan}
+                      type="button"
+                    >
+                      Record trial scan
+                    </button>
+                    <button
+                      className="toolbar-link organizer-secondary-action"
+                      disabled={eligibleSimulationParticipants.length === 0 || !simulationCheckpointId || !simulationCrewAssignmentId}
+                      onClick={handleSimulateCheckpointWave}
+                      type="button"
+                    >
+                      Simulate checkpoint wave
+                    </button>
+                    <button
+                      className="toolbar-link organizer-secondary-action"
+                      disabled={!checkpointScanHistory.some((scan) => scan.checkpointId === simulationCheckpointId) || !simulationCrewAssignmentId}
+                      onClick={handleSimulateDuplicate}
+                      type="button"
+                    >
+                      Inject duplicate
+                    </button>
+                  </div>
                   <p className="organizer-simulator-note">
                     {selectedSimulationParticipant
                       ? `${selectedSimulationParticipant.name} | ${selectedSimulationParticipant.club || "No club"}`
@@ -691,6 +775,20 @@ export function OrganizerConsole({
                         ? "BIB not found in this race roster yet."
                         : "Duplicates at the same checkpoint will be sent to duplicate audit automatically."}
                   </p>
+                </div>
+              </div>
+
+              <div className="organizer-simulator-queue">
+                <p className="section-label">Ready queue</p>
+                <div className="organizer-simulator-queue-items">
+                  {eligibleSimulationParticipants.slice(0, 6).map((participant) => (
+                    <span className="organizer-validation-tag" key={`sim-queue-${participant.bib}`}>
+                      {participant.bib} | {participant.name}
+                    </span>
+                  ))}
+                  {!eligibleSimulationParticipants.length ? (
+                    <span className="organizer-validation-tag">No runner is queued for this checkpoint yet.</span>
+                  ) : null}
                 </div>
               </div>
 

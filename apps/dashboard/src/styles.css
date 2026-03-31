@@ -6566,11 +6566,28 @@ body {
   gap: 0.45rem;
 }
 
+.organizer-simulator-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .organizer-simulator-note {
   margin: 0;
   color: #7f6734;
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+.organizer-simulator-queue {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.organizer-simulator-queue-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
 .organizer-ops-grid {
