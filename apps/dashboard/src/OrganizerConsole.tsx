@@ -73,6 +73,25 @@ export function OrganizerConsole({
   });
   const coveredCheckpointCount = checkpointCoverage.filter((item) => item.covered).length;
   const uncoveredCheckpointCount = checkpointCoverage.length - coveredCheckpointCount;
+  const fieldCrewAssignments = crewAssignments.filter((crew) => crew.role === "lead" || crew.role === "scan");
+  const provisionedCrewCount = fieldCrewAssignments.filter((crew) => crew.deviceLabel.trim().length > 0).length;
+  const readyDeviceCrewCount = fieldCrewAssignments.filter(
+    (crew) => crew.deviceLabel.trim().length > 0 && (crew.status === "accepted" || crew.status === "active")
+  ).length;
+  const checkpointProvisioning = checkpoints.map((checkpoint) => {
+    const assignedFieldCrew = fieldCrewAssignments.filter((crew) => crew.checkpointId === checkpoint.id);
+    const readyAssignedCrew = assignedFieldCrew.filter(
+      (crew) => crew.deviceLabel.trim().length > 0 && (crew.status === "accepted" || crew.status === "active")
+    );
+
+    return {
+      checkpoint,
+      assignedFieldCrew,
+      readyAssignedCrew,
+      ready: readyAssignedCrew.length > 0
+    };
+  });
+  const readyCheckpointProvisionCount = checkpointProvisioning.filter((item) => item.ready).length;
   const crewStatusSummary = {
     active: crewAssignments.filter((crew) => crew.status === "active").length,
     accepted: crewAssignments.filter((crew) => crew.status === "accepted").length,
@@ -533,6 +552,68 @@ export function OrganizerConsole({
                       ? assignedCrew.map((crew) => `${crew.name} (${crew.role}, ${crew.status})`).join(", ")
                       : "No crew assigned yet"}
                   </small>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="panel-head compact organizer-subpanel-head">
+            <div>
+              <p className="section-label">Provisioning</p>
+              <h3>Scanner device readiness</h3>
+            </div>
+          </div>
+
+          <div className="organizer-provisioning-summary">
+            <div className="panel-badge compact-badge">
+              <span>Field crew</span>
+              <strong>{fieldCrewAssignments.length}</strong>
+              <span>lead + scan roles</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Devices assigned</span>
+              <strong>{provisionedCrewCount}</strong>
+              <span>{fieldCrewAssignments.length - provisionedCrewCount} missing</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Ready devices</span>
+              <strong>{readyDeviceCrewCount}</strong>
+              <span>accepted or active</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Ready checkpoints</span>
+              <strong>{readyCheckpointProvisionCount}</strong>
+              <span>of {checkpointProvisioning.length}</span>
+            </div>
+          </div>
+
+          <div className="organizer-provisioning-list">
+            {checkpointProvisioning.map(({ checkpoint, assignedFieldCrew, readyAssignedCrew, ready }) => (
+              <article className={`organizer-provisioning-row ${ready ? "ready" : "pending"}`} key={`provisioning-${checkpoint.id}`}>
+                <div>
+                  <strong>
+                    {checkpoint.code} - {checkpoint.name}
+                  </strong>
+                  <p>{checkpoint.kmMarker.toFixed(1)} km marker</p>
+                </div>
+                <div className="organizer-provisioning-meta">
+                  <span className={`organizer-readiness-pill ${ready ? "ready" : "draft"}`}>{ready ? "Device ready" : "Pending device"}</span>
+                  <small>
+                    {assignedFieldCrew.length
+                      ? assignedFieldCrew
+                          .map((crew) => `${crew.name} - ${crew.deviceLabel || "No device"} (${crew.status})`)
+                          .join(", ")
+                      : "No lead/scan crew assigned"}
+                  </small>
+                  {readyAssignedCrew.length ? (
+                    <div className="organizer-provisioning-tags">
+                      {readyAssignedCrew.map((crew) => (
+                        <span className="organizer-provisioning-tag" key={`${checkpoint.id}-${crew.id}`}>
+                          {crew.deviceLabel}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </article>
             ))}

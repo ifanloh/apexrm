@@ -6641,6 +6641,10 @@ body {
   margin-bottom: 0.85rem;
 }
 
+.organizer-subpanel-head {
+  margin-top: 0.2rem;
+}
+
 .organizer-coverage-row {
   display: flex;
   align-items: center;
@@ -6675,6 +6679,74 @@ body {
 .organizer-coverage-meta small {
   color: #604723;
   text-align: right;
+}
+
+.organizer-provisioning-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.organizer-provisioning-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.95rem;
+}
+
+.organizer-provisioning-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 18px;
+  border: 1px solid rgba(225, 183, 76, 0.22);
+  background: rgba(255, 252, 245, 0.86);
+}
+
+.organizer-provisioning-row.ready {
+  border-color: rgba(42, 133, 86, 0.2);
+}
+
+.organizer-provisioning-row.pending {
+  border-color: rgba(191, 72, 39, 0.18);
+}
+
+.organizer-provisioning-row p {
+  margin: 0.2rem 0 0;
+  color: #8d6a2a;
+  font-size: 0.85rem;
+}
+
+.organizer-provisioning-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+}
+
+.organizer-provisioning-meta small {
+  color: #604723;
+  text-align: right;
+}
+
+.organizer-provisioning-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.organizer-provisioning-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(42, 133, 86, 0.1);
+  color: #1f6f49;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .organizer-crew-row {
