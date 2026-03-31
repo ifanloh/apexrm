@@ -5881,9 +5881,9 @@ body {
 .topbar-center {
   align-items: center;
   display: flex;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 0;
   min-width: 0;
   width: auto;
 }
@@ -5892,12 +5892,6 @@ body {
   flex: 0 0 146px;
   max-width: 146px;
   min-width: 146px;
-}
-
-.topbar-search {
-  flex: 0 1 280px;
-  max-width: 280px;
-  min-width: 180px;
 }
 
 .topbar-select-shell,
@@ -5909,12 +5903,6 @@ body {
   max-width: 146px;
 }
 
-.topbar-search-shell {
-  max-width: 280px;
-  padding-left: 10px;
-  padding-right: 10px;
-}
-
 .topbar-select-shell select,
 .topbar-search-shell input {
   font-size: 0.74rem;
@@ -5924,10 +5912,6 @@ body {
   min-height: 30px;
   padding-left: 10px;
   padding-right: 22px;
-}
-
-.topbar-search-shell input {
-  min-height: 30px;
 }
 
 .live-topbar-actions {

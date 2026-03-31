@@ -2315,7 +2315,6 @@ export default function App() {
         ? `Akun role ${profile.role} tetap berada di spectator view. Login dengan admin, panitia, atau observer untuk tools organizer.`
         : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
   const showAccessNotice = organizerSessionActive;
-  const topbarSearchPlaceholder = "Search a runner ...";
   const activeRaceStartAt = selectedRaceCard.startAt;
   const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
   const publicRunnerResults =
@@ -2725,13 +2724,6 @@ export default function App() {
     jumpToSection(sectionId);
   }
 
-  function focusTopbarSearch() {
-    window.setTimeout(() => {
-      const input = document.querySelector<HTMLInputElement>(".topbar-search-shell input");
-      input?.focus();
-    }, 90);
-  }
-
   function jumpToRaceSection(sectionId: string, nextView: RaceDetailView = "race-page") {
     if (isEditionHome) {
       setSelectedRaceSlug(featuredRace.slug);
@@ -2750,7 +2742,6 @@ export default function App() {
   }
 
   function focusRunnerSearch() {
-    focusTopbarSearch();
     setRaceDetailView("runner-search");
     jumpToSection("runner-search");
   }
@@ -2911,24 +2902,6 @@ export default function App() {
                 <option value={EDITION_HOME_VALUE}>{festivalData.editionLabel}</option>
               </select>
             </label>
-
-            <div className="topbar-search topbar-search-shell">
-              <label className="sr-only" htmlFor="topbar-runner-search">
-                Search a runner
-              </label>
-              <input
-                id="topbar-runner-search"
-                placeholder={topbarSearchPlaceholder}
-                value={runnerQuery}
-                onChange={(event) => setRunnerQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    focusRunnerSearch();
-                  }
-                }}
-              />
-            </div>
           </div>
 
           <div className="topbar-actions live-topbar-actions">
