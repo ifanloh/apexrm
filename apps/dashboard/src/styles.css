@@ -7277,6 +7277,53 @@ body {
   overflow: hidden;
 }
 
+.organizer-participant-import-shell {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.organizer-import-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.organizer-template-actions,
+.organizer-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.organizer-import-status {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.organizer-import-note {
+  background: rgba(255, 248, 235, 0.92);
+  border: 1px solid rgba(225, 183, 76, 0.22);
+  border-radius: 14px;
+  color: #604723;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.85rem 1rem;
+}
+
+.organizer-import-note p {
+  margin: 0;
+}
+
+.organizer-import-note code {
+  background: rgba(255, 255, 255, 0.76);
+  border-radius: 8px;
+  color: #8d4e1c;
+  padding: 0.08rem 0.38rem;
+}
+
 .organizer-import-head,
 .organizer-import-row {
   display: grid;

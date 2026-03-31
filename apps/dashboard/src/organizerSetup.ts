@@ -1,5 +1,6 @@
 import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { getDemoCourseForRace, type DemoCourse, type DemoCourseCheckpoint } from "./demoCourseVariants";
+import * as XLSX from "xlsx";
 
 export const ORGANIZER_SETUP_STORAGE_KEY = "trailnesia:organizer-setup";
 
@@ -82,6 +83,54 @@ export type ParticipantImportPreview = {
   duplicateBibs: number;
   sampleErrors: string[];
 };
+
+const PARTICIPANT_TEMPLATE_HEADERS = ["bib", "name", "gender", "country", "club"];
+const PARTICIPANT_TEMPLATE_SAMPLE_ROWS = [
+  ["", "", "", "", ""],
+  ["", "", "", "", ""]
+];
+
+export function createParticipantImportTemplateCsv() {
+  return [PARTICIPANT_TEMPLATE_HEADERS.join(","), ...PARTICIPANT_TEMPLATE_SAMPLE_ROWS.map((row) => row.join(","))].join("\n");
+}
+
+export function createParticipantImportTemplateWorkbook() {
+  const worksheet = XLSX.utils.aoa_to_sheet([PARTICIPANT_TEMPLATE_HEADERS, ...PARTICIPANT_TEMPLATE_SAMPLE_ROWS]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Participants");
+  return workbook;
+}
+
+export async function parseParticipantImportFile(file: File) {
+  const lowerName = file.name.toLowerCase();
+
+  if (lowerName.endsWith(".csv") || lowerName.endsWith(".tsv") || lowerName.endsWith(".txt")) {
+    const text = await file.text();
+    return {
+      text,
+      fileName: file.name
+    };
+  }
+
+  if (lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
+    const firstSheet = firstSheetName ? workbook.Sheets[firstSheetName] : null;
+
+    if (!firstSheet) {
+      return null;
+    }
+
+    const text = XLSX.utils.sheet_to_csv(firstSheet);
+    return {
+      text,
+      fileName: file.name
+    };
+  }
+
+  return null;
+}
 
 export function createOrganizerInviteCode(raceSlug: string, seed = Date.now()) {
   const slugToken = raceSlug

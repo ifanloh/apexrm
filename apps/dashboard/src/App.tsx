@@ -41,6 +41,7 @@ import {
   loadOrganizerSetup,
   ORGANIZER_SETUP_STORAGE_KEY,
   parseOrganizerGpxFile,
+  parseParticipantImportFile,
   parseParticipantImportRows,
   parseParticipantImportText,
   type OrganizerBrandingDraft,
@@ -898,6 +899,7 @@ export default function App() {
   const [organizerWorkspaceView, setOrganizerWorkspaceView] = useState<OrganizerWorkspaceView>("spectator");
   const [organizerSetup, setOrganizerSetup] = useState(() => loadOrganizerSetup());
   const [organizerImportText, setOrganizerImportText] = useState("");
+  const [organizerImportFileName, setOrganizerImportFileName] = useState<string | null>(null);
   const [organizerSetupRaceSlug, setOrganizerSetupRaceSlug] = useState<string>(createDefaultOrganizerSetup().races[0]?.slug ?? "");
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
@@ -2615,9 +2617,35 @@ export default function App() {
           : {
               ...race,
               participants: importedRows
-            }
+          }
       )
     }));
+  }
+
+  async function handleOrganizerParticipantFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const parsed = await parseParticipantImportFile(file).catch(() => null);
+
+    if (!parsed) {
+      setOrganizerImportText("");
+      setOrganizerImportFileName(file.name);
+      event.target.value = "";
+      return;
+    }
+
+    setOrganizerImportText(parsed.text);
+    setOrganizerImportFileName(parsed.fileName);
+    event.target.value = "";
+  }
+
+  function clearOrganizerImportDraft() {
+    setOrganizerImportText("");
+    setOrganizerImportFileName(null);
   }
 
   async function handleOrganizerEventLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -2951,6 +2979,7 @@ export default function App() {
             checkpoints={organizerCheckpointDraft}
             crewAssignments={organizerSelectedRace?.crewAssignments ?? []}
             duplicates={duplicates}
+            importFileName={organizerImportFileName}
             importPreview={organizerImportPreview}
             importText={organizerImportText}
             leaderboards={leaderboards}
@@ -2966,8 +2995,9 @@ export default function App() {
             onCrewAssignmentChange={updateOrganizerCrewAssignment}
             onEventLogoChange={handleOrganizerEventLogoChange}
             onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
+            onImportFileChange={handleOrganizerParticipantFileChange}
+            onClearImport={clearOrganizerImportDraft}
             onGpxChange={handleOrganizerGpxChange}
-            onImportTextChange={setOrganizerImportText}
             onRegenerateCrewInvite={regenerateOrganizerCrewInvite}
             onToggleRacePublish={toggleOrganizerRacePublish}
             onRemoveCheckpoint={removeOrganizerCheckpoint}

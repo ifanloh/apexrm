@@ -1,6 +1,14 @@
 import { useState, type ChangeEvent } from "react";
 import type { DemoCourseCheckpoint } from "./demoCourseVariants";
-import type { OrganizerBrandingDraft, OrganizerCrewAssignmentDraft, OrganizerRaceDraft, ParticipantImportPreview } from "./organizerSetup";
+import * as XLSX from "xlsx";
+import {
+  createParticipantImportTemplateCsv,
+  createParticipantImportTemplateWorkbook,
+  type OrganizerBrandingDraft,
+  type OrganizerCrewAssignmentDraft,
+  type OrganizerRaceDraft,
+  type ParticipantImportPreview
+} from "./organizerSetup";
 import type { CheckpointLeaderboard, DuplicateScan, NotificationEvent } from "@arm/contracts";
 
 type OrganizerConsoleProps = {
@@ -15,6 +23,7 @@ type OrganizerConsoleProps = {
   notifications: NotificationEvent[];
   liveModeLabel: string;
   opsUpdatedAt: string | null;
+  importFileName: string | null;
   importPreview: ParticipantImportPreview;
   importText: string;
   onBackToSpectator: () => void;
@@ -23,7 +32,8 @@ type OrganizerConsoleProps = {
   onAddRace: () => void;
   onRemoveRace: (slug: string) => void;
   onSelectRace: (slug: string) => void;
-  onImportTextChange: (value: string) => void;
+  onImportFileChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onClearImport: () => void;
   onApplyImport: () => void;
   onToggleRacePublish: (slug: string, nextPublished: boolean) => void;
   onCheckpointChange: (checkpointId: string, patch: Partial<DemoCourseCheckpoint>) => void;
@@ -52,6 +62,7 @@ export function OrganizerConsole({
   notifications,
   liveModeLabel,
   opsUpdatedAt,
+  importFileName,
   importPreview,
   importText,
   onBackToSpectator,
@@ -60,7 +71,8 @@ export function OrganizerConsole({
   onAddRace,
   onRemoveRace,
   onSelectRace,
-  onImportTextChange,
+  onImportFileChange,
+  onClearImport,
   onApplyImport,
   onToggleRacePublish,
   onCheckpointChange,
@@ -253,6 +265,24 @@ export function OrganizerConsole({
         ? "No race category published yet"
         : "Edition still needs setup";
   const primaryBlocker = topBlockers[0] ?? null;
+
+  function downloadParticipantTemplate(kind: "csv" | "xlsx") {
+    const blob =
+      kind === "csv"
+        ? new Blob([createParticipantImportTemplateCsv()], { type: "text/csv;charset=utf-8;" })
+        : new Blob([XLSX.write(createParticipantImportTemplateWorkbook(), { type: "array", bookType: "xlsx" })], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          });
+    const fileName = kind === "csv" ? "trailnesia-participants-template.csv" : "trailnesia-participants-template.xlsx";
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }
 
   function handleInspectRace(slug: string) {
     onSelectRace(slug);
@@ -1089,51 +1119,76 @@ export function OrganizerConsole({
           <div className="panel-head compact">
             <div>
               <p className="section-label">Participant Import</p>
-              <h3>CSV draft preview</h3>
+              <h3>Upload CSV or Excel roster</h3>
             </div>
           </div>
 
-          <label className="organizer-field organizer-field-wide">
-            <span>Paste CSV/TSV rows</span>
-            <textarea
-              rows={8}
-              placeholder={"bib,name,gender,country,club\nM116,Arif Nugroho,men,ID,Tropic Alpine Club"}
-              value={importText}
-              onChange={(event) => onImportTextChange(event.target.value)}
-            />
-          </label>
+          <div className="organizer-participant-import-shell">
+            <div className="organizer-import-toolbar">
+              <div className="organizer-template-actions">
+                <button className="toolbar-link organizer-secondary-action" onClick={() => downloadParticipantTemplate("csv")} type="button">
+                  Download CSV template
+                </button>
+                <button className="toolbar-link organizer-secondary-action" onClick={() => downloadParticipantTemplate("xlsx")} type="button">
+                  Download Excel template
+                </button>
+              </div>
+              <div className="organizer-import-actions">
+                <label className="toolbar-link organizer-file-trigger">
+                  Upload CSV / Excel
+                  <input
+                    accept=".csv,.tsv,.txt,.xlsx,.xls"
+                    hidden
+                    onChange={onImportFileChange}
+                    type="file"
+                  />
+                </label>
+                <button className="toolbar-link organizer-secondary-action" disabled={!importText.trim().length} onClick={onClearImport} type="button">
+                  Clear draft
+                </button>
+              </div>
+            </div>
 
-          <div className="panel-badge compact-badge">
-            <span>Preview rows</span>
-            <strong>{importPreview.totalRows}</strong>
-            <span>entries</span>
+            <div className="organizer-import-status">
+              <div className="panel-badge compact-badge">
+                <span>Uploaded file</span>
+                <strong>{importFileName ?? "No file yet"}</strong>
+                <span>{importText.trim().length ? "parsed for preview" : "upload csv or excel"}</span>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>Preview rows</span>
+                <strong>{importPreview.totalRows}</strong>
+                <span>entries</span>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>Valid</span>
+                <strong>{importPreview.validRows}</strong>
+                <span>ready to apply</span>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>Invalid</span>
+                <strong>{importPreview.invalidRows}</strong>
+                <span>rows skipped</span>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>Duplicate BIB</span>
+                <strong>{importPreview.duplicateBibs}</strong>
+                <span>ignored in import</span>
+              </div>
+              <div className="panel-badge compact-badge">
+                <span>Applied to race</span>
+                <strong>{selectedRace?.participants.length ?? 0}</strong>
+                <span>participants</span>
+              </div>
+            </div>
+
+            <div className="organizer-import-note">
+              <strong>Template columns</strong>
+              <p>Use exactly: <code>bib</code>, <code>name</code>, <code>gender</code>, <code>country</code>, <code>club</code>.</p>
+            </div>
           </div>
 
-          <div className="panel-badge compact-badge">
-            <span>Valid</span>
-            <strong>{importPreview.validRows}</strong>
-            <span>ready to apply</span>
-          </div>
-
-          <div className="panel-badge compact-badge">
-            <span>Invalid</span>
-            <strong>{importPreview.invalidRows}</strong>
-            <span>rows skipped</span>
-          </div>
-
-          <div className="panel-badge compact-badge">
-            <span>Duplicate BIB</span>
-            <strong>{importPreview.duplicateBibs}</strong>
-            <span>ignored in import</span>
-          </div>
-
-          <div className="panel-badge compact-badge">
-            <span>Applied to race</span>
-            <strong>{selectedRace?.participants.length ?? 0}</strong>
-            <span>participants</span>
-          </div>
-
-          <button className="toolbar-link organizer-apply-button" onClick={onApplyImport} type="button">
+          <button className="toolbar-link organizer-apply-button" disabled={!importPreview.validRows} onClick={onApplyImport} type="button">
             Apply valid rows to selected race
           </button>
 
