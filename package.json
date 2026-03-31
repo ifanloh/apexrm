@@ -22,5 +22,8 @@
     "dev:api": "npm --workspace @arm/api run dev",
     "dev:scanner": "npm --workspace @arm/scanner run dev",
     "dev:dashboard": "npm --workspace @arm/dashboard run dev"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.2"
   }
 }

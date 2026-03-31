@@ -91,7 +91,18 @@ async function runOrganizerBrowserChecks() {
   }
 
   const { chromium } = playwright;
-  const browser = await chromium.launch({ headless: true });
+  let browser;
+
+  try {
+    browser = await chromium.launch({ headless: true });
+  } catch (error) {
+    skipStep(
+      "organizer browser login flow",
+      error instanceof Error ? `Chromium browser is unavailable: ${error.message}` : "Chromium browser is unavailable"
+    );
+    return;
+  }
+
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 
   try {
