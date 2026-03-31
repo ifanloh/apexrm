@@ -66,7 +66,7 @@ export type OrganizerCrewAssignmentDraft = {
   id: string;
   name: string;
   email: string;
-  role: "lead" | "scan" | "support";
+  role: "scan";
   checkpointId: string;
   deviceLabel: string;
   status: "invited" | "accepted" | "active" | "standby";
@@ -148,6 +148,23 @@ export function createOrganizerInviteCode(raceSlug: string, seed = Date.now()) {
   return `${slugToken || "CREW"}-${serial}`;
 }
 
+function normalizeOrganizerCrewAssignment(
+  raceSlug: string,
+  crew: Partial<OrganizerCrewAssignmentDraft>,
+  index: number
+): OrganizerCrewAssignmentDraft {
+  return {
+    id: crew.id || `${raceSlug}-crew-${index + 1}`,
+    name: crew.name || `Crew ${index + 1}`,
+    email: crew.email || "",
+    role: "scan",
+    checkpointId: crew.checkpointId || "cp-start",
+    deviceLabel: crew.deviceLabel || "",
+    status: crew.status ?? "invited",
+    inviteCode: crew.inviteCode || createOrganizerInviteCode(raceSlug, index + 1)
+  };
+}
+
 export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerRaceDraft {
   const course = getDemoCourseForRace(race);
   return {
@@ -190,7 +207,7 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
         id: `${race.slug}-crew-finish`,
         name: "Crew Finish",
         email: `finish.${race.slug}@trailnesia.local`,
-        role: "lead",
+        role: "scan",
         checkpointId: "finish",
         deviceLabel: "iPad Finish",
         status: "accepted",
@@ -283,22 +300,21 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
       },
       races: [
         ...fallback.races.map((race) => {
-        const override = parsed?.races?.find((item) => item.slug === race.slug);
-        return {
-          ...race,
-          ...(override ?? {}),
-          waypoints: Array.isArray(override?.waypoints) && override.waypoints.length ? override.waypoints : race.waypoints,
-          profilePoints: Array.isArray(override?.profilePoints) && override.profilePoints.length ? override.profilePoints : race.profilePoints,
-          checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
-          participants: Array.isArray(override?.participants) ? override.participants : race.participants,
-          crewAssignments: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.crewAssignments)
-            ? ((((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as OrganizerCrewAssignmentDraft[]).map((crew, index) => ({
-                ...crew,
-                inviteCode: crew.inviteCode || createOrganizerInviteCode(race.slug, index + 1)
-              })))
-            : race.crewAssignments
-        };
-      }),
+          const override = parsed?.races?.find((item) => item.slug === race.slug);
+          return {
+            ...race,
+            ...(override ?? {}),
+            waypoints: Array.isArray(override?.waypoints) && override.waypoints.length ? override.waypoints : race.waypoints,
+            profilePoints: Array.isArray(override?.profilePoints) && override.profilePoints.length ? override.profilePoints : race.profilePoints,
+            checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
+            participants: Array.isArray(override?.participants) ? override.participants : race.participants,
+            crewAssignments: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.crewAssignments)
+              ? (((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as Partial<OrganizerCrewAssignmentDraft>[]).map((crew, index) =>
+                  normalizeOrganizerCrewAssignment(race.slug, crew, index)
+                )
+              : race.crewAssignments
+          };
+        }),
         ...(parsed?.races ?? [])
           .filter((race) => race.slug && !fallback.races.some((fallbackRace) => fallbackRace.slug === race.slug))
           .map((race) => ({
@@ -312,10 +328,9 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
             checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(fallback.races.length + 1).checkpoints,
             participants: Array.isArray(race.participants) ? race.participants : [],
             crewAssignments: Array.isArray(race.crewAssignments)
-              ? race.crewAssignments.map((crew, index) => ({
-                  ...crew,
-                  inviteCode: crew.inviteCode || createOrganizerInviteCode(String(race.slug || "CREW"), index + 1)
-                }))
+              ? race.crewAssignments.map((crew, index) =>
+                  normalizeOrganizerCrewAssignment(String(race.slug || "CREW"), crew, index)
+                )
               : []
           }))
       ]

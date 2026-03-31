@@ -124,7 +124,7 @@ export function OrganizerConsole({
       view: "crew",
       title: "Assign crew & devices",
       shortLabel: "Crew",
-      description: "Cover every checkpoint with field crew and provision devices."
+      description: "Cover every checkpoint with scan crew and provision devices."
     },
     {
       view: "overview",
@@ -174,16 +174,16 @@ export function OrganizerConsole({
   const liveActiveCheckpointCount = selectedRaceBoards.filter((board) => board.totalOfficialScans > 0).length;
   const raceDayDuplicates = duplicates.slice(0, 4);
   const raceDayNotifications = notifications.slice(0, 4);
-  const fieldCrewAssignments = crewAssignments.filter((crew) => crew.role === "lead" || crew.role === "scan");
-  const pendingInviteFieldCrew = fieldCrewAssignments.filter((crew) => crew.status === "invited").length;
-  const missingDeviceFieldCrew = fieldCrewAssignments.filter((crew) => !crew.deviceLabel.trim().length).length;
-  const activatableFieldCrew = fieldCrewAssignments.filter((crew) => crew.status === "accepted" && crew.deviceLabel.trim().length > 0).length;
-  const provisionedCrewCount = fieldCrewAssignments.filter((crew) => crew.deviceLabel.trim().length > 0).length;
-  const readyDeviceCrewCount = fieldCrewAssignments.filter(
+  const scanCrewAssignments = crewAssignments;
+  const pendingInviteFieldCrew = scanCrewAssignments.filter((crew) => crew.status === "invited").length;
+  const missingDeviceFieldCrew = scanCrewAssignments.filter((crew) => !crew.deviceLabel.trim().length).length;
+  const activatableFieldCrew = scanCrewAssignments.filter((crew) => crew.status === "accepted" && crew.deviceLabel.trim().length > 0).length;
+  const provisionedCrewCount = scanCrewAssignments.filter((crew) => crew.deviceLabel.trim().length > 0).length;
+  const readyDeviceCrewCount = scanCrewAssignments.filter(
     (crew) => crew.deviceLabel.trim().length > 0 && (crew.status === "accepted" || crew.status === "active")
   ).length;
   const checkpointProvisioning = checkpoints.map((checkpoint) => {
-    const assignedFieldCrew = fieldCrewAssignments.filter((crew) => crew.checkpointId === checkpoint.id);
+    const assignedFieldCrew = scanCrewAssignments.filter((crew) => crew.checkpointId === checkpoint.id);
     const readyAssignedCrew = assignedFieldCrew.filter(
       (crew) => crew.deviceLabel.trim().length > 0 && (crew.status === "accepted" || crew.status === "active")
     );
@@ -198,7 +198,7 @@ export function OrganizerConsole({
   const readyCheckpointProvisionCount = checkpointProvisioning.filter((item) => item.ready).length;
   const checkpointAudit = checkpoints.map((checkpoint) => {
     const assignedCrew = crewAssignments.filter((crew) => crew.checkpointId === checkpoint.id);
-    const fieldCrew = assignedCrew.filter((crew) => crew.role === "lead" || crew.role === "scan");
+    const fieldCrew = assignedCrew;
     const acceptedFieldCrew = fieldCrew.filter((crew) => crew.status === "accepted" || crew.status === "active");
     const provisionedFieldCrew = fieldCrew.filter((crew) => crew.deviceLabel.trim().length > 0);
     const blockers: string[] = [];
@@ -208,11 +208,11 @@ export function OrganizerConsole({
     }
 
     if (fieldCrew.length === 0) {
-      blockers.push("No lead/scan crew");
+      blockers.push("No scan crew");
     }
 
     if (fieldCrew.length > 0 && acceptedFieldCrew.length < fieldCrew.length) {
-      blockers.push("Field crew not accepted");
+      blockers.push("Scan crew not accepted");
     }
 
     if (fieldCrew.length > 0 && provisionedFieldCrew.length < fieldCrew.length) {
@@ -246,7 +246,7 @@ export function OrganizerConsole({
     invited: crewAssignments.filter((crew) => crew.status === "invited").length
   };
   const raceReadiness = races.map((race) => {
-    const fieldCrew = race.crewAssignments.filter((crew) => crew.role === "lead" || crew.role === "scan");
+    const fieldCrew = race.crewAssignments;
     const acceptedFieldCrew = fieldCrew.filter((crew) => crew.status === "accepted" || crew.status === "active");
     const provisionedFieldCrew = fieldCrew.filter((crew) => crew.deviceLabel.trim().length > 0);
     const checks = [
@@ -279,7 +279,7 @@ export function OrganizerConsole({
         pass: race.crewAssignments.length > 0
       },
       {
-        label: "Field crew accepted",
+        label: "Scan crew accepted",
         pass: fieldCrew.length > 0 && acceptedFieldCrew.length === fieldCrew.length
       },
       {
@@ -862,9 +862,9 @@ export function OrganizerConsole({
                     <span>course plan</span>
                   </div>
                   <div className="panel-badge compact-badge">
-                    <span>Assigned crew</span>
+                    <span>Assigned scan crew</span>
                     <strong>{selectedRace.crewAssignments.length}</strong>
-                    <span>lead, scan, support</span>
+                    <span>checkpoint scanning team</span>
                   </div>
                 </div>
 
@@ -1067,7 +1067,7 @@ export function OrganizerConsole({
               <div className="panel-badge compact-badge">
                 <span>Ready devices</span>
                 <strong>{readyDeviceCrewCount}</strong>
-                <span>of {fieldCrewAssignments.length} field crew</span>
+                <span>of {scanCrewAssignments.length} scan crew</span>
               </div>
               <div className="panel-badge compact-badge">
                 <span>Pending invites</span>
@@ -1108,14 +1108,14 @@ export function OrganizerConsole({
                       </div>
                       <div className="organizer-checkpoint-ops-stats">
                         <span>{assignedCrew.length ? `${assignedCrew.length} crew assigned` : "No crew assigned"}</span>
-                        <span>{fieldCrew.length ? `${acceptedFieldCrew.length}/${fieldCrew.length} field crew accepted` : "No lead/scan crew"}</span>
-                        <span>{fieldCrew.length ? `${provisionedFieldCrew.length}/${fieldCrew.length} devices provisioned` : "No device requirement yet"}</span>
+                        <span>{fieldCrew.length ? `${acceptedFieldCrew.length}/${fieldCrew.length} scan crew accepted` : "No scan crew"}</span>
+                        <span>{fieldCrew.length ? `${provisionedFieldCrew.length}/${fieldCrew.length} devices provisioned` : "No scan device provisioned yet"}</span>
                         <span>{provisioning?.ready ? "Checkpoint device ready" : "Checkpoint device pending"}</span>
                       </div>
                       <div className="organizer-checkpoint-ops-meta">
                         <small>
                           {assignedCrew.length
-                            ? assignedCrew.map((crew) => `${crew.name} (${crew.role}, ${crew.status})`).join(", ")
+                            ? assignedCrew.map((crew) => `${crew.name} (${crew.status})`).join(", ")
                             : "No assignment yet"}
                         </small>
                         <div className="organizer-audit-tags">
@@ -1140,7 +1140,7 @@ export function OrganizerConsole({
               <div className="organizer-subsection-head">
                 <div>
                   <p className="section-label">Crew roster</p>
-                  <h4>Assign checkpoint, invite, and activate devices</h4>
+                  <h4>Assign scan crew, invite, and activate devices</h4>
                 </div>
               </div>
 
@@ -1154,14 +1154,6 @@ export function OrganizerConsole({
                 <label className="organizer-field organizer-field-wide">
                   <span>Email</span>
                   <input value={crew.email} onChange={(event) => onCrewAssignmentChange(crew.id, { email: event.target.value })} />
-                </label>
-                <label className="organizer-field">
-                  <span>Role</span>
-                  <select value={crew.role} onChange={(event) => onCrewAssignmentChange(crew.id, { role: event.target.value as OrganizerCrewAssignmentDraft["role"] })}>
-                    <option value="lead">Lead</option>
-                    <option value="scan">Scan</option>
-                    <option value="support">Support</option>
-                  </select>
                 </label>
                 <label className="organizer-field">
                   <span>Checkpoint</span>
