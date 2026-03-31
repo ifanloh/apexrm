@@ -6845,6 +6845,91 @@ body {
   font-weight: 700;
 }
 
+.organizer-audit-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.organizer-audit-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.95rem;
+}
+
+.organizer-audit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 18px;
+  border: 1px solid rgba(225, 183, 76, 0.22);
+  background: rgba(255, 252, 245, 0.86);
+}
+
+.organizer-audit-row.ready {
+  border-color: rgba(42, 133, 86, 0.2);
+}
+
+.organizer-audit-row.attention {
+  border-color: rgba(183, 120, 23, 0.22);
+}
+
+.organizer-audit-row.blocked {
+  border-color: rgba(191, 72, 39, 0.18);
+}
+
+.organizer-audit-row p {
+  margin: 0.2rem 0 0;
+  color: #8d6a2a;
+  font-size: 0.85rem;
+}
+
+.organizer-audit-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+}
+
+.organizer-audit-meta small {
+  color: #604723;
+  text-align: right;
+}
+
+.organizer-audit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.organizer-audit-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.organizer-audit-tag.ready {
+  background: rgba(42, 133, 86, 0.1);
+  color: #1f6f49;
+}
+
+.organizer-audit-tag.attention {
+  background: rgba(183, 120, 23, 0.14);
+  color: #98620f;
+}
+
+.organizer-audit-tag.blocked {
+  background: rgba(191, 72, 39, 0.11);
+  color: #a34d1f;
+}
+
 .organizer-crew-row {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) repeat(4, minmax(0, 0.8fr)) minmax(220px, 1.2fr) auto;
@@ -7000,6 +7085,27 @@ body {
   .organizer-form-grid.compact,
   .organizer-crew-row {
     grid-template-columns: 1fr;
+  }
+
+  .organizer-coverage-row,
+  .organizer-provisioning-row,
+  .organizer-audit-row,
+  .organizer-validation-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .organizer-coverage-meta,
+  .organizer-provisioning-meta,
+  .organizer-audit-meta,
+  .organizer-validation-meta {
+    justify-items: start;
+  }
+
+  .organizer-provisioning-tags,
+  .organizer-audit-tags,
+  .organizer-validation-tags {
+    justify-content: flex-start;
   }
 }
 

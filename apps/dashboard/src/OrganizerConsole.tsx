@@ -113,6 +113,49 @@ export function OrganizerConsole({
     };
   });
   const readyCheckpointProvisionCount = checkpointProvisioning.filter((item) => item.ready).length;
+  const checkpointAudit = checkpoints.map((checkpoint) => {
+    const assignedCrew = crewAssignments.filter((crew) => crew.checkpointId === checkpoint.id);
+    const fieldCrew = assignedCrew.filter((crew) => crew.role === "lead" || crew.role === "scan");
+    const acceptedFieldCrew = fieldCrew.filter((crew) => crew.status === "accepted" || crew.status === "active");
+    const provisionedFieldCrew = fieldCrew.filter((crew) => crew.deviceLabel.trim().length > 0);
+    const blockers: string[] = [];
+
+    if (assignedCrew.length === 0) {
+      blockers.push("No crew assigned");
+    }
+
+    if (fieldCrew.length === 0) {
+      blockers.push("No lead/scan crew");
+    }
+
+    if (fieldCrew.length > 0 && acceptedFieldCrew.length < fieldCrew.length) {
+      blockers.push("Field crew not accepted");
+    }
+
+    if (fieldCrew.length > 0 && provisionedFieldCrew.length < fieldCrew.length) {
+      blockers.push("Devices not provisioned");
+    }
+
+    let level: "ready" | "attention" | "blocked" = "ready";
+    if (blockers.length > 0) {
+      level = assignedCrew.length === 0 || fieldCrew.length === 0 ? "blocked" : "attention";
+    }
+
+    return {
+      checkpoint,
+      assignedCrew,
+      fieldCrew,
+      acceptedFieldCrew,
+      provisionedFieldCrew,
+      blockers,
+      level
+    };
+  });
+  const checkpointAuditSummary = {
+    ready: checkpointAudit.filter((item) => item.level === "ready").length,
+    attention: checkpointAudit.filter((item) => item.level === "attention").length,
+    blocked: checkpointAudit.filter((item) => item.level === "blocked").length
+  };
   const crewStatusSummary = {
     active: crewAssignments.filter((crew) => crew.status === "active").length,
     accepted: crewAssignments.filter((crew) => crew.status === "accepted").length,
@@ -807,6 +850,65 @@ export function OrganizerConsole({
                       ))}
                     </div>
                   ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="panel-head compact organizer-subpanel-head">
+            <div>
+              <p className="section-label">Checkpoint Audit</p>
+              <h3>Crew and device readiness by checkpoint</h3>
+            </div>
+          </div>
+
+          <div className="organizer-audit-summary">
+            <div className="panel-badge compact-badge">
+              <span>Ready checkpoints</span>
+              <strong>{checkpointAuditSummary.ready}</strong>
+              <span>fully operational</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Need attention</span>
+              <strong>{checkpointAuditSummary.attention}</strong>
+              <span>crew or device gap</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Blocked</span>
+              <strong>{checkpointAuditSummary.blocked}</strong>
+              <span>cannot open yet</span>
+            </div>
+          </div>
+
+          <div className="organizer-audit-list">
+            {checkpointAudit.map(({ checkpoint, assignedCrew, fieldCrew, acceptedFieldCrew, provisionedFieldCrew, blockers, level }) => (
+              <article className={`organizer-audit-row ${level}`} key={`audit-${checkpoint.id}`}>
+                <div>
+                  <strong>
+                    {checkpoint.code} - {checkpoint.name}
+                  </strong>
+                  <p>{checkpoint.kmMarker.toFixed(1)} km marker</p>
+                </div>
+                <div className="organizer-audit-meta">
+                  <span className={`organizer-readiness-pill ${level === "ready" ? "ready" : "draft"}`}>
+                    {level === "ready" ? "Ready" : level === "attention" ? "Attention" : "Blocked"}
+                  </span>
+                  <small>
+                    {assignedCrew.length
+                      ? `${assignedCrew.length} crew | ${acceptedFieldCrew.length}/${fieldCrew.length || 0} accepted | ${provisionedFieldCrew.length}/${fieldCrew.length || 0} provisioned`
+                      : "No assignment yet"}
+                  </small>
+                  <div className="organizer-audit-tags">
+                    {blockers.length ? (
+                      blockers.map((blocker) => (
+                        <span className={`organizer-audit-tag ${level}`} key={`${checkpoint.id}-${blocker}`}>
+                          {blocker}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="organizer-audit-tag ready">Crew and device flow complete</span>
+                    )}
+                  </div>
                 </div>
               </article>
             ))}
