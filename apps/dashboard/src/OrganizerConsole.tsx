@@ -74,6 +74,9 @@ export function OrganizerConsole({
   const coveredCheckpointCount = checkpointCoverage.filter((item) => item.covered).length;
   const uncoveredCheckpointCount = checkpointCoverage.length - coveredCheckpointCount;
   const fieldCrewAssignments = crewAssignments.filter((crew) => crew.role === "lead" || crew.role === "scan");
+  const pendingInviteFieldCrew = fieldCrewAssignments.filter((crew) => crew.status === "invited").length;
+  const missingDeviceFieldCrew = fieldCrewAssignments.filter((crew) => !crew.deviceLabel.trim().length).length;
+  const activatableFieldCrew = fieldCrewAssignments.filter((crew) => crew.status === "accepted" && crew.deviceLabel.trim().length > 0).length;
   const provisionedCrewCount = fieldCrewAssignments.filter((crew) => crew.deviceLabel.trim().length > 0).length;
   const readyDeviceCrewCount = fieldCrewAssignments.filter(
     (crew) => crew.deviceLabel.trim().length > 0 && (crew.status === "accepted" || crew.status === "active")
@@ -585,6 +588,21 @@ export function OrganizerConsole({
               <strong>{readyCheckpointProvisionCount}</strong>
               <span>of {checkpointProvisioning.length}</span>
             </div>
+            <div className="panel-badge compact-badge">
+              <span>Pending invites</span>
+              <strong>{pendingInviteFieldCrew}</strong>
+              <span>awaiting acceptance</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Missing devices</span>
+              <strong>{missingDeviceFieldCrew}</strong>
+              <span>need provisioning</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Ready to activate</span>
+              <strong>{activatableFieldCrew}</strong>
+              <span>accepted + provisioned</span>
+            </div>
           </div>
 
           <div className="organizer-provisioning-list">
@@ -665,6 +683,47 @@ export function OrganizerConsole({
                   <span>Invite</span>
                   <strong>{crew.inviteCode}</strong>
                   <small>{`trailnesia://crew/invite/${crew.inviteCode}`}</small>
+                  <div className="organizer-crew-workflow">
+                    {crew.status === "invited" ? (
+                      <button
+                        className="toolbar-link organizer-secondary-action"
+                        onClick={() => onCrewAssignmentChange(crew.id, { status: "accepted" })}
+                        type="button"
+                      >
+                        Mark accepted
+                      </button>
+                    ) : null}
+                    {crew.status === "accepted" && crew.deviceLabel.trim().length > 0 ? (
+                      <button
+                        className="toolbar-link organizer-secondary-action"
+                        onClick={() => onCrewAssignmentChange(crew.id, { status: "active" })}
+                        type="button"
+                      >
+                        Activate device
+                      </button>
+                    ) : null}
+                    {crew.status === "accepted" && !crew.deviceLabel.trim().length ? (
+                      <small className="organizer-crew-workflow-note">Add device label to activate this crew.</small>
+                    ) : null}
+                    {crew.status === "active" ? (
+                      <button
+                        className="toolbar-link organizer-secondary-action"
+                        onClick={() => onCrewAssignmentChange(crew.id, { status: "standby" })}
+                        type="button"
+                      >
+                        Set standby
+                      </button>
+                    ) : null}
+                    {crew.status === "standby" && crew.deviceLabel.trim().length > 0 ? (
+                      <button
+                        className="toolbar-link organizer-secondary-action"
+                        onClick={() => onCrewAssignmentChange(crew.id, { status: "active" })}
+                        type="button"
+                      >
+                        Reactivate
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="organizer-checkpoint-actions">
                   <button className="toolbar-link organizer-secondary-action" onClick={() => onRegenerateCrewInvite(crew.id)} type="button">

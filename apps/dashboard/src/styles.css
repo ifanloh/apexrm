@@ -6790,6 +6790,19 @@ body {
   word-break: break-all;
 }
 
+.organizer-crew-workflow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
+}
+
+.organizer-crew-workflow-note {
+  color: #8d6a2a;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
 .organizer-checkpoint-row {
   display: flex;
   align-items: center;
