@@ -6628,6 +6628,55 @@ body {
   gap: 0.75rem;
 }
 
+.organizer-coverage-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.organizer-coverage-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.organizer-coverage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 18px;
+  border: 1px solid rgba(225, 183, 76, 0.22);
+  background: rgba(255, 252, 245, 0.86);
+}
+
+.organizer-coverage-row.covered {
+  border-color: rgba(42, 133, 86, 0.2);
+}
+
+.organizer-coverage-row.uncovered {
+  border-color: rgba(191, 72, 39, 0.18);
+}
+
+.organizer-coverage-row p {
+  margin: 0.2rem 0 0;
+  color: #8d6a2a;
+  font-size: 0.85rem;
+}
+
+.organizer-coverage-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
+}
+
+.organizer-coverage-meta small {
+  color: #604723;
+  text-align: right;
+}
+
 .organizer-crew-row {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr)) auto;

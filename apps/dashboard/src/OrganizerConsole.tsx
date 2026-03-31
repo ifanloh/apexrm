@@ -60,6 +60,22 @@ export function OrganizerConsole({
   onGpxChange
 }: OrganizerConsoleProps) {
   const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
+  const checkpointCoverage = checkpoints.map((checkpoint) => {
+    const assignedCrew = crewAssignments.filter((crew) => crew.checkpointId === checkpoint.id);
+
+    return {
+      checkpoint,
+      assignedCrew,
+      covered: assignedCrew.length > 0
+    };
+  });
+  const coveredCheckpointCount = checkpointCoverage.filter((item) => item.covered).length;
+  const uncoveredCheckpointCount = checkpointCoverage.length - coveredCheckpointCount;
+  const crewStatusSummary = {
+    active: crewAssignments.filter((crew) => crew.status === "active").length,
+    standby: crewAssignments.filter((crew) => crew.status === "standby").length,
+    invited: crewAssignments.filter((crew) => crew.status === "invited").length
+  };
   const raceReadiness = races.map((race) => {
     const checks = [
       {
@@ -458,6 +474,50 @@ export function OrganizerConsole({
               ))}
             </select>
           </label>
+
+          <div className="organizer-coverage-summary">
+            <div className="panel-badge compact-badge">
+              <span>Covered checkpoints</span>
+              <strong>{coveredCheckpointCount}</strong>
+              <span>of {checkpointCoverage.length}</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Uncovered checkpoints</span>
+              <strong>{uncoveredCheckpointCount}</strong>
+              <span>need assignment</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Active crew</span>
+              <strong>{crewStatusSummary.active}</strong>
+              <span>ready on device</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Invited / standby</span>
+              <strong>{crewStatusSummary.invited + crewStatusSummary.standby}</strong>
+              <span>pending readiness</span>
+            </div>
+          </div>
+
+          <div className="organizer-coverage-list">
+            {checkpointCoverage.map(({ checkpoint, assignedCrew, covered }) => (
+              <article className={`organizer-coverage-row ${covered ? "covered" : "uncovered"}`} key={`coverage-${checkpoint.id}`}>
+                <div>
+                  <strong>
+                    {checkpoint.code} - {checkpoint.name}
+                  </strong>
+                  <p>{checkpoint.kmMarker.toFixed(1)} km marker</p>
+                </div>
+                <div className="organizer-coverage-meta">
+                  <span className={`organizer-readiness-pill ${covered ? "ready" : "draft"}`}>{covered ? "Covered" : "Uncovered"}</span>
+                  <small>
+                    {assignedCrew.length
+                      ? assignedCrew.map((crew) => `${crew.name} (${crew.role})`).join(", ")
+                      : "No crew assigned yet"}
+                  </small>
+                </div>
+              </article>
+            ))}
+          </div>
 
           <div className="organizer-crew-list">
             {crewAssignments.map((crew) => (
