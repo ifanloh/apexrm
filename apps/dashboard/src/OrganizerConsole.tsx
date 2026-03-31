@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
 import type { DemoCourseCheckpoint } from "./demoCourseVariants";
 import type { OrganizerBrandingDraft, OrganizerCrewAssignmentDraft, OrganizerRaceDraft, ParticipantImportPreview } from "./organizerSetup";
+import type { CheckpointLeaderboard, DuplicateScan, NotificationEvent } from "@arm/contracts";
 
 type OrganizerConsoleProps = {
   profileLabel: string;
@@ -9,6 +10,11 @@ type OrganizerConsoleProps = {
   selectedRaceSlug: string;
   checkpoints: DemoCourseCheckpoint[];
   crewAssignments: OrganizerCrewAssignmentDraft[];
+  leaderboards: CheckpointLeaderboard[];
+  duplicates: DuplicateScan[];
+  notifications: NotificationEvent[];
+  liveModeLabel: string;
+  opsUpdatedAt: string | null;
   importPreview: ParticipantImportPreview;
   importText: string;
   onBackToSpectator: () => void;
@@ -39,6 +45,11 @@ export function OrganizerConsole({
   selectedRaceSlug,
   checkpoints,
   crewAssignments,
+  leaderboards,
+  duplicates,
+  notifications,
+  liveModeLabel,
+  opsUpdatedAt,
   importPreview,
   importText,
   onBackToSpectator,
@@ -73,6 +84,13 @@ export function OrganizerConsole({
   });
   const coveredCheckpointCount = checkpointCoverage.filter((item) => item.covered).length;
   const uncoveredCheckpointCount = checkpointCoverage.length - coveredCheckpointCount;
+  const selectedCheckpointIds = new Set(checkpoints.map((checkpoint) => checkpoint.id));
+  const selectedRaceBoards = leaderboards
+    .filter((board) => selectedCheckpointIds.has(board.checkpointId))
+    .sort((left, right) => right.totalOfficialScans - left.totalOfficialScans);
+  const liveActiveCheckpointCount = selectedRaceBoards.filter((board) => board.totalOfficialScans > 0).length;
+  const raceDayDuplicates = duplicates.slice(0, 4);
+  const raceDayNotifications = notifications.slice(0, 4);
   const fieldCrewAssignments = crewAssignments.filter((crew) => crew.role === "lead" || crew.role === "scan");
   const pendingInviteFieldCrew = fieldCrewAssignments.filter((crew) => crew.status === "invited").length;
   const missingDeviceFieldCrew = fieldCrewAssignments.filter((crew) => !crew.deviceLabel.trim().length).length;
@@ -185,6 +203,113 @@ export function OrganizerConsole({
       </div>
 
       <div className="organizer-console-grid">
+        <article className="panel organizer-console-panel">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Race Day Ops</p>
+              <h3>Live operations snapshot</h3>
+            </div>
+          </div>
+
+          <div className="organizer-ops-summary">
+            <div className="panel-badge compact-badge">
+              <span>Live mode</span>
+              <strong>{liveModeLabel}</strong>
+              <span>{opsUpdatedAt ? `updated ${opsUpdatedAt}` : "waiting for sync"}</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Active checkpoints</span>
+              <strong>{liveActiveCheckpointCount}</strong>
+              <span>of {selectedRaceBoards.length}</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Duplicate audits</span>
+              <strong>{duplicates.length}</strong>
+              <span>event-wide feed</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Broadcast events</span>
+              <strong>{notifications.length}</strong>
+              <span>top-5 notifications</span>
+            </div>
+          </div>
+
+          <div className="organizer-ops-grid">
+            <section className="organizer-ops-card">
+              <div className="panel-head compact">
+                <div>
+                  <p className="section-label">Checkpoint load</p>
+                  <h3>Most active checkpoints</h3>
+                </div>
+              </div>
+              <div className="organizer-ops-list">
+                {selectedRaceBoards.slice(0, 5).map((board) => {
+                  const checkpoint = checkpoints.find((item) => item.id === board.checkpointId);
+
+                  return (
+                    <article className="organizer-ops-row" key={`ops-board-${board.checkpointId}`}>
+                      <div>
+                        <strong>{checkpoint ? `${checkpoint.code} - ${checkpoint.name}` : board.checkpointId}</strong>
+                        <p>{board.totalOfficialScans} official scans</p>
+                      </div>
+                      <span className={`organizer-readiness-pill ${board.totalOfficialScans > 0 ? "ready" : "draft"}`}>
+                        {board.totalOfficialScans > 0 ? "Active" : "Idle"}
+                      </span>
+                    </article>
+                  );
+                })}
+                {!selectedRaceBoards.length ? <div className="empty-compact">No live checkpoint board available yet for this race.</div> : null}
+              </div>
+            </section>
+
+            <section className="organizer-ops-card">
+              <div className="panel-head compact">
+                <div>
+                  <p className="section-label">Broadcasts</p>
+                  <h3>Latest top-5 notifications</h3>
+                </div>
+              </div>
+              <div className="organizer-ops-list">
+                {raceDayNotifications.map((notification) => (
+                  <article className="organizer-ops-row" key={notification.id}>
+                    <div>
+                      <strong>BIB {notification.bib}</strong>
+                      <p>
+                        {notification.checkpointId} | position #{notification.position}
+                      </p>
+                    </div>
+                    <small>{new Date(notification.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                  </article>
+                ))}
+                {!raceDayNotifications.length ? <div className="empty-compact">No top-5 broadcast has been emitted yet.</div> : null}
+              </div>
+            </section>
+
+            <section className="organizer-ops-card">
+              <div className="panel-head compact">
+                <div>
+                  <p className="section-label">Duplicate audit</p>
+                  <h3>Latest duplicate scans</h3>
+                </div>
+              </div>
+              <div className="organizer-ops-list">
+                {raceDayDuplicates.map((duplicate) => (
+                  <article className="organizer-ops-row" key={duplicate.clientScanId}>
+                    <div>
+                      <strong>BIB {duplicate.bib}</strong>
+                      <p>
+                        {duplicate.checkpointId} | first accepted {duplicate.firstAcceptedClientScanId}
+                      </p>
+                    </div>
+                    <small>{new Date(duplicate.serverReceivedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                  </article>
+                ))}
+                {!raceDayDuplicates.length ? <div className="empty-compact">No duplicate scan needs attention yet.</div> : null}
+              </div>
+            </section>
+          </div>
+        </article>
+
         <article className="panel organizer-console-panel">
           <div className="panel-head compact">
             <div>

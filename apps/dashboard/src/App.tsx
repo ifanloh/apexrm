@@ -2972,8 +2972,12 @@ export default function App() {
             branding={organizerSetup.branding}
             checkpoints={organizerCheckpointDraft}
             crewAssignments={organizerSelectedRace?.crewAssignments ?? []}
+            duplicates={duplicates}
             importPreview={organizerImportPreview}
             importText={organizerImportText}
+            leaderboards={leaderboards}
+            liveModeLabel={liveStatusLabel}
+            notifications={notifications}
             onAddRace={addOrganizerRace}
             onAddCheckpoint={addOrganizerCheckpoint}
             onAddCrewAssignment={addOrganizerCrewAssignment}
@@ -2991,6 +2995,7 @@ export default function App() {
             onRemoveCheckpoint={removeOrganizerCheckpoint}
             onRemoveCrewAssignment={removeOrganizerCrewAssignment}
             onRemoveRace={removeOrganizerRace}
+            opsUpdatedAt={lastUpdatedAt}
             onRaceChange={updateOrganizerRace}
             onSelectRace={setOrganizerSetupRaceSlug}
             profileLabel={profile?.displayName ?? profile?.email ?? profile?.role ?? "Organizer"}

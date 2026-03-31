@@ -6355,6 +6355,50 @@ body {
   gap: 1rem;
 }
 
+.organizer-ops-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.organizer-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.organizer-ops-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(225, 183, 76, 0.24);
+  background: rgba(255, 252, 245, 0.9);
+}
+
+.organizer-ops-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.organizer-ops-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(225, 183, 76, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.organizer-ops-row p,
+.organizer-ops-row small {
+  margin: 0.2rem 0 0;
+  color: #7f6734;
+  font-size: 0.84rem;
+}
+
 .organizer-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
