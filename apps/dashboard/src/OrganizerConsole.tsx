@@ -59,6 +59,7 @@ type OrganizerConsoleProps = {
   onAddSimulatedScan: (input: { bib: string; checkpointId: string; crewAssignmentId: string }) => void;
   onClearSimulatedScans: () => void;
   onLoadSampleScenario: () => void;
+  onResetDemoEvent: () => void;
 };
 
 type OrganizerConsoleView = "overview" | "branding" | "races" | "crew" | "participants" | "operations";
@@ -104,7 +105,8 @@ export function OrganizerConsole({
   onGpxChange,
   onAddSimulatedScan,
   onClearSimulatedScans,
-  onLoadSampleScenario
+  onLoadSampleScenario,
+  onResetDemoEvent
 }: OrganizerConsoleProps) {
   const [activeView, setActiveView] = useState<OrganizerConsoleView>("branding");
   const [simulationBib, setSimulationBib] = useState("");
@@ -678,6 +680,9 @@ export function OrganizerConsole({
                 >
                   Load sample scenario
                 </button>
+                <button className="toolbar-link organizer-secondary-action" onClick={onResetDemoEvent} type="button">
+                  Reset demo event
+                </button>
               </div>
 
               <div className="organizer-ops-summary organizer-ops-summary-compact">
@@ -837,6 +842,24 @@ export function OrganizerConsole({
                   <div className="empty-compact">No trial scan recorded yet. Use this panel to simulate race-day scans.</div>
                 )}
               </div>
+
+              <section className="organizer-simulator-runbook">
+                <div className="panel-head compact">
+                  <div>
+                    <p className="section-label">Trial runbook</p>
+                    <h3>Recommended flow for a first rehearsal</h3>
+                  </div>
+                </div>
+                <ol className="organizer-runbook-list">
+                  <li>Reset the demo event if you want to start from a clean baseline.</li>
+                  <li>Complete Branding, Races, Participants, and Crew for the selected category.</li>
+                  <li>Load the sample scenario to seed realistic checkpoint activity.</li>
+                  <li>Open spectator view and confirm Event Home, Race Detail, and sidebar state look correct.</li>
+                  <li>Return to Race Day Ops, record manual scans, then simulate a checkpoint wave.</li>
+                  <li>Inject one duplicate and confirm it appears in duplicate audit without breaking the live board.</li>
+                  <li>Reset trial scans and repeat until the team is comfortable with the race-day flow.</li>
+                </ol>
+              </section>
             </section>
 
             <div className="organizer-ops-grid">

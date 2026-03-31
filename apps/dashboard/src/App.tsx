@@ -2853,6 +2853,15 @@ export default function App() {
     }));
   }
 
+  function resetOrganizerDemoEvent() {
+    const freshSetup = createDefaultOrganizerSetup();
+    setOrganizerSetup(freshSetup);
+    setOrganizerSetupRaceSlug(freshSetup.races[0]?.slug ?? "");
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    clearOrganizerImportDraft();
+  }
+
   function applyOrganizerImport() {
     if (!organizerSelectedRace) {
       return;
@@ -3258,6 +3267,7 @@ export default function App() {
               onClearImport={clearOrganizerImportDraft}
               onGpxChange={handleOrganizerGpxChange}
               onLoadSampleScenario={loadOrganizerTrialScenario}
+              onResetDemoEvent={resetOrganizerDemoEvent}
               onRegenerateCrewInvite={regenerateOrganizerCrewInvite}
             onToggleRacePublish={toggleOrganizerRacePublish}
             onRemoveCheckpoint={removeOrganizerCheckpoint}

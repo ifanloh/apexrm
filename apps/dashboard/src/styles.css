@@ -6590,6 +6590,24 @@ body {
   gap: 0.45rem;
 }
 
+.organizer-simulator-runbook {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(225, 183, 76, 0.22);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.organizer-runbook-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.4rem;
+  color: #5f4722;
+  line-height: 1.5;
+}
+
 .organizer-ops-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
