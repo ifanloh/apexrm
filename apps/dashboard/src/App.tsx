@@ -50,7 +50,7 @@ import {
   type OrganizerParticipantDraft,
   type OrganizerRaceDraft
 } from "./organizerSetup";
-import { buildOrganizerRaceSimulationSnapshot } from "./organizerSimulation";
+import { buildOrganizerRaceSimulationSnapshot, buildOrganizerTrialScenario } from "./organizerSimulation";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -2833,6 +2833,26 @@ export default function App() {
     }));
   }
 
+  function loadOrganizerTrialScenario() {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    const seededScans = buildOrganizerTrialScenario(organizerSelectedRace);
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) =>
+        race.slug !== organizerSelectedRace.slug
+          ? race
+          : {
+              ...race,
+              simulatedScans: seededScans
+            }
+      )
+    }));
+  }
+
   function applyOrganizerImport() {
     if (!organizerSelectedRace) {
       return;
@@ -3231,13 +3251,14 @@ export default function App() {
               onCheckpointChange={updateOrganizerCheckpoint}
               onClearSimulatedScans={clearOrganizerSimulatedScans}
               onCrewAssignmentChange={updateOrganizerCrewAssignment}
-            onEventLogoChange={handleOrganizerEventLogoChange}
-            onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
-            onImportFileChange={handleOrganizerParticipantFileChange}
-            onImportModeChange={setOrganizerImportMode}
-            onClearImport={clearOrganizerImportDraft}
-            onGpxChange={handleOrganizerGpxChange}
-            onRegenerateCrewInvite={regenerateOrganizerCrewInvite}
+              onEventLogoChange={handleOrganizerEventLogoChange}
+              onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
+              onImportFileChange={handleOrganizerParticipantFileChange}
+              onImportModeChange={setOrganizerImportMode}
+              onClearImport={clearOrganizerImportDraft}
+              onGpxChange={handleOrganizerGpxChange}
+              onLoadSampleScenario={loadOrganizerTrialScenario}
+              onRegenerateCrewInvite={regenerateOrganizerCrewInvite}
             onToggleRacePublish={toggleOrganizerRacePublish}
             onRemoveCheckpoint={removeOrganizerCheckpoint}
             onRemoveCrewAssignment={removeOrganizerCrewAssignment}

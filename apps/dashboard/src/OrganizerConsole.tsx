@@ -58,6 +58,7 @@ type OrganizerConsoleProps = {
   onGpxChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onAddSimulatedScan: (input: { bib: string; checkpointId: string; crewAssignmentId: string }) => void;
   onClearSimulatedScans: () => void;
+  onLoadSampleScenario: () => void;
 };
 
 type OrganizerConsoleView = "overview" | "branding" | "races" | "crew" | "participants" | "operations";
@@ -102,7 +103,8 @@ export function OrganizerConsole({
   onHeroBackgroundChange,
   onGpxChange,
   onAddSimulatedScan,
-  onClearSimulatedScans
+  onClearSimulatedScans,
+  onLoadSampleScenario
 }: OrganizerConsoleProps) {
   const [activeView, setActiveView] = useState<OrganizerConsoleView>("branding");
   const [simulationBib, setSimulationBib] = useState("");
@@ -667,6 +669,14 @@ export function OrganizerConsole({
                   type="button"
                 >
                   Reset trial scans
+                </button>
+                <button
+                  className="toolbar-link organizer-secondary-action"
+                  disabled={!selectedRace || selectedRace.participants.length === 0 || checkpoints.length === 0 || crewAssignments.length === 0}
+                  onClick={onLoadSampleScenario}
+                  type="button"
+                >
+                  Load sample scenario
                 </button>
               </div>
 

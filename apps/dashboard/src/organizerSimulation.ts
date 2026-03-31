@@ -11,6 +11,178 @@ export type OrganizerRaceSimulationSnapshot = {
   duplicateCount: number;
 };
 
+function toIsoWithOffset(base: Date, minutes: number) {
+  return new Date(base.getTime() + minutes * 60_000).toISOString();
+}
+
+function buildSimulatedScanDraft(
+  race: OrganizerRaceDraft,
+  args: {
+    id: string;
+    bib: string;
+    checkpointId: string;
+    scannedAt: string;
+    status?: "accepted" | "duplicate";
+    firstAcceptedId?: string | null;
+  }
+): OrganizerSimulatedScanDraft | null {
+  const crew =
+    race.crewAssignments.find((assignment) => assignment.checkpointId === args.checkpointId) ??
+    race.crewAssignments[0] ??
+    null;
+
+  if (!crew) {
+    return null;
+  }
+
+  return {
+    id: args.id,
+    bib: normalizeBib(args.bib),
+    checkpointId: args.checkpointId,
+    crewAssignmentId: crew.id,
+    deviceId: crew.deviceLabel.trim() || crew.id,
+    scannedAt: args.scannedAt,
+    status: args.status ?? "accepted",
+    firstAcceptedId: args.firstAcceptedId ?? null
+  };
+}
+
+export function buildOrganizerTrialScenario(race: OrganizerRaceDraft): OrganizerSimulatedScanDraft[] {
+  if (!race.participants.length || !race.checkpoints.length || !race.crewAssignments.length) {
+    return [];
+  }
+
+  const baseStart = Number.isNaN(new Date(race.startAt).getTime()) ? new Date() : new Date(race.startAt);
+  const sortedCheckpoints = [...race.checkpoints].sort((left, right) => left.order - right.order);
+  const progressCheckpoints = sortedCheckpoints.filter((checkpoint) => checkpoint.id !== "cp-start");
+  const first = progressCheckpoints[0] ?? null;
+  const second = progressCheckpoints[1] ?? first;
+  const third = progressCheckpoints[2] ?? second;
+  const finish = sortedCheckpoints.find((checkpoint) => checkpoint.id === "finish") ?? progressCheckpoints[progressCheckpoints.length - 1] ?? null;
+
+  if (!first || !finish) {
+    return [];
+  }
+
+  const [p1, p2, p3, p4, p5] = race.participants.slice(0, 5);
+  const scans: Array<OrganizerSimulatedScanDraft | null> = [];
+  const finishedScenario = race.editionLabel.toLowerCase() === "finished";
+
+  if (p1) {
+    scans.push(
+      buildSimulatedScanDraft(race, {
+        id: `${race.slug}-sample-1`,
+        bib: p1.bib,
+        checkpointId: first.id,
+        scannedAt: toIsoWithOffset(baseStart, 65)
+      })
+    );
+    if (second) {
+      scans.push(
+        buildSimulatedScanDraft(race, {
+          id: `${race.slug}-sample-2`,
+          bib: p1.bib,
+          checkpointId: second.id,
+          scannedAt: toIsoWithOffset(baseStart, 160)
+        })
+      );
+    }
+    scans.push(
+      buildSimulatedScanDraft(race, {
+        id: `${race.slug}-sample-3`,
+        bib: p1.bib,
+        checkpointId: finish.id,
+        scannedAt: toIsoWithOffset(baseStart, finishedScenario ? 280 : 345)
+      })
+    );
+  }
+
+  if (p2) {
+    scans.push(
+      buildSimulatedScanDraft(race, {
+        id: `${race.slug}-sample-4`,
+        bib: p2.bib,
+        checkpointId: first.id,
+        scannedAt: toIsoWithOffset(baseStart, 72)
+      })
+    );
+    if (second) {
+      scans.push(
+        buildSimulatedScanDraft(race, {
+          id: `${race.slug}-sample-5`,
+          bib: p2.bib,
+          checkpointId: second.id,
+          scannedAt: toIsoWithOffset(baseStart, 172)
+        })
+      );
+    }
+    if (finishedScenario) {
+      scans.push(
+        buildSimulatedScanDraft(race, {
+          id: `${race.slug}-sample-6`,
+          bib: p2.bib,
+          checkpointId: finish.id,
+          scannedAt: toIsoWithOffset(baseStart, 296)
+        })
+      );
+    }
+  }
+
+  if (p3 && third) {
+    scans.push(
+      buildSimulatedScanDraft(race, {
+        id: `${race.slug}-sample-7`,
+        bib: p3.bib,
+        checkpointId: first.id,
+        scannedAt: toIsoWithOffset(baseStart, 85)
+      })
+    );
+    scans.push(
+      buildSimulatedScanDraft(race, {
+        id: `${race.slug}-sample-8`,
+        bib: p3.bib,
+        checkpointId: third.id,
+        scannedAt: toIsoWithOffset(baseStart, finishedScenario ? 225 : 238)
+      })
+    );
+  }
+
+  if (p4) {
+    const p4Accepted = buildSimulatedScanDraft(race, {
+      id: `${race.slug}-sample-9`,
+      bib: p4.bib,
+      checkpointId: first.id,
+      scannedAt: toIsoWithOffset(baseStart, 94)
+    });
+    scans.push(p4Accepted);
+    if (p4Accepted) {
+      scans.push(
+        buildSimulatedScanDraft(race, {
+          id: `${race.slug}-sample-10`,
+          bib: p4.bib,
+          checkpointId: first.id,
+          scannedAt: toIsoWithOffset(baseStart, 95),
+          status: "duplicate",
+          firstAcceptedId: p4Accepted.id
+        })
+      );
+    }
+  }
+
+  if (p5 && finishedScenario && second) {
+    scans.push(
+      buildSimulatedScanDraft(race, {
+        id: `${race.slug}-sample-11`,
+        bib: p5.bib,
+        checkpointId: second.id,
+        scannedAt: toIsoWithOffset(baseStart, 244)
+      })
+    );
+  }
+
+  return scans.filter((scan): scan is OrganizerSimulatedScanDraft => Boolean(scan));
+}
+
 function normalizeBib(value: string) {
   return value.trim().toUpperCase();
 }
