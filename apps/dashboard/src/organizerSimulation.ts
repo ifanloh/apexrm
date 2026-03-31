@@ -1,5 +1,11 @@
 import type { CheckpointLeaderboard, DuplicateScan, NotificationEvent, OverallLeaderboard } from "@arm/contracts";
-import type { OrganizerParticipantDraft, OrganizerRaceDraft, OrganizerSimulatedScanDraft } from "./organizerSetup";
+import type {
+  OrganizerCrewAssignmentDraft,
+  OrganizerParticipantDraft,
+  OrganizerRaceDraft,
+  OrganizerSetupDraft,
+  OrganizerSimulatedScanDraft
+} from "./organizerSetup";
 
 export type OrganizerRaceSimulationSnapshot = {
   overallLeaderboard: OverallLeaderboard;
@@ -181,6 +187,105 @@ export function buildOrganizerTrialScenario(race: OrganizerRaceDraft): Organizer
   }
 
   return scans.filter((scan): scan is OrganizerSimulatedScanDraft => Boolean(scan));
+}
+
+const SAMPLE_COUNTRIES = ["ID", "MY", "SG", "TH", "JP", "AU", "PH", "KR"] as const;
+const SAMPLE_CLUBS = [
+  "Trailnesia Racing",
+  "Arjuno Collective",
+  "Welirang Peak Lab",
+  "Kaliandra Endurance",
+  "Nusantara Summit",
+  "Garuda Trail Society"
+] as const;
+
+function createSampleParticipantsForRace(race: OrganizerRaceDraft): OrganizerParticipantDraft[] {
+  if (race.participants.length > 0) {
+    return race.participants;
+  }
+
+  const previewParticipants: OrganizerParticipantDraft[] = race.rankingPreview.map((entry, index) => ({
+    bib: entry.bib,
+    name: entry.name,
+    gender: (entry.category === "women" ? "women" : "men") as OrganizerParticipantDraft["gender"],
+    countryCode: SAMPLE_COUNTRIES[index % SAMPLE_COUNTRIES.length],
+    club: SAMPLE_CLUBS[index % SAMPLE_CLUBS.length]
+  }));
+
+  if (previewParticipants.length >= 8) {
+    return previewParticipants;
+  }
+
+  const extrasNeeded = 8 - previewParticipants.length;
+  const extras = Array.from({ length: extrasNeeded }, (_, index) => {
+    const bibPrefix = race.title.replace(/[^A-Z0-9]/gi, "").slice(0, 2).toUpperCase() || "TR";
+    const bib = `${bibPrefix}${(index + 101).toString().padStart(3, "0")}`;
+
+    return {
+      bib,
+      name: `Sample Runner ${index + 1}`,
+      gender: index % 3 === 0 ? "women" : "men",
+      countryCode: SAMPLE_COUNTRIES[(previewParticipants.length + index) % SAMPLE_COUNTRIES.length],
+      club: SAMPLE_CLUBS[(previewParticipants.length + index) % SAMPLE_CLUBS.length]
+    } satisfies OrganizerParticipantDraft;
+  });
+
+  return [...previewParticipants, ...extras];
+}
+
+function createCheckpointCrewForRace(race: OrganizerRaceDraft): OrganizerCrewAssignmentDraft[] {
+  const existingByCheckpoint = new Map(race.crewAssignments.map((crew) => [crew.checkpointId, crew]));
+
+  return race.checkpoints.map((checkpoint, index) => {
+    const existing = existingByCheckpoint.get(checkpoint.id);
+
+    if (existing) {
+      return {
+        ...existing,
+        role: "scan",
+        deviceLabel: existing.deviceLabel.trim() || `Scanner ${checkpoint.code}`,
+        status: existing.status
+      };
+    }
+
+    return {
+      id: `${race.slug}-crew-${checkpoint.id}`,
+      name: `Crew ${checkpoint.code}`,
+      email: `${checkpoint.code.toLowerCase()}.${race.slug}@trailnesia.local`,
+      role: "scan",
+      checkpointId: checkpoint.id,
+      deviceLabel: `Scanner ${checkpoint.code}`,
+      status: checkpoint.id === "cp-start" ? "active" : "accepted",
+      inviteCode: `${race.slug.toUpperCase().slice(0, 3)}-${checkpoint.code}`
+    } satisfies OrganizerCrewAssignmentDraft;
+  });
+}
+
+export function shouldAutoSeedOrganizerTrial(setup: OrganizerSetupDraft) {
+  const totalParticipants = setup.races.reduce((sum, race) => sum + race.participants.length, 0);
+  const totalSimulatedScans = setup.races.reduce((sum, race) => sum + race.simulatedScans.length, 0);
+
+  return totalParticipants === 0 && totalSimulatedScans === 0;
+}
+
+export function seedOrganizerTrialSetup(setup: OrganizerSetupDraft): OrganizerSetupDraft {
+  return {
+    ...setup,
+    races: setup.races.map((race) => {
+      const participants = createSampleParticipantsForRace(race);
+      const crewAssignments = createCheckpointCrewForRace(race);
+      const seededRace = {
+        ...race,
+        participants,
+        crewAssignments
+      };
+
+      return {
+        ...seededRace,
+        simulatedScans: buildOrganizerTrialScenario(seededRace)
+      };
+    })
+  };
 }
 
 function normalizeBib(value: string) {

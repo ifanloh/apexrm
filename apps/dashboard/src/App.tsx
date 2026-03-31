@@ -50,7 +50,12 @@ import {
   type OrganizerParticipantDraft,
   type OrganizerRaceDraft
 } from "./organizerSetup";
-import { buildOrganizerRaceSimulationSnapshot, buildOrganizerTrialScenario } from "./organizerSimulation";
+import {
+  buildOrganizerRaceSimulationSnapshot,
+  buildOrganizerTrialScenario,
+  seedOrganizerTrialSetup,
+  shouldAutoSeedOrganizerTrial
+} from "./organizerSimulation";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -60,6 +65,7 @@ const emptyOverallLeaderboard: OverallLeaderboard = {
 };
 
 const FAVORITES_STORAGE_KEY = "arm:dashboard-favorites";
+const ORGANIZER_TRIAL_AUTOSEEDED_KEY = "trailnesia:organizer-trial-autoseeded";
 const FULL_RANKING_PAGE_SIZE = 12;
 const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
 const EDITION_HOME_VALUE = "__edition-home";
@@ -1115,6 +1121,24 @@ export default function App() {
 
     setOrganizerWorkspaceView((current) => (current === "spectator" ? "console" : current));
   }, [organizerSessionActive]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !organizerSessionActive) {
+      return;
+    }
+
+    const alreadySeeded = window.localStorage.getItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY) === "1";
+    if (alreadySeeded || !shouldAutoSeedOrganizerTrial(organizerSetup)) {
+      return;
+    }
+
+    const seededSetup = seedOrganizerTrialSetup(organizerSetup);
+    window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
+    setOrganizerSetup(seededSetup);
+    setOrganizerSetupRaceSlug(seededSetup.races[0]?.slug ?? "");
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+  }, [organizerSessionActive, organizerSetup]);
 
   useEffect(() => {
     if (!organizerSetup.races.length) {
@@ -2855,6 +2879,9 @@ export default function App() {
 
   function resetOrganizerDemoEvent() {
     const freshSetup = createDefaultOrganizerSetup();
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY);
+    }
     setOrganizerSetup(freshSetup);
     setOrganizerSetupRaceSlug(freshSetup.races[0]?.slug ?? "");
     setSelectedRaceSlug(EDITION_HOME_VALUE);
