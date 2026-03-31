@@ -68,7 +68,8 @@ export type OrganizerCrewAssignmentDraft = {
   role: "lead" | "scan" | "support";
   checkpointId: string;
   deviceLabel: string;
-  status: "invited" | "active" | "standby";
+  status: "invited" | "accepted" | "active" | "standby";
+  inviteCode: string;
 };
 
 export type ParticipantImportPreview = {
@@ -81,6 +82,20 @@ export type ParticipantImportPreview = {
   duplicateBibs: number;
   sampleErrors: string[];
 };
+
+export function createOrganizerInviteCode(raceSlug: string, seed = Date.now()) {
+  const slugToken = raceSlug
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .split("-")
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => part.slice(0, 3).toUpperCase())
+    .join("");
+  const serial = Math.abs(seed).toString(36).toUpperCase().slice(-5).padStart(5, "0");
+
+  return `${slugToken || "CREW"}-${serial}`;
+}
 
 export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerRaceDraft {
   const course = getDemoCourseForRace(race);
@@ -117,7 +132,8 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
         role: "scan",
         checkpointId: "cp-start",
         deviceLabel: "Android Start",
-        status: "active"
+        status: "active",
+        inviteCode: createOrganizerInviteCode(race.slug, 101)
       },
       {
         id: `${race.slug}-crew-finish`,
@@ -126,7 +142,8 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
         role: "lead",
         checkpointId: "finish",
         deviceLabel: "iPad Finish",
-        status: "active"
+        status: "accepted",
+        inviteCode: createOrganizerInviteCode(race.slug, 202)
       }
     ]
   };
@@ -224,7 +241,10 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
           checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
           participants: Array.isArray(override?.participants) ? override.participants : race.participants,
           crewAssignments: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.crewAssignments)
-            ? (((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as OrganizerCrewAssignmentDraft[])
+            ? ((((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as OrganizerCrewAssignmentDraft[]).map((crew, index) => ({
+                ...crew,
+                inviteCode: crew.inviteCode || createOrganizerInviteCode(race.slug, index + 1)
+              })))
             : race.crewAssignments
         };
       }),
@@ -240,7 +260,12 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
                 : createOrganizerRaceTemplate(fallback.races.length + 1).profilePoints,
             checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(fallback.races.length + 1).checkpoints,
             participants: Array.isArray(race.participants) ? race.participants : [],
-            crewAssignments: Array.isArray(race.crewAssignments) ? race.crewAssignments : []
+            crewAssignments: Array.isArray(race.crewAssignments)
+              ? race.crewAssignments.map((crew, index) => ({
+                  ...crew,
+                  inviteCode: crew.inviteCode || createOrganizerInviteCode(String(race.slug || "CREW"), index + 1)
+                }))
+              : []
           }))
       ]
     };

@@ -34,6 +34,7 @@ import { demoRaceFestival, type DemoRaceCard, type DemoRaceRankingPreview } from
 import { RaceEditionHome } from "./RaceEditionHome";
 import {
   buildOrganizerCourseFromRaceDraft,
+  createOrganizerInviteCode,
   createOrganizerRaceTemplate,
   createDefaultOrganizerSetup,
   getOrganizerCheckpointsForRace,
@@ -2533,7 +2534,8 @@ export default function App() {
       role: "scan",
       checkpointId: fallbackCheckpointId,
       deviceLabel: "",
-      status: "invited"
+      status: "invited",
+      inviteCode: createOrganizerInviteCode(organizerSelectedRace.slug)
     };
 
     setOrganizerSetup((current) => ({
@@ -2544,6 +2546,31 @@ export default function App() {
           : {
               ...race,
               crewAssignments: [...race.crewAssignments, nextCrew]
+            }
+      )
+    }));
+  }
+
+  function regenerateOrganizerCrewInvite(crewId: string) {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) =>
+        race.slug !== organizerSelectedRace.slug
+          ? race
+          : {
+              ...race,
+              crewAssignments: race.crewAssignments.map((crew) =>
+                crew.id === crewId
+                  ? {
+                      ...crew,
+                      inviteCode: createOrganizerInviteCode(race.slug)
+                    }
+                  : crew
+              )
             }
       )
     }));
@@ -2959,6 +2986,7 @@ export default function App() {
             onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
             onGpxChange={handleOrganizerGpxChange}
             onImportTextChange={setOrganizerImportText}
+            onRegenerateCrewInvite={regenerateOrganizerCrewInvite}
             onToggleRacePublish={toggleOrganizerRacePublish}
             onRemoveCheckpoint={removeOrganizerCheckpoint}
             onRemoveCrewAssignment={removeOrganizerCrewAssignment}

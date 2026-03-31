@@ -6630,7 +6630,7 @@ body {
 
 .organizer-coverage-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 0.75rem;
   margin-bottom: 0.85rem;
 }
@@ -6679,13 +6679,43 @@ body {
 
 .organizer-crew-row {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) repeat(4, minmax(0, 0.8fr)) minmax(220px, 1.2fr) auto;
   gap: 0.75rem;
   align-items: end;
   padding: 0.85rem;
   border-radius: 18px;
   border: 1px solid rgba(225, 183, 76, 0.22);
   background: rgba(255, 252, 245, 0.86);
+}
+
+.organizer-crew-invite {
+  display: grid;
+  gap: 0.18rem;
+  align-self: stretch;
+  padding: 0.7rem 0.8rem;
+  border-radius: 16px;
+  border: 1px dashed rgba(183, 120, 23, 0.28);
+  background: rgba(255, 248, 235, 0.92);
+}
+
+.organizer-crew-invite span {
+  color: #8d6a2a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.organizer-crew-invite strong {
+  color: #3b2a12;
+  font-size: 0.98rem;
+  letter-spacing: 0.04em;
+}
+
+.organizer-crew-invite small {
+  color: #7f6734;
+  font-size: 0.76rem;
+  word-break: break-all;
 }
 
 .organizer-checkpoint-row {
@@ -6710,7 +6740,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
   min-width: 88px;
+}
+
+.organizer-secondary-action {
+  border-color: rgba(183, 120, 23, 0.26);
+  color: #98620f;
+}
+
+.organizer-secondary-action:hover {
+  background: rgba(183, 120, 23, 0.08);
 }
 
 .organizer-checkpoint-actions .toolbar-link[disabled] {
@@ -6775,7 +6816,8 @@ body {
   .organizer-console-grid,
   .organizer-race-grid,
   .organizer-assets-grid,
-  .organizer-form-grid.compact {
+  .organizer-form-grid.compact,
+  .organizer-crew-row {
     grid-template-columns: 1fr;
   }
 }

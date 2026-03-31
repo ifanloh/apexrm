@@ -26,6 +26,7 @@ type OrganizerConsoleProps = {
   onCrewAssignmentChange: (crewId: string, patch: Partial<OrganizerCrewAssignmentDraft>) => void;
   onAddCrewAssignment: () => void;
   onRemoveCrewAssignment: (crewId: string) => void;
+  onRegenerateCrewInvite: (crewId: string) => void;
   onEventLogoChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onHeroBackgroundChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onGpxChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -55,6 +56,7 @@ export function OrganizerConsole({
   onCrewAssignmentChange,
   onAddCrewAssignment,
   onRemoveCrewAssignment,
+  onRegenerateCrewInvite,
   onEventLogoChange,
   onHeroBackgroundChange,
   onGpxChange
@@ -73,6 +75,7 @@ export function OrganizerConsole({
   const uncoveredCheckpointCount = checkpointCoverage.length - coveredCheckpointCount;
   const crewStatusSummary = {
     active: crewAssignments.filter((crew) => crew.status === "active").length,
+    accepted: crewAssignments.filter((crew) => crew.status === "accepted").length,
     standby: crewAssignments.filter((crew) => crew.status === "standby").length,
     invited: crewAssignments.filter((crew) => crew.status === "invited").length
   };
@@ -492,9 +495,14 @@ export function OrganizerConsole({
               <span>ready on device</span>
             </div>
             <div className="panel-badge compact-badge">
+              <span>Accepted</span>
+              <strong>{crewStatusSummary.accepted}</strong>
+              <span>confirmed crew</span>
+            </div>
+            <div className="panel-badge compact-badge">
               <span>Invited / standby</span>
               <strong>{crewStatusSummary.invited + crewStatusSummary.standby}</strong>
-              <span>pending readiness</span>
+              <span>pending acceptance</span>
             </div>
           </div>
 
@@ -511,7 +519,7 @@ export function OrganizerConsole({
                   <span className={`organizer-readiness-pill ${covered ? "ready" : "draft"}`}>{covered ? "Covered" : "Uncovered"}</span>
                   <small>
                     {assignedCrew.length
-                      ? assignedCrew.map((crew) => `${crew.name} (${crew.role})`).join(", ")
+                      ? assignedCrew.map((crew) => `${crew.name} (${crew.role}, ${crew.status})`).join(", ")
                       : "No crew assigned yet"}
                   </small>
                 </div>
@@ -556,11 +564,20 @@ export function OrganizerConsole({
                   <span>Status</span>
                   <select value={crew.status} onChange={(event) => onCrewAssignmentChange(crew.id, { status: event.target.value as OrganizerCrewAssignmentDraft["status"] })}>
                     <option value="invited">Invited</option>
+                    <option value="accepted">Accepted</option>
                     <option value="active">Active</option>
                     <option value="standby">Standby</option>
                   </select>
                 </label>
+                <div className="organizer-crew-invite">
+                  <span>Invite</span>
+                  <strong>{crew.inviteCode}</strong>
+                  <small>{`trailnesia://crew/invite/${crew.inviteCode}`}</small>
+                </div>
                 <div className="organizer-checkpoint-actions">
+                  <button className="toolbar-link organizer-secondary-action" onClick={() => onRegenerateCrewInvite(crew.id)} type="button">
+                    Regenerate invite
+                  </button>
                   <button className="toolbar-link organizer-remove-race" onClick={() => onRemoveCrewAssignment(crew.id)} type="button">
                     Remove
                   </button>
