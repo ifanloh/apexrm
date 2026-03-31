@@ -50,6 +50,7 @@ import {
   type OrganizerParticipantDraft,
   type OrganizerRaceDraft
 } from "./organizerSetup";
+import { buildOrganizerRaceSimulationSnapshot } from "./organizerSimulation";
 import { supabase } from "./supabase";
 import "./styles.css";
 
@@ -1046,6 +1047,14 @@ export default function App() {
     () => calculateParticipantImportImpact(organizerSelectedRace?.participants ?? [], organizerImportedParticipants),
     [organizerImportedParticipants, organizerSelectedRace]
   );
+  const organizerSimulationSnapshots = useMemo(
+    () => new Map(organizerSetup.races.map((race) => [race.slug, buildOrganizerRaceSimulationSnapshot(race)])),
+    [organizerSetup.races]
+  );
+  const selectedRaceSimulationSnapshot = organizerSimulationSnapshots.get(selectedRaceCard.slug) ?? null;
+  const organizerSelectedRaceSimulationSnapshot = organizerSelectedRace
+    ? organizerSimulationSnapshots.get(organizerSelectedRace.slug) ?? null
+    : null;
 
   useEffect(() => {
     if (!supabase) {
@@ -1364,6 +1373,19 @@ export default function App() {
     };
   }, [accessToken, isBootstrapping, lastUpdatedAt, organizerSessionActive, selectedCheckpointId]);
 
+  const previewOverallLeaderboard = useMemo<OverallLeaderboard>(
+    () => selectedRaceSimulationSnapshot?.overallLeaderboard ?? buildPreviewLeaderboard(selectedRaceCard),
+    [selectedRaceCard, selectedRaceSimulationSnapshot]
+  );
+  const previewWomenLeaderboard = useMemo<OverallLeaderboard>(
+    () => selectedRaceSimulationSnapshot?.womenLeaderboard ?? buildPreviewLeaderboard(selectedRaceCard, "women"),
+    [selectedRaceCard, selectedRaceSimulationSnapshot]
+  );
+  const previewCheckpointLeaderboards = useMemo(
+    () => selectedRaceSimulationSnapshot?.checkpointLeaderboards ?? buildCheckpointLeaderboardsFallback(selectedRaceCard),
+    [selectedRaceCard, selectedRaceSimulationSnapshot]
+  );
+
   useEffect(() => {
     if (isBootstrapping) {
       return;
@@ -1374,11 +1396,7 @@ export default function App() {
 
     async function loadRunnerSearch() {
       if (!isFeaturedRace && !isEditionHome) {
-        const previewItems = buildRunnerFallbackResults(
-          buildPreviewLeaderboard(selectedRaceCard).topEntries,
-          deferredRunnerQuery,
-          runnerCheckpointFilter
-        );
+        const previewItems = buildRunnerFallbackResults(previewOverallLeaderboard.topEntries, deferredRunnerQuery, runnerCheckpointFilter);
 
         if (isMounted) {
           setRunnerResults(previewItems);
@@ -1439,6 +1457,7 @@ export default function App() {
     lastUpdatedAt,
     organizerSessionActive,
     overallLeaderboard.topEntries,
+    previewOverallLeaderboard.topEntries,
     runnerCheckpointFilter,
     selectedRaceCard
   ]);
@@ -1446,16 +1465,27 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteBibs));
   }, [favoriteBibs]);
-
-  const previewOverallLeaderboard = useMemo<OverallLeaderboard>(() => buildPreviewLeaderboard(selectedRaceCard), [selectedRaceCard]);
-  const previewWomenLeaderboard = useMemo<OverallLeaderboard>(
-    () => buildPreviewLeaderboard(selectedRaceCard, "women"),
-    [selectedRaceCard]
-  );
   const activeOverallLeaderboard =
-    isFeaturedRace && overallLeaderboard.topEntries.length > 0 ? overallLeaderboard : previewOverallLeaderboard;
+    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length
+      ? selectedRaceSimulationSnapshot.overallLeaderboard
+      : isFeaturedRace && overallLeaderboard.topEntries.length > 0
+        ? overallLeaderboard
+        : previewOverallLeaderboard;
   const activeWomenLeaderboard =
-    isFeaturedRace && womenLeaderboard.topEntries.length > 0 ? womenLeaderboard : previewWomenLeaderboard;
+    selectedRaceSimulationSnapshot?.womenLeaderboard.topEntries.length
+      ? selectedRaceSimulationSnapshot.womenLeaderboard
+      : isFeaturedRace && womenLeaderboard.topEntries.length > 0
+        ? womenLeaderboard
+        : previewWomenLeaderboard;
+  const activeCheckpointLeaderboards =
+    selectedRaceSimulationSnapshot?.checkpointLeaderboards.some((board) => board.totalOfficialScans > 0)
+      ? selectedRaceSimulationSnapshot.checkpointLeaderboards
+      : isFeaturedRace && leaderboards.length > 0
+        ? leaderboards
+        : previewCheckpointLeaderboards;
+  const activeNotifications =
+    selectedRaceSimulationSnapshot?.notifications.length ? selectedRaceSimulationSnapshot.notifications : notifications;
+  const activeDuplicates = selectedRaceSimulationSnapshot?.duplicates.length ? selectedRaceSimulationSnapshot.duplicates : duplicates;
 
   useEffect(() => {
     setFullRankingPage(1);
@@ -1533,7 +1563,7 @@ export default function App() {
 
     async function loadRunnerDetail() {
       if (!isFeaturedRace && !isEditionHome) {
-        const fallbackDetail = buildRunnerDetailFallback(buildPreviewLeaderboard(selectedRaceCard).topEntries, runnerBib);
+        const fallbackDetail = buildRunnerDetailFallback(previewOverallLeaderboard.topEntries, runnerBib);
 
         if (isMounted) {
           setRunnerDetail(fallbackDetail);
@@ -1580,11 +1610,21 @@ export default function App() {
     return () => {
       isMounted = false;
     };
-  }, [accessToken, isBootstrapping, isEditionHome, isFeaturedRace, organizerSessionActive, overallLeaderboard.topEntries, selectedRaceCard, selectedRunnerBib]);
+  }, [
+    accessToken,
+    isBootstrapping,
+    isEditionHome,
+    isFeaturedRace,
+    organizerSessionActive,
+    overallLeaderboard.topEntries,
+    previewOverallLeaderboard.topEntries,
+    selectedRaceCard,
+    selectedRunnerBib
+  ]);
 
   const selectedBoard = useMemo(() => {
-    return leaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? leaderboards[0] ?? null;
-  }, [leaderboards, selectedCheckpointId]);
+    return activeCheckpointLeaderboards.find((item) => item.checkpointId === selectedCheckpointId) ?? activeCheckpointLeaderboards[0] ?? null;
+  }, [activeCheckpointLeaderboards, selectedCheckpointId]);
 
   const overallLeader = activeOverallLeaderboard.topEntries[0] ?? null;
   const nameByBib = useMemo(
@@ -1593,26 +1633,29 @@ export default function App() {
   );
 
   const totalOfficialScans = useMemo(() => {
-    return leaderboards.reduce((sum, item) => sum + item.totalOfficialScans, 0);
-  }, [leaderboards]);
+    return activeCheckpointLeaderboards.reduce((sum, item) => sum + item.totalOfficialScans, 0);
+  }, [activeCheckpointLeaderboards]);
 
   const totalRankedRunners = activeOverallLeaderboard.totalRankedRunners;
 
   const activeCheckpointCount = useMemo(() => {
-    return leaderboards.filter((item) => item.totalOfficialScans > 0).length;
-  }, [leaderboards]);
+    return activeCheckpointLeaderboards.filter((item) => item.totalOfficialScans > 0).length;
+  }, [activeCheckpointLeaderboards]);
   const finisherCount = useMemo(() => {
-    return leaderboards.find((item) => item.checkpointId === "finish")?.totalOfficialScans ?? 0;
-  }, [leaderboards]);
+    return activeCheckpointLeaderboards.find((item) => item.checkpointId === "finish")?.totalOfficialScans ?? 0;
+  }, [activeCheckpointLeaderboards]);
   const starterCount = useMemo(() => {
-    return leaderboards.find((item) => item.checkpointId === "cp-start")?.totalOfficialScans ?? totalRankedRunners;
-  }, [leaderboards, totalRankedRunners]);
+    return activeCheckpointLeaderboards.find((item) => item.checkpointId === "cp-start")?.totalOfficialScans ?? totalRankedRunners;
+  }, [activeCheckpointLeaderboards, totalRankedRunners]);
   const dnfDnsCount = Math.max(starterCount - finisherCount, 0);
-  const activeStarterCount = isFeaturedRace ? starterCount : selectedRaceCard.finishers + selectedRaceCard.dnf;
+  const activeStarterCount =
+    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || isFeaturedRace
+      ? starterCount
+      : selectedRaceCard.finishers + selectedRaceCard.dnf;
 
   const courseProfileStops = useMemo(() => {
     return activeCourse.checkpoints.map((checkpoint) => {
-      const board = leaderboards.find((item) => item.checkpointId === checkpoint.id);
+      const board = activeCheckpointLeaderboards.find((item) => item.checkpointId === checkpoint.id);
       const leader = board?.topEntries[0] ?? null;
       const isLeaderHere = overallLeader?.checkpointId === checkpoint.id;
 
@@ -1623,12 +1666,39 @@ export default function App() {
         isLeaderHere
       };
     });
-  }, [activeCourse.checkpoints, leaderboards, overallLeader]);
+  }, [activeCheckpointLeaderboards, activeCourse.checkpoints, overallLeader]);
 
   const sidebarOverallRows = activeOverallLeaderboard.topEntries.slice(0, 5);
   const sidebarWomenRows = activeWomenLeaderboard.topEntries.slice(0, 5);
 
-  const lastBroadcast = notifications[0] ?? null;
+  const lastBroadcast = activeNotifications[0] ?? null;
+  const organizerConsoleLeaderboards = useMemo(() => {
+    if (!organizerSelectedRace) {
+      return [];
+    }
+
+    if (organizerSelectedRaceSimulationSnapshot?.checkpointLeaderboards.some((board) => board.totalOfficialScans > 0)) {
+      return organizerSelectedRaceSimulationSnapshot.checkpointLeaderboards;
+    }
+
+    if (organizerSelectedRace.slug === featuredRace.slug && leaderboards.length > 0) {
+      return leaderboards;
+    }
+
+    return buildCheckpointLeaderboardsFallback(organizerSelectedRace as DemoRaceCard);
+  }, [featuredRace.slug, leaderboards, organizerSelectedRace, organizerSelectedRaceSimulationSnapshot]);
+  const organizerConsoleDuplicates =
+    organizerSelectedRaceSimulationSnapshot?.duplicates.length
+      ? organizerSelectedRaceSimulationSnapshot.duplicates
+      : organizerSelectedRace?.slug === featuredRace.slug
+        ? activeDuplicates
+        : [];
+  const organizerConsoleNotifications =
+    organizerSelectedRaceSimulationSnapshot?.notifications.length
+      ? organizerSelectedRaceSimulationSnapshot.notifications
+      : organizerSelectedRace?.slug === featuredRace.slug
+        ? activeNotifications
+        : [];
   const selectedCheckpointMeta = defaultCheckpoints.find((item) => item.id === selectedBoard?.checkpointId) ?? null;
   const runnerSearchSummary = useMemo(() => {
     if (runnerQuery.trim() || runnerCheckpointFilter !== "all") {
@@ -1646,8 +1716,10 @@ export default function App() {
   }, [activeOverallLeaderboard.topEntries]);
   const totalDistanceKm = selectedRaceCard.distanceKm;
   const activeAscentM = selectedRaceCard.ascentM;
-  const activeFinisherCount = isFeaturedRace ? finisherCount : selectedRaceCard.finishers;
-  const activeDnfCount = isFeaturedRace ? dnfDnsCount : selectedRaceCard.dnf;
+  const activeFinisherCount =
+    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || isFeaturedRace ? finisherCount : selectedRaceCard.finishers;
+  const activeDnfCount =
+    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || isFeaturedRace ? dnfDnsCount : selectedRaceCard.dnf;
   const isActiveRaceLive = selectedRaceCard.editionLabel.toLowerCase() === "live";
   const statsGeneratedLabel = new Date().toLocaleString([], {
     weekday: "short",
@@ -1667,9 +1739,12 @@ export default function App() {
   const runnerDirectoryEntries = useMemo<RunnerDirectoryEntry[]>(() => {
     return visibleRaces.flatMap((race) => {
       const organizerRaceDraft = organizerSetup.races.find((item) => item.slug === race.slug);
-      const useLiveEntries = race.slug === featuredRace.slug && overallLeaderboard.topEntries.length > 0;
-      const rankedRows: RunnerDirectoryEntry[] = (useLiveEntries
-        ? overallLeaderboard.topEntries.map((entry) => ({
+      const raceSimulationSnapshot = organizerSimulationSnapshots.get(race.slug);
+      const simulatedEntries = raceSimulationSnapshot?.overallLeaderboard.topEntries ?? [];
+      const useSimulatedEntries = simulatedEntries.length > 0;
+      const useLiveEntries = !useSimulatedEntries && race.slug === featuredRace.slug && overallLeaderboard.topEntries.length > 0;
+      const rankedRows: RunnerDirectoryEntry[] = ((useSimulatedEntries ? simulatedEntries : useLiveEntries ? overallLeaderboard.topEntries : null)
+        ? (useSimulatedEntries ? simulatedEntries : overallLeaderboard.topEntries).map((entry) => ({
             rank: entry.rank,
             name: entry.name,
             bib: entry.bib,
@@ -1714,9 +1789,9 @@ export default function App() {
           infoLabel: `Club ${getRunnerTeamName(entry.bib)}`,
           checkpointId: (entry as { checkpointId?: string | null }).checkpointId ?? null,
           checkpointCode: (entry as { checkpointCode?: string | null }).checkpointCode ?? null,
-          checkpointName: (entry as { checkpointName?: string | null }).checkpointName ?? null,
-          checkpointKmMarker: (entry as { checkpointKmMarker?: number | null }).checkpointKmMarker ?? null,
-          checkpointOrder: (entry as { checkpointOrder?: number | null }).checkpointOrder ?? null
+            checkpointName: (entry as { checkpointName?: string | null }).checkpointName ?? null,
+            checkpointKmMarker: (entry as { checkpointKmMarker?: number | null }).checkpointKmMarker ?? null,
+            checkpointOrder: (entry as { checkpointOrder?: number | null }).checkpointOrder ?? null
         }));
 
       const organizerParticipantRows = (organizerRaceDraft?.participants ?? []).map((participant): RunnerDirectoryEntry => {
@@ -1793,7 +1868,7 @@ export default function App() {
 
       return [...mergedRows, ...extraRows];
     });
-  }, [featuredRace.slug, organizerSetup.races, overallLeaderboard.topEntries, visibleRaces]);
+  }, [featuredRace.slug, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, visibleRaces]);
   const runnerDirectoryCountries = useMemo(
     () =>
       [...new Set(runnerDirectoryEntries.map((entry) => entry.countryCode))]
@@ -2356,19 +2431,29 @@ export default function App() {
     : "0-0 of 0";
   const raceHomeCards = useMemo(() => {
     return visibleRaces.map((race) => {
-      if (race.slug !== featuredRace.slug) {
+      const raceSimulationSnapshot = organizerSimulationSnapshots.get(race.slug);
+      const hasSimulatedEntries = (raceSimulationSnapshot?.overallLeaderboard.topEntries.length ?? 0) > 0;
+      const homeEntries = hasSimulatedEntries
+        ? raceSimulationSnapshot?.overallLeaderboard.topEntries ?? []
+        : race.slug === featuredRace.slug && overallLeaderboard.topEntries.length
+          ? overallLeaderboard.topEntries
+          : null;
+
+      if (!homeEntries) {
         return {
           ...race,
-          isLive: false,
+          isLive: race.editionLabel.toLowerCase() === "live",
           isSelected: race.slug === selectedRaceCard.slug
         };
       }
 
       return {
         ...race,
-        finishers: finisherCount,
-        dnf: dnfDnsCount,
-        rankingPreview: (overallLeaderboard.topEntries.length ? overallLeaderboard.topEntries : previewOverallLeaderboard.topEntries)
+        finishers: hasSimulatedEntries
+          ? raceSimulationSnapshot?.checkpointLeaderboards.find((board) => board.checkpointId === "finish")?.totalOfficialScans ?? 0
+          : finisherCount,
+        dnf: hasSimulatedEntries ? 0 : dnfDnsCount,
+        rankingPreview: homeEntries
           .slice(0, 3)
           .map((entry) => ({
             rank: entry.rank,
@@ -2383,11 +2468,11 @@ export default function App() {
             checkpointKmMarker: entry.checkpointKmMarker,
             checkpointOrder: entry.checkpointOrder
           })),
-        isLive: true,
+        isLive: race.editionLabel.toLowerCase() === "live",
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
-  }, [dnfDnsCount, featuredRace.slug, finisherCount, overallLeaderboard.topEntries, previewOverallLeaderboard.topEntries, selectedRaceCard.slug, visibleRaces]);
+  }, [dnfDnsCount, featuredRace.slug, finisherCount, organizerSimulationSnapshots, overallLeaderboard.topEntries, selectedRaceCard.slug, visibleRaces]);
   const eventTitle = isEditionHome ? festivalData.brandName : selectedRaceCard.title;
   const liveStatusLabel =
     liveStatus === "live"
@@ -2678,6 +2763,71 @@ export default function App() {
           : {
               ...race,
               crewAssignments: race.crewAssignments.filter((crew) => crew.id !== crewId)
+            }
+      )
+    }));
+  }
+
+  function addOrganizerSimulatedScan(input: { bib: string; checkpointId: string; crewAssignmentId: string }) {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    const normalizedBib = input.bib.trim().toUpperCase();
+    const checkpoint = organizerSelectedRace.checkpoints.find((item) => item.id === input.checkpointId);
+    const crew = organizerSelectedRace.crewAssignments.find((item) => item.id === input.crewAssignmentId);
+    const participant = organizerSelectedRace.participants.find((item) => item.bib.trim().toUpperCase() === normalizedBib);
+
+    if (!normalizedBib || !checkpoint || !crew || !participant || crew.checkpointId !== checkpoint.id) {
+      return;
+    }
+
+    const scannedAt = new Date().toISOString();
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) => {
+        if (race.slug !== organizerSelectedRace.slug) {
+          return race;
+        }
+
+        const firstAccepted = race.simulatedScans.find(
+          (scan) => scan.status === "accepted" && scan.checkpointId === checkpoint.id && scan.bib.toUpperCase() === normalizedBib
+        );
+
+        return {
+          ...race,
+          simulatedScans: [
+            ...race.simulatedScans,
+            {
+              id: crypto.randomUUID(),
+              bib: normalizedBib,
+              checkpointId: checkpoint.id,
+              crewAssignmentId: crew.id,
+              deviceId: crew.deviceLabel.trim() || crew.id,
+              scannedAt,
+              status: firstAccepted ? "duplicate" : "accepted",
+              firstAcceptedId: firstAccepted?.id ?? null
+            }
+          ]
+        };
+      })
+    }));
+  }
+
+  function clearOrganizerSimulatedScans() {
+    if (!organizerSelectedRace) {
+      return;
+    }
+
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: current.races.map((race) =>
+        race.slug !== organizerSelectedRace.slug
+          ? race
+          : {
+              ...race,
+              simulatedScans: []
             }
       )
     }));
@@ -3059,26 +3209,28 @@ export default function App() {
 
         {isOrganizerConsoleOpen ? (
           <OrganizerConsole
-            branding={organizerSetup.branding}
-            checkpoints={organizerCheckpointDraft}
-            crewAssignments={organizerSelectedRace?.crewAssignments ?? []}
-            duplicates={duplicates}
-            importFileName={organizerImportFileName}
-            importImpact={organizerImportImpact}
-            importMode={organizerImportMode}
-            importPreview={organizerImportPreview}
-            importText={organizerImportText}
-            leaderboards={leaderboards}
-            liveModeLabel={liveStatusLabel}
-            notifications={notifications}
-            onAddRace={addOrganizerRace}
-            onAddCheckpoint={addOrganizerCheckpoint}
-            onAddCrewAssignment={addOrganizerCrewAssignment}
-            onApplyImport={applyOrganizerImport}
-            onBackToSpectator={() => setOrganizerWorkspaceView("spectator")}
-            onBrandingChange={updateOrganizerBranding}
-            onCheckpointChange={updateOrganizerCheckpoint}
-            onCrewAssignmentChange={updateOrganizerCrewAssignment}
+              branding={organizerSetup.branding}
+              checkpoints={organizerCheckpointDraft}
+              crewAssignments={organizerSelectedRace?.crewAssignments ?? []}
+              duplicates={organizerConsoleDuplicates}
+              importFileName={organizerImportFileName}
+              importImpact={organizerImportImpact}
+              importMode={organizerImportMode}
+              importPreview={organizerImportPreview}
+              importText={organizerImportText}
+              leaderboards={organizerConsoleLeaderboards}
+              liveModeLabel={liveStatusLabel}
+              notifications={organizerConsoleNotifications}
+              onAddRace={addOrganizerRace}
+              onAddCheckpoint={addOrganizerCheckpoint}
+              onAddCrewAssignment={addOrganizerCrewAssignment}
+              onAddSimulatedScan={addOrganizerSimulatedScan}
+              onApplyImport={applyOrganizerImport}
+              onBackToSpectator={() => setOrganizerWorkspaceView("spectator")}
+              onBrandingChange={updateOrganizerBranding}
+              onCheckpointChange={updateOrganizerCheckpoint}
+              onClearSimulatedScans={clearOrganizerSimulatedScans}
+              onCrewAssignmentChange={updateOrganizerCrewAssignment}
             onEventLogoChange={handleOrganizerEventLogoChange}
             onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
             onImportFileChange={handleOrganizerParticipantFileChange}

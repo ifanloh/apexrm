@@ -2471,6 +2471,10 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .organizer-simulator-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .race-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2505,7 +2509,8 @@ a {
   .runner-search-toolbar,
   .runner-search-meta,
   .runner-detail-stats,
-  .passing-card {
+  .passing-card,
+  .organizer-simulator-grid {
     grid-template-columns: 1fr;
   }
 
@@ -6536,6 +6541,38 @@ body {
   gap: 0.75rem;
 }
 
+.organizer-ops-summary-compact {
+  margin-top: 0.85rem;
+}
+
+.organizer-ops-simulator {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(225, 183, 76, 0.24);
+  background: rgba(255, 252, 245, 0.94);
+}
+
+.organizer-simulator-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(220px, 1fr);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.organizer-simulator-actions {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.organizer-simulator-note {
+  margin: 0;
+  color: #7f6734;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .organizer-ops-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -6556,6 +6593,10 @@ body {
   gap: 0.65rem;
 }
 
+.organizer-ops-list-wide {
+  grid-template-columns: 1fr;
+}
+
 .organizer-ops-row {
   display: flex;
   align-items: center;
@@ -6572,6 +6613,12 @@ body {
   margin: 0.2rem 0 0;
   color: #7f6734;
   font-size: 0.84rem;
+}
+
+.organizer-ops-row-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
 }
 
 .organizer-form-grid {

@@ -56,6 +56,8 @@ type OrganizerConsoleProps = {
   onEventLogoChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onHeroBackgroundChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onGpxChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onAddSimulatedScan: (input: { bib: string; checkpointId: string; crewAssignmentId: string }) => void;
+  onClearSimulatedScans: () => void;
 };
 
 type OrganizerConsoleView = "overview" | "branding" | "races" | "crew" | "participants" | "operations";
@@ -98,9 +100,14 @@ export function OrganizerConsole({
   onRegenerateCrewInvite,
   onEventLogoChange,
   onHeroBackgroundChange,
-  onGpxChange
+  onGpxChange,
+  onAddSimulatedScan,
+  onClearSimulatedScans
 }: OrganizerConsoleProps) {
   const [activeView, setActiveView] = useState<OrganizerConsoleView>("branding");
+  const [simulationBib, setSimulationBib] = useState("");
+  const [simulationCheckpointId, setSimulationCheckpointId] = useState("");
+  const [simulationCrewAssignmentId, setSimulationCrewAssignmentId] = useState("");
   const setupSteps: Array<{ view: OrganizerSetupStepView; title: string; shortLabel: string; description: string }> = [
     {
       view: "branding",
@@ -335,6 +342,20 @@ export function OrganizerConsole({
   const primaryBlocker = topBlockers[0] ?? null;
   const currentStepIndex = setupSteps.findIndex((step) => step.view === activeView);
   const currentStep = currentStepIndex >= 0 ? setupSteps[currentStepIndex] : null;
+  const defaultSimulationCheckpointId = checkpoints.find((checkpoint) => checkpoint.id !== "finish")?.id ?? checkpoints[0]?.id ?? "";
+  const simulationCheckpointCrew = crewAssignments.filter((crew) => crew.checkpointId === simulationCheckpointId);
+  const simulationRankedCount = new Set(
+    (selectedRace?.simulatedScans ?? [])
+      .filter((scan) => scan.status === "accepted")
+      .map((scan) => scan.bib.trim().toUpperCase())
+  ).size;
+  const simulationAcceptedCount = (selectedRace?.simulatedScans ?? []).filter((scan) => scan.status === "accepted").length;
+  const simulationDuplicateCount = (selectedRace?.simulatedScans ?? []).filter((scan) => scan.status === "duplicate").length;
+  const recentSimulationAttempts = [...(selectedRace?.simulatedScans ?? [])]
+    .sort((left, right) => right.scannedAt.localeCompare(left.scannedAt))
+    .slice(0, 8);
+  const selectedSimulationParticipant =
+    selectedRace?.participants.find((participant) => participant.bib.trim().toUpperCase() === simulationBib.trim().toUpperCase()) ?? null;
 
   useEffect(() => {
     if (activeView === "operations") {
@@ -345,6 +366,43 @@ export function OrganizerConsole({
       setActiveView("branding");
     }
   }, [activeView, currentStepIndex]);
+
+  useEffect(() => {
+    setSimulationBib("");
+    setSimulationCheckpointId(defaultSimulationCheckpointId);
+  }, [defaultSimulationCheckpointId, selectedRaceSlug]);
+
+  useEffect(() => {
+    if (!simulationCheckpointId || !checkpoints.some((checkpoint) => checkpoint.id === simulationCheckpointId)) {
+      if (simulationCheckpointId !== defaultSimulationCheckpointId) {
+        setSimulationCheckpointId(defaultSimulationCheckpointId);
+      }
+      return;
+    }
+
+    if (!simulationCheckpointCrew.some((crew) => crew.id === simulationCrewAssignmentId)) {
+      setSimulationCrewAssignmentId(simulationCheckpointCrew[0]?.id ?? "");
+    }
+  }, [
+    checkpoints,
+    defaultSimulationCheckpointId,
+    simulationCheckpointCrew,
+    simulationCheckpointId,
+    simulationCrewAssignmentId
+  ]);
+
+  function handleRecordSimulatedScan() {
+    if (!simulationBib.trim() || !simulationCheckpointId || !simulationCrewAssignmentId) {
+      return;
+    }
+
+    onAddSimulatedScan({
+      bib: simulationBib,
+      checkpointId: simulationCheckpointId,
+      crewAssignmentId: simulationCrewAssignmentId
+    });
+    setSimulationBib("");
+  }
 
   function downloadParticipantTemplate(kind: "csv" | "xlsx") {
     const blob =
@@ -499,11 +557,11 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "operations"}>
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Race Day Ops</p>
-              <h3>Live operations snapshot</h3>
+          <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "operations"}>
+            <div className="panel-head compact">
+              <div>
+                <p className="section-label">Race Day Ops</p>
+                <h3>Live operations snapshot</h3>
             </div>
           </div>
 
@@ -527,10 +585,153 @@ export function OrganizerConsole({
               <span>Broadcast events</span>
               <strong>{notifications.length}</strong>
               <span>top-5 notifications</span>
+              </div>
             </div>
-          </div>
 
-          <div className="organizer-ops-grid">
+            <section className="organizer-ops-simulator">
+              <div className="panel-head compact">
+                <div>
+                  <p className="section-label">Trial simulator</p>
+                  <h3>Run a miniature race day</h3>
+                </div>
+                <button
+                  className="toolbar-link organizer-secondary-action"
+                  disabled={recentSimulationAttempts.length === 0}
+                  onClick={onClearSimulatedScans}
+                  type="button"
+                >
+                  Reset trial scans
+                </button>
+              </div>
+
+              <div className="organizer-ops-summary organizer-ops-summary-compact">
+                <div className="panel-badge compact-badge">
+                  <span>Race</span>
+                  <strong>{selectedRace?.title ?? "No race selected"}</strong>
+                  <span>{selectedRace?.participants.length ?? 0} registered participants</span>
+                </div>
+                <div className="panel-badge compact-badge">
+                  <span>Accepted scans</span>
+                  <strong>{simulationAcceptedCount}</strong>
+                  <span>counted into live boards</span>
+                </div>
+                <div className="panel-badge compact-badge">
+                  <span>Duplicate scans</span>
+                  <strong>{simulationDuplicateCount}</strong>
+                  <span>same BIB + same checkpoint</span>
+                </div>
+                <div className="panel-badge compact-badge">
+                  <span>Ranked runners</span>
+                  <strong>{simulationRankedCount}</strong>
+                  <span>live race order projected</span>
+                </div>
+              </div>
+
+              <div className="organizer-simulator-grid">
+                <label className="organizer-field">
+                  <span>BIB input</span>
+                  <input
+                    list={`participant-bibs-${selectedRaceSlug}`}
+                    onChange={(event) => setSimulationBib(event.target.value.toUpperCase())}
+                    placeholder="Type or scan BIB"
+                    value={simulationBib}
+                  />
+                  <datalist id={`participant-bibs-${selectedRaceSlug}`}>
+                    {(selectedRace?.participants ?? []).map((participant) => (
+                      <option key={`sim-bib-${participant.bib}`} value={participant.bib}>
+                        {participant.name}
+                      </option>
+                    ))}
+                  </datalist>
+                </label>
+
+                <label className="organizer-field">
+                  <span>Checkpoint</span>
+                  <select onChange={(event) => setSimulationCheckpointId(event.target.value)} value={simulationCheckpointId}>
+                    {checkpoints.map((checkpoint) => (
+                      <option key={`sim-checkpoint-${checkpoint.id}`} value={checkpoint.id}>
+                        {checkpoint.code} - {checkpoint.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="organizer-field">
+                  <span>Scan crew</span>
+                  <select
+                    disabled={simulationCheckpointCrew.length === 0}
+                    onChange={(event) => setSimulationCrewAssignmentId(event.target.value)}
+                    value={simulationCrewAssignmentId}
+                  >
+                    {simulationCheckpointCrew.length === 0 ? (
+                      <option value="">No crew assigned to this checkpoint</option>
+                    ) : (
+                      simulationCheckpointCrew.map((crew) => (
+                        <option key={`sim-crew-${crew.id}`} value={crew.id}>
+                          {crew.name} | {crew.deviceLabel.trim() || "No device label"}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </label>
+
+                <div className="organizer-simulator-actions">
+                  <button
+                    className="toolbar-link organizer-primary-action"
+                    disabled={!simulationBib.trim() || !selectedSimulationParticipant || !simulationCheckpointId || !simulationCrewAssignmentId}
+                    onClick={handleRecordSimulatedScan}
+                    type="button"
+                  >
+                    Record trial scan
+                  </button>
+                  <p className="organizer-simulator-note">
+                    {selectedSimulationParticipant
+                      ? `${selectedSimulationParticipant.name} | ${selectedSimulationParticipant.club || "No club"}`
+                      : simulationBib.trim().length
+                        ? "BIB not found in this race roster yet."
+                        : "Duplicates at the same checkpoint will be sent to duplicate audit automatically."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="organizer-ops-list organizer-ops-list-wide">
+                {recentSimulationAttempts.length ? (
+                  recentSimulationAttempts.map((attempt) => {
+                    const checkpoint = checkpoints.find((item) => item.id === attempt.checkpointId);
+                    const crew = crewAssignments.find((item) => item.id === attempt.crewAssignmentId);
+                    const participant =
+                      selectedRace?.participants.find(
+                        (item) => item.bib.trim().toUpperCase() === attempt.bib.trim().toUpperCase()
+                      ) ?? null;
+
+                    return (
+                      <article className="organizer-ops-row" key={attempt.id}>
+                        <div>
+                          <strong>
+                            BIB {attempt.bib}
+                            {participant ? ` - ${participant.name}` : ""}
+                          </strong>
+                          <p>
+                            {(checkpoint ? `${checkpoint.code} - ${checkpoint.name}` : attempt.checkpointId) +
+                              ` | ${crew?.name ?? "Unknown crew"}`}
+                          </p>
+                        </div>
+                        <div className="organizer-ops-row-meta">
+                          <span className={`organizer-readiness-pill ${attempt.status === "accepted" ? "ready" : "draft"}`}>
+                            {attempt.status === "accepted" ? "Accepted" : "Duplicate"}
+                          </span>
+                          <small>{new Date(attempt.scannedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                        </div>
+                      </article>
+                    );
+                  })
+                ) : (
+                  <div className="empty-compact">No trial scan recorded yet. Use this panel to simulate race-day scans.</div>
+                )}
+              </div>
+            </section>
+
+            <div className="organizer-ops-grid">
             <section className="organizer-ops-card">
               <div className="panel-head compact">
                 <div>

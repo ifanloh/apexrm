@@ -47,6 +47,7 @@ export type OrganizerRaceDraft = {
   checkpoints: DemoCourseCheckpoint[];
   participants: OrganizerParticipantDraft[];
   crewAssignments: OrganizerCrewAssignmentDraft[];
+  simulatedScans: OrganizerSimulatedScanDraft[];
 };
 
 export type OrganizerSetupDraft = {
@@ -71,6 +72,17 @@ export type OrganizerCrewAssignmentDraft = {
   deviceLabel: string;
   status: "invited" | "accepted" | "active" | "standby";
   inviteCode: string;
+};
+
+export type OrganizerSimulatedScanDraft = {
+  id: string;
+  bib: string;
+  checkpointId: string;
+  crewAssignmentId: string;
+  deviceId: string;
+  scannedAt: string;
+  status: "accepted" | "duplicate";
+  firstAcceptedId: string | null;
 };
 
 export type ParticipantImportPreview = {
@@ -165,6 +177,23 @@ function normalizeOrganizerCrewAssignment(
   };
 }
 
+function normalizeOrganizerSimulatedScan(
+  raceSlug: string,
+  scan: Partial<OrganizerSimulatedScanDraft>,
+  index: number
+): OrganizerSimulatedScanDraft {
+  return {
+    id: scan.id || `${raceSlug}-scan-${index + 1}`,
+    bib: String(scan.bib || "").trim().toUpperCase(),
+    checkpointId: scan.checkpointId || "cp-start",
+    crewAssignmentId: scan.crewAssignmentId || `${raceSlug}-crew-${index + 1}`,
+    deviceId: scan.deviceId || "sim-device",
+    scannedAt: scan.scannedAt || new Date().toISOString(),
+    status: scan.status === "duplicate" ? "duplicate" : "accepted",
+    firstAcceptedId: scan.firstAcceptedId ?? null
+  };
+}
+
 export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerRaceDraft {
   const course = getDemoCourseForRace(race);
   return {
@@ -213,7 +242,8 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
         status: "accepted",
         inviteCode: createOrganizerInviteCode(race.slug, 202)
       }
-    ]
+    ],
+    simulatedScans: []
   };
 }
 
@@ -251,7 +281,8 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
     gpxFileSize: null,
     checkpoints: course.checkpoints,
     participants: [],
-    crewAssignments: []
+    crewAssignments: [],
+    simulatedScans: []
   };
 }
 
@@ -312,7 +343,12 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
               ? (((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as Partial<OrganizerCrewAssignmentDraft>[]).map((crew, index) =>
                   normalizeOrganizerCrewAssignment(race.slug, crew, index)
                 )
-              : race.crewAssignments
+              : race.crewAssignments,
+            simulatedScans: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.simulatedScans)
+              ? (((override as Partial<OrganizerRaceDraft>).simulatedScans ?? []) as Partial<OrganizerSimulatedScanDraft>[]).map((scan, index) =>
+                  normalizeOrganizerSimulatedScan(race.slug, scan, index)
+                )
+              : race.simulatedScans
           };
         }),
         ...(parsed?.races ?? [])
@@ -330,6 +366,11 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
             crewAssignments: Array.isArray(race.crewAssignments)
               ? race.crewAssignments.map((crew, index) =>
                   normalizeOrganizerCrewAssignment(String(race.slug || "CREW"), crew, index)
+                )
+              : [],
+            simulatedScans: Array.isArray(race.simulatedScans)
+              ? race.simulatedScans.map((scan, index) =>
+                  normalizeOrganizerSimulatedScan(String(race.slug || "CREW"), scan, index)
                 )
               : []
           }))
