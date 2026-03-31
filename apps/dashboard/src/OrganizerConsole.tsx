@@ -229,6 +229,26 @@ export function OrganizerConsole({
       blockedChecks: item.checks.filter((check) => !check.pass)
     }))
     .filter((item) => !item.ready || !item.race.isPublished);
+  const publishedRaceCount = races.filter((race) => race.isPublished).length;
+  const draftRaceCount = races.length - publishedRaceCount;
+  const liveRaceCount = races.filter((race) => race.editionLabel.toLowerCase() === "live").length;
+  const finishedRaceCount = races.filter((race) => race.editionLabel.toLowerCase() === "finished").length;
+  const blockerCounts = blockedRaceReadiness
+    .flatMap((item) => item.blockedChecks.map((check) => check.label))
+    .reduce<Record<string, number>>((accumulator, label) => {
+      accumulator[label] = (accumulator[label] ?? 0) + 1;
+      return accumulator;
+    }, {});
+  const topBlockers = Object.entries(blockerCounts)
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 5);
+  const selectedRaceReadiness = raceReadiness.find((item) => item.race.slug === selectedRaceSlug) ?? null;
+  const launchSummaryLabel =
+    blockedRaceReadiness.length === 0 && publishedRaceCount > 0
+      ? "Edition ready for publish"
+      : publishedRaceCount === 0
+        ? "No race category published yet"
+        : "Edition still needs setup";
 
   return (
     <section className="organizer-console-shell" id="organizer-console">
@@ -252,6 +272,76 @@ export function OrganizerConsole({
       </div>
 
       <div className="organizer-console-grid">
+        <article className="panel organizer-console-panel organizer-console-wide">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Launch Summary</p>
+              <h3>Edition go-live status</h3>
+            </div>
+            <span className={`organizer-readiness-pill ${blockedRaceReadiness.length === 0 && publishedRaceCount > 0 ? "ready" : "draft"}`}>
+              {launchSummaryLabel}
+            </span>
+          </div>
+
+          <div className="organizer-launch-summary">
+            <div className="panel-badge compact-badge">
+              <span>Published races</span>
+              <strong>{publishedRaceCount}</strong>
+              <span>{draftRaceCount} still draft</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Ready categories</span>
+              <strong>{readyRaceCount}</strong>
+              <span>of {races.length}</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Live categories</span>
+              <strong>{liveRaceCount}</strong>
+              <span>{finishedRaceCount} finished</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Blocked categories</span>
+              <strong>{blockedRaceReadiness.length}</strong>
+              <span>need attention</span>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Current focus</span>
+              <strong>{selectedRace?.title ?? "No race selected"}</strong>
+              <span>
+                {selectedRaceReadiness ? `${selectedRaceReadiness.passCount}/${selectedRaceReadiness.checks.length} checks complete` : "select a race"}
+              </span>
+            </div>
+          </div>
+
+          <div className="organizer-launch-detail">
+            <div className="organizer-launch-card">
+              <p className="section-label">Priority blockers</p>
+              <h3>Most common issues before publish</h3>
+              <div className="organizer-launch-tags">
+                {topBlockers.length ? (
+                  topBlockers.map(([label, count]) => (
+                    <span className="organizer-validation-tag" key={`blocker-${label}`}>
+                      {label} · {count}
+                    </span>
+                  ))
+                ) : (
+                  <span className="organizer-validation-tag success">All publish checks are green</span>
+                )}
+              </div>
+            </div>
+
+            <div className="organizer-launch-card">
+              <p className="section-label">Selected race</p>
+              <h3>{selectedRace?.title ?? "Choose a race"}</h3>
+              <p className="organizer-launch-copy">
+                {selectedRaceReadiness
+                  ? `${selectedRaceReadiness.passCount}/${selectedRaceReadiness.checks.length} checks complete for the currently selected category.`
+                  : "Pick a category race to review setup, checkpoints, crew, and participant import."}
+              </p>
+            </div>
+          </div>
+        </article>
+
         <article className="panel organizer-console-panel">
           <div className="panel-head compact">
             <div>
