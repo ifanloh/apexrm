@@ -54,6 +54,29 @@ async function fetchText(url, timeoutMs = 20000) {
   }
 }
 
+async function fetchTextWithRetry(url, timeoutMs = 20000, attempts = 3) {
+  let lastResult = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    lastResult = await fetchText(url, timeoutMs);
+
+    if (lastResult.ok) {
+      return lastResult;
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+    }
+  }
+
+  return lastResult ?? {
+    ok: false,
+    status: 0,
+    ms: 0,
+    body: "No response"
+  };
+}
+
 async function main() {
   const dashboardHtml = await get(config.dashboardUrl);
   const dashboardBundlePath = dashboardHtml.body.match(/assets\/index-[^"']+\.js/)?.[0] ?? null;
@@ -63,13 +86,13 @@ async function main() {
   }
 
   const dashboardBundleUrl = `${config.dashboardUrl}/${dashboardBundlePath}`;
-  const dashboardBundle = await fetchText(dashboardBundleUrl, 30000);
+  const dashboardBundle = await fetchTextWithRetry(dashboardBundleUrl, 30000, 2);
 
   const [overall, leaders, runnerDetail, runnerSearch] = await Promise.all([
-    fetchText(`${config.apiBaseUrl}/leaderboard/overall?limit=3`, 15000),
-    fetchText(`${config.apiBaseUrl}/leaderboard/live`, 20000),
-    fetchText(`${config.apiBaseUrl}/runners/detail?bib=T0243`, 15000),
-    fetchText(`${config.apiBaseUrl}/runners/search?q=Arif`, 15000)
+    fetchTextWithRetry(`${config.apiBaseUrl}/leaderboard/overall?limit=3`, 15000),
+    fetchTextWithRetry(`${config.apiBaseUrl}/leaderboard/live`, 20000),
+    fetchTextWithRetry(`${config.apiBaseUrl}/runners/detail?bib=T0243`, 15000),
+    fetchTextWithRetry(`${config.apiBaseUrl}/runners/search?q=Arif`, 15000)
   ]);
 
   const bundleMarkers = [

@@ -13,6 +13,7 @@
     "check:deploy": "node scripts/check-deploy.mjs",
     "fix:bib-case": "node scripts/normalize-bib-data.mjs",
     "qc:live": "node scripts/qc-live.mjs",
+    "qc:organizer": "node scripts/qc-organizer-trial.mjs",
     "qc:spectator": "node scripts/qc-spectator-phase-a.mjs",
     "seed:demo": "node scripts/seed-demo-race.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
