@@ -2932,13 +2932,14 @@ body {
 }
 
 .my-runners-panel {
+  align-content: start;
   gap: 22px;
 }
 
 .utility-scope-strip {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .utility-scope-item {
@@ -2972,7 +2973,7 @@ body {
 .my-followed-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
 .my-followed-card {
@@ -2981,9 +2982,9 @@ body {
   border-radius: 18px;
   color: var(--ink);
   display: grid;
-  gap: 8px;
+  gap: 6px;
   justify-items: start;
-  padding: 16px;
+  padding: 14px;
   text-align: left;
 }
 
@@ -3002,12 +3003,12 @@ body {
 
 .my-followed-card-head strong {
   color: var(--ink);
-  font-size: 1rem;
+  font-size: 0.94rem;
 }
 
 .my-followed-card span {
   color: var(--ink-soft);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
 }
 
 .my-runners-detail-shell {
@@ -3291,6 +3292,7 @@ body {
 }
 
 .menu-feature-panel {
+  align-content: start;
   display: grid;
   gap: 14px;
 }
@@ -3301,19 +3303,19 @@ body {
 
 .runner-list-shell {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .runner-list-toolbar,
 .runner-list-pagination {
   align-items: end;
   display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .runner-list-pagination {
-  grid-template-columns: minmax(0, 180px) auto auto;
+  grid-template-columns: minmax(0, 150px) auto auto;
   justify-content: end;
 }
 
@@ -3326,18 +3328,18 @@ body {
 .runner-list-head,
 .runner-list-row {
   align-items: center;
-  column-gap: 16px;
+  column-gap: 12px;
   display: grid;
-  grid-template-columns: minmax(160px, 0.9fr) minmax(320px, 1.6fr) 88px 110px minmax(170px, 1fr) 120px;
+  grid-template-columns: minmax(124px, 0.8fr) minmax(240px, 1.45fr) 76px 96px minmax(140px, 0.95fr) 104px;
 }
 
 .runner-list-head {
   color: var(--green);
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-weight: 900;
   letter-spacing: 0.08em;
-  min-height: 54px;
-  padding: 0 12px;
+  min-height: 48px;
+  padding: 0 10px;
   text-transform: uppercase;
 }
 
@@ -3348,8 +3350,8 @@ body {
 .runner-list-row {
   background: rgba(255, 255, 255, 0.82);
   border-top: 1px solid rgba(20, 22, 24, 0.06);
-  min-height: 76px;
-  padding: 10px 12px;
+  min-height: 68px;
+  padding: 8px 10px;
 }
 
 .runner-list-row:nth-child(even) {
@@ -3358,21 +3360,21 @@ body {
 
 .runner-list-race strong {
   display: block;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   line-height: 1.25;
 }
 
 .runner-list-runner {
   align-items: center;
   display: grid;
-  gap: 12px;
-  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 10px;
+  grid-template-columns: 62px minmax(0, 1fr);
   min-width: 0;
 }
 
 .runner-list-bib {
-  font-size: 1rem;
-  min-height: 44px;
+  font-size: 0.94rem;
+  min-height: 40px;
 }
 
 .runner-list-runner-copy,
@@ -3387,13 +3389,14 @@ body {
 .runner-list-country small,
 .runner-list-info strong {
   color: var(--ink);
+  font-size: 0.92rem;
 }
 
 .runner-list-runner-copy span,
 .runner-list-info span,
 .runner-list-country small {
   color: var(--ink-soft);
-  font-size: 0.8rem;
+  font-size: 0.76rem;
 }
 
 .runner-list-country,
@@ -3447,7 +3450,7 @@ body {
 
 .favorites-list-head,
 .favorites-list-row {
-  grid-template-columns: 84px minmax(280px, 1.3fr) minmax(190px, 1fr) minmax(120px, 0.7fr) minmax(170px, 0.9fr) minmax(150px, 0.9fr) 120px;
+  grid-template-columns: 72px minmax(220px, 1.15fr) minmax(160px, 0.9fr) minmax(108px, 0.62fr) minmax(130px, 0.85fr) minmax(128px, 0.8fr) 104px;
 }
 
 .favorites-list-bib {
@@ -3458,7 +3461,7 @@ body {
 .favorites-list-bib strong {
   color: var(--ink);
   font-family: "Red Hat Display", sans-serif;
-  font-size: 1.15rem;
+  font-size: 1rem;
 }
 
 .favorites-list-runner {
@@ -3483,7 +3486,7 @@ body {
 .favorite-ranking-cell span,
 .favorites-catnat-cell small {
   color: var(--ink-soft);
-  font-size: 0.8rem;
+  font-size: 0.76rem;
 }
 
 .favorites-club-cell strong,
