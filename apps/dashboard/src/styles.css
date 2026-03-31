@@ -7062,6 +7062,38 @@ body {
   font-size: 0.9rem;
 }
 
+.organizer-console-header {
+  border-radius: 18px;
+}
+
+.organizer-launch-card,
+.organizer-ops-card,
+.organizer-race-card,
+.organizer-readiness-card {
+  border-radius: 14px;
+}
+
+.organizer-ops-row,
+.organizer-validation-row,
+.organizer-coverage-row,
+.organizer-provisioning-row,
+.organizer-audit-row,
+.organizer-crew-row,
+.organizer-checkpoint-row,
+.organizer-field input,
+.organizer-field select,
+.organizer-field textarea {
+  border-radius: 12px;
+}
+
+.organizer-logo-preview {
+  border-radius: 16px;
+}
+
+.organizer-hero-preview img {
+  border-radius: 12px;
+}
+
 .organizer-import-preview {
   display: grid;
   border: 1px solid rgba(225, 183, 76, 0.3);
