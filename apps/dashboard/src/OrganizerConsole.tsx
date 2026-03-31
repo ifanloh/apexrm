@@ -646,186 +646,220 @@ export function OrganizerConsole({
         <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "races"}>
           <div className="panel-head compact">
             <div>
-              <p className="section-label">Race Categories</p>
-              <h3>Edition race setup</h3>
+              <p className="section-label">Races & Checkpoints</p>
+              <h3>Focused race setup</h3>
             </div>
             <button className="toolbar-link organizer-apply-button" onClick={onAddRace} type="button">
               Add race category
             </button>
           </div>
 
-          <div className="organizer-race-grid">
-            {races.map((race) => (
-              <article className="organizer-race-card" key={race.slug}>
-                <div className="organizer-race-card-head">
-                  <strong>{race.title}</strong>
-                  <div className="organizer-race-card-actions">
-                    <span className={`organizer-status-pill ${race.editionLabel.toLowerCase() === "live" ? "live" : "finished"}`}>{race.editionLabel}</span>
-                    <span className={`organizer-status-pill ${race.isPublished ? "published" : "draft"}`}>{race.isPublished ? "Published" : "Draft"}</span>
-                    <button className="toolbar-link organizer-remove-race" onClick={() => onRemoveRace(race.slug)} type="button">
-                      Remove
-                    </button>
+          <div className="organizer-race-workspace">
+            <div className="organizer-race-toolbar">
+              <label className="organizer-field organizer-race-selector">
+                <span>Selected race</span>
+                <select onChange={(event) => onSelectRace(event.target.value)} value={selectedRaceSlug}>
+                  {races.map((race) => (
+                    <option key={`race-workspace-${race.slug}`} value={race.slug}>
+                      {race.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedRace ? (
+                <div className="organizer-race-toolbar-actions">
+                  <span className={`organizer-status-pill ${selectedRace.editionLabel.toLowerCase() === "live" ? "live" : "finished"}`}>
+                    {selectedRace.editionLabel}
+                  </span>
+                  <span className={`organizer-status-pill ${selectedRace.isPublished ? "published" : "draft"}`}>
+                    {selectedRace.isPublished ? "Published" : "Draft"}
+                  </span>
+                  <button
+                    className="toolbar-link organizer-secondary-action"
+                    onClick={() => onToggleRacePublish(selectedRace.slug, !selectedRace.isPublished)}
+                    type="button"
+                  >
+                    {selectedRace.isPublished ? "Unpublish" : "Publish"}
+                  </button>
+                  <button className="toolbar-link organizer-remove-race" onClick={() => onRemoveRace(selectedRace.slug)} type="button">
+                    Remove race
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            {selectedRace ? (
+              <>
+                <div className="organizer-race-summary">
+                  <div className="panel-badge compact-badge">
+                    <span>Readiness</span>
+                    <strong>
+                      {selectedRaceReadiness ? `${selectedRaceReadiness.passCount}/${selectedRaceReadiness.checks.length}` : "0/0"}
+                    </strong>
+                    <span>{selectedRaceReadiness?.ready ? "ready to publish" : "checks pending"}</span>
+                  </div>
+                  <div className="panel-badge compact-badge">
+                    <span>Participants</span>
+                    <strong>{selectedRace.participants.length}</strong>
+                    <span>mapped to this race</span>
+                  </div>
+                  <div className="panel-badge compact-badge">
+                    <span>Checkpoints</span>
+                    <strong>{selectedRace.checkpoints.length}</strong>
+                    <span>course plan</span>
+                  </div>
+                  <div className="panel-badge compact-badge">
+                    <span>Assigned crew</span>
+                    <strong>{selectedRace.crewAssignments.length}</strong>
+                    <span>lead, scan, support</span>
                   </div>
                 </div>
 
-                <div className="organizer-form-grid compact">
-                  <label className="organizer-field organizer-field-wide">
-                    <span>Race title</span>
-                    <input value={race.title} onChange={(event) => onRaceChange(race.slug, { title: event.target.value })} />
-                  </label>
-                  <label className="organizer-field">
-                    <span>Status</span>
-                    <select value={race.editionLabel} onChange={(event) => onRaceChange(race.slug, { editionLabel: event.target.value })}>
-                      <option value="Live">Live</option>
-                      <option value="Finished">Finished</option>
-                    </select>
-                  </label>
-                  <label className="organizer-field">
-                    <span>Schedule</span>
-                    <input value={race.scheduleLabel} onChange={(event) => onRaceChange(race.slug, { scheduleLabel: event.target.value })} />
-                  </label>
-                  <label className="organizer-field">
-                    <span>Start ISO time</span>
-                    <input value={race.startAt} onChange={(event) => onRaceChange(race.slug, { startAt: event.target.value })} />
-                  </label>
-                  <label className="organizer-field">
-                    <span>Start town</span>
-                    <input value={race.startTown} onChange={(event) => onRaceChange(race.slug, { startTown: event.target.value })} />
-                  </label>
-                  <label className="organizer-field">
-                    <span>Distance (km)</span>
-                    <input
-                      type="number"
-                      value={race.distanceKm}
-                      onChange={(event) => onRaceChange(race.slug, { distanceKm: Number(event.target.value) || 0 })}
-                    />
-                  </label>
-                  <label className="organizer-field">
-                    <span>Ascent (m+)</span>
-                    <input
-                      type="number"
-                      value={race.ascentM}
-                      onChange={(event) => onRaceChange(race.slug, { ascentM: Number(event.target.value) || 0 })}
-                    />
-                  </label>
-                  <label className="organizer-field organizer-field-wide">
-                    <span>Course description</span>
-                    <textarea
-                      rows={3}
-                      value={race.courseDescription}
-                      onChange={(event) => onRaceChange(race.slug, { courseDescription: event.target.value })}
-                    />
-                  </label>
-                  <label className="organizer-field organizer-field-wide">
-                    <span>Course highlights</span>
-                    <input
-                      value={race.courseHighlights.join(", ")}
-                      onChange={(event) =>
-                        onRaceChange(race.slug, {
-                          courseHighlights: event.target.value
-                            .split(",")
-                            .map((value) => value.trim())
-                            .filter(Boolean)
-                        })
-                      }
-                    />
-                  </label>
-                </div>
-              </article>
-            ))}
-          </div>
-        </article>
+                <section className="organizer-subsection">
+                  <div className="organizer-subsection-head">
+                    <div>
+                      <p className="section-label">Race details</p>
+                      <h4>Category identity & course copy</h4>
+                    </div>
+                  </div>
+                  <div className="organizer-form-grid compact organizer-race-editor-grid">
+                    <label className="organizer-field organizer-field-wide">
+                      <span>Race title</span>
+                      <input value={selectedRace.title} onChange={(event) => onRaceChange(selectedRace.slug, { title: event.target.value })} />
+                    </label>
+                    <label className="organizer-field">
+                      <span>Status</span>
+                      <select value={selectedRace.editionLabel} onChange={(event) => onRaceChange(selectedRace.slug, { editionLabel: event.target.value })}>
+                        <option value="Live">Live</option>
+                        <option value="Finished">Finished</option>
+                      </select>
+                    </label>
+                    <label className="organizer-field">
+                      <span>Schedule</span>
+                      <input value={selectedRace.scheduleLabel} onChange={(event) => onRaceChange(selectedRace.slug, { scheduleLabel: event.target.value })} />
+                    </label>
+                    <label className="organizer-field">
+                      <span>Start ISO time</span>
+                      <input value={selectedRace.startAt} onChange={(event) => onRaceChange(selectedRace.slug, { startAt: event.target.value })} />
+                    </label>
+                    <label className="organizer-field">
+                      <span>Start town</span>
+                      <input value={selectedRace.startTown} onChange={(event) => onRaceChange(selectedRace.slug, { startTown: event.target.value })} />
+                    </label>
+                    <label className="organizer-field">
+                      <span>Distance (km)</span>
+                      <input
+                        type="number"
+                        value={selectedRace.distanceKm}
+                        onChange={(event) => onRaceChange(selectedRace.slug, { distanceKm: Number(event.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="organizer-field">
+                      <span>Ascent (m+)</span>
+                      <input
+                        type="number"
+                        value={selectedRace.ascentM}
+                        onChange={(event) => onRaceChange(selectedRace.slug, { ascentM: Number(event.target.value) || 0 })}
+                      />
+                    </label>
+                    <label className="organizer-field organizer-field-wide">
+                      <span>Course description</span>
+                      <textarea
+                        rows={3}
+                        value={selectedRace.courseDescription}
+                        onChange={(event) => onRaceChange(selectedRace.slug, { courseDescription: event.target.value })}
+                      />
+                    </label>
+                    <label className="organizer-field organizer-field-wide">
+                      <span>Course highlights</span>
+                      <input
+                        value={selectedRace.courseHighlights.join(", ")}
+                        onChange={(event) =>
+                          onRaceChange(selectedRace.slug, {
+                            courseHighlights: event.target.value
+                              .split(",")
+                              .map((value) => value.trim())
+                              .filter(Boolean)
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                </section>
 
-        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "races"}>
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Course file</p>
-              <h3>Selected race GPX</h3>
-            </div>
-          </div>
+                <section className="organizer-subsection">
+                  <div className="organizer-subsection-head">
+                    <div>
+                      <p className="section-label">Course file</p>
+                      <h4>GPX for the selected race</h4>
+                    </div>
+                  </div>
+                  <div className="organizer-gpx-draft organizer-gpx-panel">
+                    <strong>{`Course file for ${selectedRace.title}`}</strong>
+                    <p>
+                      {selectedRace.gpxFileName
+                        ? `${selectedRace.gpxFileName} (${Math.round((selectedRace.gpxFileSize ?? 0) / 1024)} KB)`
+                        : "No GPX uploaded yet for the selected race."}
+                    </p>
+                    <label className="toolbar-link organizer-file-trigger">
+                      Upload GPX for selected race
+                      <input accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden onChange={onGpxChange} type="file" />
+                    </label>
+                  </div>
+                </section>
 
-          <label className="organizer-field">
-            <span>Inspect race</span>
-            <select onChange={(event) => onSelectRace(event.target.value)} value={selectedRaceSlug}>
-              {races.map((race) => (
-                <option key={`gpx-race-${race.slug}`} value={race.slug}>
-                  {race.title}
-                </option>
-              ))}
-            </select>
-          </label>
+                <section className="organizer-subsection">
+                  <div className="organizer-subsection-head">
+                    <div>
+                      <p className="section-label">Checkpoints</p>
+                      <h4>Checkpoint plan for {selectedRace.title}</h4>
+                    </div>
+                    <button className="toolbar-link organizer-apply-button" onClick={onAddCheckpoint} type="button">
+                      Add checkpoint
+                    </button>
+                  </div>
 
-          <div className="organizer-gpx-draft organizer-gpx-panel">
-            <strong>{selectedRace ? `Course file for ${selectedRace.title}` : "Course file draft"}</strong>
-            <p>
-              {selectedRace?.gpxFileName
-                ? `${selectedRace.gpxFileName} (${Math.round((selectedRace.gpxFileSize ?? 0) / 1024)} KB)`
-                : "No GPX uploaded yet for the selected race."}
-            </p>
-            <label className="toolbar-link organizer-file-trigger">
-              Upload GPX for selected race
-              <input accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden onChange={onGpxChange} type="file" />
-            </label>
-          </div>
-        </article>
-
-        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "races"}>
-          <div className="panel-head compact">
-            <div>
-              <p className="section-label">Checkpoints</p>
-              <h3>Checkpoint setup</h3>
-            </div>
-            <button className="toolbar-link organizer-apply-button" onClick={onAddCheckpoint} type="button">
-              Add checkpoint
-            </button>
-          </div>
-
-          <label className="organizer-field">
-            <span>Inspect race</span>
-            <select onChange={(event) => onSelectRace(event.target.value)} value={selectedRaceSlug}>
-              {races.map((race) => (
-                <option key={race.slug} value={race.slug}>
-                  {race.title}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="organizer-checkpoint-list">
-            {checkpoints.map((checkpoint) => (
-              <article className="organizer-checkpoint-row" key={checkpoint.id}>
-                <label className="organizer-field">
-                  <span>Code</span>
-                  <input value={checkpoint.code} onChange={(event) => onCheckpointChange(checkpoint.id, { code: event.target.value.toUpperCase() })} />
-                </label>
-                <label className="organizer-field organizer-field-wide">
-                  <span>Name</span>
-                  <input value={checkpoint.name} onChange={(event) => onCheckpointChange(checkpoint.id, { name: event.target.value })} />
-                </label>
-                <label className="organizer-field">
-                  <span>KM marker</span>
-                  <input
-                    type="number"
-                    value={checkpoint.kmMarker}
-                    onChange={(event) => onCheckpointChange(checkpoint.id, { kmMarker: Number(event.target.value) || 0 })}
-                  />
-                </label>
-                <label className="organizer-field">
-                  <span>Order</span>
-                  <input readOnly value={checkpoint.order + 1} />
-                </label>
-                <div className="organizer-checkpoint-actions">
-                  <button
-                    className="toolbar-link organizer-remove-race"
-                    disabled={checkpoint.id === "cp-start" || checkpoint.id === "finish"}
-                    onClick={() => onRemoveCheckpoint(checkpoint.id)}
-                    type="button"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </article>
-            ))}
+                  <div className="organizer-checkpoint-list">
+                    {checkpoints.map((checkpoint) => (
+                      <article className="organizer-checkpoint-row" key={checkpoint.id}>
+                        <label className="organizer-field">
+                          <span>Code</span>
+                          <input value={checkpoint.code} onChange={(event) => onCheckpointChange(checkpoint.id, { code: event.target.value.toUpperCase() })} />
+                        </label>
+                        <label className="organizer-field organizer-field-wide">
+                          <span>Name</span>
+                          <input value={checkpoint.name} onChange={(event) => onCheckpointChange(checkpoint.id, { name: event.target.value })} />
+                        </label>
+                        <label className="organizer-field">
+                          <span>KM marker</span>
+                          <input
+                            type="number"
+                            value={checkpoint.kmMarker}
+                            onChange={(event) => onCheckpointChange(checkpoint.id, { kmMarker: Number(event.target.value) || 0 })}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Order</span>
+                          <input readOnly value={checkpoint.order + 1} />
+                        </label>
+                        <div className="organizer-checkpoint-actions">
+                          <button
+                            className="toolbar-link organizer-remove-race"
+                            disabled={checkpoint.id === "cp-start" || checkpoint.id === "finish"}
+                            onClick={() => onRemoveCheckpoint(checkpoint.id)}
+                            type="button"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </>
+            ) : (
+              <div className="empty-compact">Select a race category to start editing its details, GPX, and checkpoints.</div>
+            )}
           </div>
         </article>
 
