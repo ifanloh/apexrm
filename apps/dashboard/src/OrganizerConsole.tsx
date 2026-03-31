@@ -80,6 +80,9 @@ export function OrganizerConsole({
     invited: crewAssignments.filter((crew) => crew.status === "invited").length
   };
   const raceReadiness = races.map((race) => {
+    const fieldCrew = race.crewAssignments.filter((crew) => crew.role === "lead" || crew.role === "scan");
+    const acceptedFieldCrew = fieldCrew.filter((crew) => crew.status === "accepted" || crew.status === "active");
+    const provisionedFieldCrew = fieldCrew.filter((crew) => crew.deviceLabel.trim().length > 0);
     const checks = [
       {
         label: "Event logo uploaded",
@@ -108,6 +111,14 @@ export function OrganizerConsole({
       {
         label: "Crew assigned",
         pass: race.crewAssignments.length > 0
+      },
+      {
+        label: "Field crew accepted",
+        pass: fieldCrew.length > 0 && acceptedFieldCrew.length === fieldCrew.length
+      },
+      {
+        label: "Devices provisioned",
+        pass: fieldCrew.length > 0 && provisionedFieldCrew.length === fieldCrew.length
       },
       {
         label: "Participants imported",
