@@ -6346,6 +6346,10 @@ body {
 .organizer-console-panel {
   display: grid;
   gap: 1rem;
+  backdrop-filter: none;
+  background: rgba(255, 252, 245, 0.96);
+  border: 1px solid rgba(225, 183, 76, 0.24);
+  box-shadow: 0 14px 34px rgba(89, 24, 18, 0.08);
 }
 
 .organizer-launch-summary {
@@ -7064,6 +7068,7 @@ body {
 
 .organizer-console-header {
   border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(89, 24, 18, 0.12);
 }
 
 .organizer-launch-card,
@@ -7169,6 +7174,15 @@ body {
   .organizer-audit-tags,
   .organizer-validation-tags {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1480px) {
+  .organizer-console-grid,
+  .organizer-race-grid,
+  .organizer-assets-grid,
+  .organizer-form-grid.compact {
+    grid-template-columns: 1fr;
   }
 }
 
