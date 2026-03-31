@@ -15,6 +15,7 @@
     "qc:live": "node scripts/qc-live.mjs",
     "qc:organizer": "node scripts/qc-organizer-trial.mjs",
     "qc:spectator": "node scripts/qc-spectator-phase-a.mjs",
+    "uat:final": "node scripts/uat-final.mjs",
     "seed:demo": "node scripts/seed-demo-race.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "start": "node apps/api/dist/server.js",

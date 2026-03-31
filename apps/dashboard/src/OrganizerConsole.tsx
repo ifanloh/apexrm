@@ -1,6 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { DemoCourseCheckpoint } from "./demoCourseVariants";
-import * as XLSX from "xlsx";
 import {
   createParticipantImportTemplateCsv,
   createParticipantImportTemplateWorkbook,
@@ -474,13 +473,23 @@ export function OrganizerConsole({
     });
   }
 
-  function downloadParticipantTemplate(kind: "csv" | "xlsx") {
+  async function downloadParticipantTemplate(kind: "csv" | "xlsx") {
     const blob =
       kind === "csv"
         ? new Blob([createParticipantImportTemplateCsv()], { type: "text/csv;charset=utf-8;" })
-        : new Blob([XLSX.write(createParticipantImportTemplateWorkbook(), { type: "array", bookType: "xlsx" })], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          });
+        : new Blob(
+            [
+              (
+                await import("xlsx")
+              ).write(await createParticipantImportTemplateWorkbook(), {
+                type: "array",
+                bookType: "xlsx"
+              })
+            ],
+            {
+              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            }
+          );
     const fileName = kind === "csv" ? "trailnesia-participants-template.csv" : "trailnesia-participants-template.xlsx";
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");

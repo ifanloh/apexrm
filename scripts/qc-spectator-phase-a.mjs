@@ -77,6 +77,10 @@ async function fetchTextWithRetry(url, timeoutMs = 20000, attempts = 3) {
   };
 }
 
+async function fetchPublicApi(url, timeoutMs = 20000) {
+  return fetchTextWithRetry(url, timeoutMs, 5);
+}
+
 async function main() {
   const dashboardHtml = await get(config.dashboardUrl);
   const dashboardBundlePath = dashboardHtml.body.match(/assets\/index-[^"']+\.js/)?.[0] ?? null;
@@ -89,10 +93,10 @@ async function main() {
   const dashboardBundle = await fetchTextWithRetry(dashboardBundleUrl, 30000, 2);
 
   const [overall, leaders, runnerDetail, runnerSearch] = await Promise.all([
-    fetchTextWithRetry(`${config.apiBaseUrl}/leaderboard/overall?limit=3`, 15000),
-    fetchTextWithRetry(`${config.apiBaseUrl}/leaderboard/live`, 20000),
-    fetchTextWithRetry(`${config.apiBaseUrl}/runners/detail?bib=T0243`, 15000),
-    fetchTextWithRetry(`${config.apiBaseUrl}/runners/search?q=Arif`, 15000)
+    fetchPublicApi(`${config.apiBaseUrl}/leaderboard/overall?limit=3`, 20000),
+    fetchPublicApi(`${config.apiBaseUrl}/leaderboard/live`, 25000),
+    fetchPublicApi(`${config.apiBaseUrl}/runners/detail?bib=T0243`, 20000),
+    fetchPublicApi(`${config.apiBaseUrl}/runners/search?q=Arif`, 20000)
   ]);
 
   const bundleMarkers = [

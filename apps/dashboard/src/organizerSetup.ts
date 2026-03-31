@@ -1,6 +1,5 @@
 import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { getDemoCourseForRace, type DemoCourse, type DemoCourseCheckpoint } from "./demoCourseVariants";
-import * as XLSX from "xlsx";
 
 export const ORGANIZER_SETUP_STORAGE_KEY = "trailnesia:organizer-setup";
 
@@ -108,7 +107,12 @@ export function createParticipantImportTemplateCsv() {
   return [PARTICIPANT_TEMPLATE_HEADERS.join(","), ...PARTICIPANT_TEMPLATE_SAMPLE_ROWS.map((row) => row.join(","))].join("\n");
 }
 
-export function createParticipantImportTemplateWorkbook() {
+async function loadXlsx() {
+  return import("xlsx");
+}
+
+export async function createParticipantImportTemplateWorkbook() {
+  const XLSX = await loadXlsx();
   const worksheet = XLSX.utils.aoa_to_sheet([PARTICIPANT_TEMPLATE_HEADERS, ...PARTICIPANT_TEMPLATE_SAMPLE_ROWS]);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Participants");
@@ -127,6 +131,7 @@ export async function parseParticipantImportFile(file: File) {
   }
 
   if (lowerName.endsWith(".xlsx") || lowerName.endsWith(".xls")) {
+    const XLSX = await loadXlsx();
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "array" });
     const firstSheetName = workbook.SheetNames[0];

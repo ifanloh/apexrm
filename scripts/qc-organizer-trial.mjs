@@ -112,8 +112,8 @@ try {
     assert(headerLine === "bib,name,gender,country,club", "CSV template header mismatch");
   });
 
-  await runCheck("participant import workbook can be generated", () => {
-    const workbook = createParticipantImportTemplateWorkbook();
+  await runCheck("participant import workbook can be generated", async () => {
+    const workbook = await createParticipantImportTemplateWorkbook();
     assert(workbook.SheetNames.includes("Participants"), "workbook should include Participants sheet");
   });
 

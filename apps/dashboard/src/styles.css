@@ -6498,6 +6498,21 @@ body {
   box-shadow: 0 14px 34px rgba(89, 24, 18, 0.08);
 }
 
+.organizer-console-loading {
+  min-height: 220px;
+  align-content: center;
+}
+
+.organizer-console-loading h2 {
+  margin: 0.2rem 0 0.45rem;
+}
+
+.organizer-console-loading p {
+  margin: 0;
+  max-width: 42rem;
+  color: #6f6258;
+}
+
 .organizer-launch-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));

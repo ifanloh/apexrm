@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   authProfileSchema,
@@ -22,7 +22,6 @@ import {
   fetchRunnerSearch
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
-import { OrganizerConsole } from "./OrganizerConsole";
 import runnerIcon from "./assets/runner.svg";
 import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
@@ -64,6 +63,12 @@ import {
 } from "./organizerWorkflow";
 import { supabase } from "./supabase";
 import "./styles.css";
+
+const OrganizerConsole = lazy(() =>
+  import("./OrganizerConsole").then((module) => ({
+    default: module.OrganizerConsole
+  }))
+);
 
 const emptyOverallLeaderboard: OverallLeaderboard = {
   totalRankedRunners: 0,
@@ -3162,7 +3167,16 @@ export default function App() {
         {showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
 
         {isOrganizerConsoleOpen ? (
-          <OrganizerConsole
+          <Suspense
+            fallback={
+              <section className="panel organizer-console-loading" aria-busy="true">
+                <span className="detail-label">Organizer console</span>
+                <h2>Loading organizer workspace...</h2>
+                <p>Preparing branding, race setup, participants, and race-day tools.</p>
+              </section>
+            }
+          >
+            <OrganizerConsole
               branding={organizerSetup.branding}
               checkpoints={organizerCheckpointDraft}
               crewAssignments={organizerSelectedRace?.crewAssignments ?? []}
@@ -3194,17 +3208,18 @@ export default function App() {
               onLoadSampleScenario={loadOrganizerTrialScenario}
               onResetDemoEvent={resetOrganizerDemoEvent}
               onRegenerateCrewInvite={regenerateOrganizerCrewInvite}
-            onToggleRacePublish={toggleOrganizerRacePublish}
-            onRemoveCheckpoint={removeOrganizerCheckpoint}
-            onRemoveCrewAssignment={removeOrganizerCrewAssignment}
-            onRemoveRace={removeOrganizerRace}
-            opsUpdatedAt={lastUpdatedAt}
-            onRaceChange={updateOrganizerRace}
-            onSelectRace={setOrganizerSetupRaceSlug}
-            profileLabel={profile?.displayName ?? profile?.email ?? profile?.role ?? "Organizer"}
-            races={organizerSetup.races}
-            selectedRaceSlug={organizerSetupRaceSlug}
-          />
+              onToggleRacePublish={toggleOrganizerRacePublish}
+              onRemoveCheckpoint={removeOrganizerCheckpoint}
+              onRemoveCrewAssignment={removeOrganizerCrewAssignment}
+              onRemoveRace={removeOrganizerRace}
+              opsUpdatedAt={lastUpdatedAt}
+              onRaceChange={updateOrganizerRace}
+              onSelectRace={setOrganizerSetupRaceSlug}
+              profileLabel={profile?.displayName ?? profile?.email ?? profile?.role ?? "Organizer"}
+              races={organizerSetup.races}
+              selectedRaceSlug={organizerSetupRaceSlug}
+            />
+          </Suspense>
         ) : showEditionHome ? (
           <>
             <RaceEditionHome
