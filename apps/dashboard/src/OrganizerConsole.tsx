@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import type { DemoCourseCheckpoint } from "./demoCourseVariants";
 import type { OrganizerBrandingDraft, OrganizerCrewAssignmentDraft, OrganizerRaceDraft, ParticipantImportPreview } from "./organizerSetup";
 import type { CheckpointLeaderboard, DuplicateScan, NotificationEvent } from "@arm/contracts";
@@ -38,6 +38,8 @@ type OrganizerConsoleProps = {
   onGpxChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
+type OrganizerConsoleView = "overview" | "branding" | "races" | "crew" | "participants" | "operations";
+
 export function OrganizerConsole({
   profileLabel,
   branding,
@@ -72,6 +74,7 @@ export function OrganizerConsole({
   onHeroBackgroundChange,
   onGpxChange
 }: OrganizerConsoleProps) {
+  const [activeView, setActiveView] = useState<OrganizerConsoleView>("overview");
   const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
   const checkpointCoverage = checkpoints.map((checkpoint) => {
     const assignedCrew = crewAssignments.filter((crew) => crew.checkpointId === checkpoint.id);
@@ -251,6 +254,11 @@ export function OrganizerConsole({
         : "Edition still needs setup";
   const primaryBlocker = topBlockers[0] ?? null;
 
+  function handleInspectRace(slug: string) {
+    onSelectRace(slug);
+    setActiveView("races");
+  }
+
   return (
     <section className="organizer-console-shell" id="organizer-console">
       <div className="organizer-console-header">
@@ -269,8 +277,29 @@ export function OrganizerConsole({
         </div>
       </div>
 
+      <nav aria-label="Organizer console sections" className="organizer-console-nav">
+        <button className={`organizer-console-nav-button ${activeView === "overview" ? "active" : ""}`} onClick={() => setActiveView("overview")} type="button">
+          Overview
+        </button>
+        <button className={`organizer-console-nav-button ${activeView === "branding" ? "active" : ""}`} onClick={() => setActiveView("branding")} type="button">
+          Branding
+        </button>
+        <button className={`organizer-console-nav-button ${activeView === "races" ? "active" : ""}`} onClick={() => setActiveView("races")} type="button">
+          Races & Checkpoints
+        </button>
+        <button className={`organizer-console-nav-button ${activeView === "crew" ? "active" : ""}`} onClick={() => setActiveView("crew")} type="button">
+          Crew & Devices
+        </button>
+        <button className={`organizer-console-nav-button ${activeView === "participants" ? "active" : ""}`} onClick={() => setActiveView("participants")} type="button">
+          Participants
+        </button>
+        <button className={`organizer-console-nav-button ${activeView === "operations" ? "active" : ""}`} onClick={() => setActiveView("operations")} type="button">
+          Race Day Ops
+        </button>
+      </nav>
+
       <div className="organizer-console-grid">
-        <article className="panel organizer-console-panel organizer-console-wide">
+        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "overview"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Launch Summary</p>
@@ -325,7 +354,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel">
+        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "operations"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Race Day Ops</p>
@@ -432,7 +461,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel">
+        <article className="panel organizer-console-panel" hidden={activeView !== "branding"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Branding</p>
@@ -484,7 +513,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel">
+        <article className="panel organizer-console-panel" hidden={activeView !== "branding"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Assets</p>
@@ -532,7 +561,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel organizer-console-wide">
+        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "overview"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Readiness</p>
@@ -583,7 +612,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel organizer-console-wide">
+        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "overview"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Publish Validation</p>
@@ -617,7 +646,7 @@ export function OrganizerConsole({
                       <span className="organizer-validation-tag success">Ready for publish</span>
                     )}
                   </div>
-                  <button className="toolbar-link organizer-secondary-action" onClick={() => onSelectRace(race.slug)} type="button">
+                  <button className="toolbar-link organizer-secondary-action" onClick={() => handleInspectRace(race.slug)} type="button">
                     Inspect race
                   </button>
                 </div>
@@ -627,7 +656,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel organizer-console-wide">
+        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "races"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Race Categories</p>
@@ -720,7 +749,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel">
+        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "races"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Checkpoints</p>
@@ -780,7 +809,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel">
+        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "crew"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Crew</p>
@@ -1089,7 +1118,7 @@ export function OrganizerConsole({
           </div>
         </article>
 
-        <article className="panel organizer-console-panel">
+        <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "participants"}>
           <div className="panel-head compact">
             <div>
               <p className="section-label">Participant Import</p>
