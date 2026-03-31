@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import type { DemoCourseCheckpoint } from "./demoCourseVariants";
 import * as XLSX from "xlsx";
 import {
@@ -59,6 +59,7 @@ type OrganizerConsoleProps = {
 };
 
 type OrganizerConsoleView = "overview" | "branding" | "races" | "crew" | "participants" | "operations";
+type OrganizerSetupStepView = "branding" | "races" | "participants" | "crew" | "overview";
 
 export function OrganizerConsole({
   profileLabel,
@@ -99,7 +100,39 @@ export function OrganizerConsole({
   onHeroBackgroundChange,
   onGpxChange
 }: OrganizerConsoleProps) {
-  const [activeView, setActiveView] = useState<OrganizerConsoleView>("overview");
+  const [activeView, setActiveView] = useState<OrganizerConsoleView>("branding");
+  const setupSteps: Array<{ view: OrganizerSetupStepView; title: string; shortLabel: string; description: string }> = [
+    {
+      view: "branding",
+      title: "Brand the event",
+      shortLabel: "Branding",
+      description: "Set event identity, logo, hero image, and edition copy."
+    },
+    {
+      view: "races",
+      title: "Define race categories",
+      shortLabel: "Races",
+      description: "Create each category, upload course assets, and organize checkpoints."
+    },
+    {
+      view: "participants",
+      title: "Import participants",
+      shortLabel: "Participants",
+      description: "Upload roster files for the selected race and choose how to apply them."
+    },
+    {
+      view: "crew",
+      title: "Assign crew & devices",
+      shortLabel: "Crew",
+      description: "Cover every checkpoint with field crew and provision devices."
+    },
+    {
+      view: "overview",
+      title: "Review & publish",
+      shortLabel: "Review",
+      description: "Validate readiness, fix blockers, and publish categories."
+    }
+  ];
   const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
   const importModeCopy: Record<OrganizerParticipantImportMode, { label: string; description: string; applyLabel: string }> = {
     merge: {
@@ -300,6 +333,18 @@ export function OrganizerConsole({
         ? "No race category published yet"
         : "Edition still needs setup";
   const primaryBlocker = topBlockers[0] ?? null;
+  const currentStepIndex = setupSteps.findIndex((step) => step.view === activeView);
+  const currentStep = currentStepIndex >= 0 ? setupSteps[currentStepIndex] : null;
+
+  useEffect(() => {
+    if (activeView === "operations") {
+      return;
+    }
+
+    if (currentStepIndex === -1) {
+      setActiveView("branding");
+    }
+  }, [activeView, currentStepIndex]);
 
   function downloadParticipantTemplate(kind: "csv" | "xlsx") {
     const blob =
@@ -324,6 +369,26 @@ export function OrganizerConsole({
     setActiveView("races");
   }
 
+  function goToStep(view: OrganizerSetupStepView) {
+    setActiveView(view);
+  }
+
+  function goToPreviousStep() {
+    if (currentStepIndex <= 0) {
+      return;
+    }
+
+    setActiveView(setupSteps[currentStepIndex - 1].view);
+  }
+
+  function goToNextStep() {
+    if (currentStepIndex === -1 || currentStepIndex >= setupSteps.length - 1) {
+      return;
+    }
+
+    setActiveView(setupSteps[currentStepIndex + 1].view);
+  }
+
   return (
     <section className="organizer-console-shell" id="organizer-console">
       <div className="organizer-console-header">
@@ -331,9 +396,22 @@ export function OrganizerConsole({
           <p className="section-label">Organizer Platform</p>
           <h2>Event Setup Console</h2>
           <p className="organizer-console-copy">
-            Setup branding, event logo, course asset draft, race categories, checkpoints, and participant import for the current edition.
+            Work through the event setup one section at a time so a brand-new organizer can publish without getting lost.
           </p>
           <p className="organizer-console-meta">Signed in as {profileLabel}</p>
+          {currentStep ? (
+            <div className="organizer-console-flow-meta">
+              <span className="organizer-flow-pill">Step {currentStepIndex + 1} of {setupSteps.length}</span>
+              <strong>{currentStep.title}</strong>
+              <span>{currentStep.description}</span>
+            </div>
+          ) : (
+            <div className="organizer-console-flow-meta">
+              <span className="organizer-flow-pill secondary">Operations</span>
+              <strong>Race day operations</strong>
+              <span>Use this after setup to monitor live activity and exceptions.</span>
+            </div>
+          )}
         </div>
         <div className="organizer-console-actions">
           <button className="toolbar-link organizer-console-back" onClick={onBackToSpectator} type="button">
@@ -343,22 +421,13 @@ export function OrganizerConsole({
       </div>
 
       <nav aria-label="Organizer console sections" className="organizer-console-nav">
-        <button className={`organizer-console-nav-button ${activeView === "overview" ? "active" : ""}`} onClick={() => setActiveView("overview")} type="button">
-          Overview
-        </button>
-        <button className={`organizer-console-nav-button ${activeView === "branding" ? "active" : ""}`} onClick={() => setActiveView("branding")} type="button">
-          Branding
-        </button>
-        <button className={`organizer-console-nav-button ${activeView === "races" ? "active" : ""}`} onClick={() => setActiveView("races")} type="button">
-          Races & Checkpoints
-        </button>
-        <button className={`organizer-console-nav-button ${activeView === "crew" ? "active" : ""}`} onClick={() => setActiveView("crew")} type="button">
-          Crew & Devices
-        </button>
-        <button className={`organizer-console-nav-button ${activeView === "participants" ? "active" : ""}`} onClick={() => setActiveView("participants")} type="button">
-          Participants
-        </button>
-        <button className={`organizer-console-nav-button ${activeView === "operations" ? "active" : ""}`} onClick={() => setActiveView("operations")} type="button">
+        {setupSteps.map((step, index) => (
+          <button className={`organizer-console-nav-button ${activeView === step.view ? "active" : ""}`} key={step.view} onClick={() => goToStep(step.view)} type="button">
+            <span className="organizer-console-nav-step">{index + 1}</span>
+            <span>{step.shortLabel}</span>
+          </button>
+        ))}
+        <button className={`organizer-console-nav-button organizer-console-nav-secondary ${activeView === "operations" ? "active" : ""}`} onClick={() => setActiveView("operations")} type="button">
           Race Day Ops
         </button>
       </nav>
@@ -367,6 +436,7 @@ export function OrganizerConsole({
         <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "overview"}>
           <div className="panel-head compact">
             <div>
+              <p className="organizer-step-label">Step 5 of 5</p>
               <p className="section-label">Launch Summary</p>
               <h3>Edition go-live status</h3>
             </div>
@@ -393,6 +463,16 @@ export function OrganizerConsole({
                 {selectedRaceReadiness ? `${selectedRaceReadiness.passCount}/${selectedRaceReadiness.checks.length} checks complete` : "select a race"}
               </span>
             </div>
+          </div>
+
+          <div className="organizer-setup-sequence">
+            {setupSteps.map((step, index) => (
+              <button className="organizer-setup-sequence-card" key={`setup-sequence-${step.view}`} onClick={() => goToStep(step.view)} type="button">
+                <span className="organizer-setup-sequence-number">{index + 1}</span>
+                <strong>{step.shortLabel}</strong>
+                <p>{step.description}</p>
+              </button>
+            ))}
           </div>
 
           <div className="organizer-launch-detail organizer-launch-detail-condensed">
@@ -529,6 +609,7 @@ export function OrganizerConsole({
         <article className="panel organizer-console-panel" hidden={activeView !== "branding"}>
           <div className="panel-head compact">
             <div>
+              <p className="organizer-step-label">Step 1 of 5</p>
               <p className="section-label">Branding</p>
               <h3>Edition identity</h3>
             </div>
@@ -610,6 +691,12 @@ export function OrganizerConsole({
                 <input accept="image/*" hidden onChange={onHeroBackgroundChange} type="file" />
               </label>
             </div>
+          </div>
+
+          <div className="organizer-step-actions">
+            <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
+              Continue to races & checkpoints
+            </button>
           </div>
         </article>
 
@@ -711,6 +798,7 @@ export function OrganizerConsole({
         <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "races"}>
           <div className="panel-head compact">
             <div>
+              <p className="organizer-step-label">Step 2 of 5</p>
               <p className="section-label">Races & Checkpoints</p>
               <h3>Focused race setup</h3>
             </div>
@@ -921,6 +1009,15 @@ export function OrganizerConsole({
                     ))}
                   </div>
                 </section>
+
+                <div className="organizer-step-actions">
+                  <button className="toolbar-link organizer-secondary-action" onClick={goToPreviousStep} type="button">
+                    Back to branding
+                  </button>
+                  <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
+                    Continue to participants
+                  </button>
+                </div>
               </>
             ) : (
               <div className="empty-compact">Select a race category to start editing its details, GPX, and checkpoints.</div>
@@ -931,6 +1028,7 @@ export function OrganizerConsole({
         <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "crew"}>
           <div className="panel-head compact">
             <div>
+              <p className="organizer-step-label">Step 4 of 5</p>
               <p className="section-label">Crew & Devices</p>
               <h3>Field operations setup</h3>
             </div>
@@ -1147,12 +1245,22 @@ export function OrganizerConsole({
                 {!crewAssignments.length ? <div className="empty-compact">No crew assigned yet for this race.</div> : null}
               </div>
             </section>
+
+            <div className="organizer-step-actions">
+              <button className="toolbar-link organizer-secondary-action" onClick={goToPreviousStep} type="button">
+                Back to participants
+              </button>
+              <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
+                Continue to review & publish
+              </button>
+            </div>
           </div>
         </article>
 
         <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "participants"}>
           <div className="panel-head compact">
             <div>
+              <p className="organizer-step-label">Step 3 of 5</p>
               <p className="section-label">Participant Import</p>
               <h3>Upload CSV or Excel roster</h3>
               <span className="organizer-inline-meta">Import participants for: {selectedRace?.title ?? "No race selected"}</span>
@@ -1293,6 +1401,15 @@ export function OrganizerConsole({
           ) : (
             <div className="empty-compact">No import preview yet. Upload a participant file to review the draft.</div>
           )}
+
+          <div className="organizer-step-actions">
+            <button className="toolbar-link organizer-secondary-action" onClick={goToPreviousStep} type="button">
+              Back to races & checkpoints
+            </button>
+            <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
+              Continue to crew & devices
+            </button>
+          </div>
         </article>
       </div>
     </section>
