@@ -1014,7 +1014,10 @@ export default function App() {
   useEffect(() => {
     if (!organizerSessionActive) {
       setOrganizerWorkspaceView("spectator");
+      return;
     }
+
+    setOrganizerWorkspaceView((current) => (current === "spectator" ? "console" : current));
   }, [organizerSessionActive]);
 
   useEffect(() => {
@@ -2702,6 +2705,8 @@ export default function App() {
     }
 
     setLoginError(null);
+    setIsLoginModalOpen(false);
+    setOrganizerWorkspaceView("console");
   }
 
   function jumpToSection(sectionId?: string) {

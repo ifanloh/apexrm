@@ -249,6 +249,7 @@ export function OrganizerConsole({
       : publishedRaceCount === 0
         ? "No race category published yet"
         : "Edition still needs setup";
+  const primaryBlocker = topBlockers[0] ?? null;
 
   return (
     <section className="organizer-console-shell" id="organizer-console">
@@ -259,12 +260,9 @@ export function OrganizerConsole({
           <p className="organizer-console-copy">
             Setup branding, event logo, course asset draft, race categories, checkpoints, and participant import for the current edition.
           </p>
+          <p className="organizer-console-meta">Signed in as {profileLabel}</p>
         </div>
         <div className="organizer-console-actions">
-          <div className="panel-badge">
-            <span>Signed in as</span>
-            <strong>{profileLabel}</strong>
-          </div>
           <button className="toolbar-link organizer-console-back" onClick={onBackToSpectator} type="button">
             Back to spectator
           </button>
@@ -295,16 +293,6 @@ export function OrganizerConsole({
               <span>of {races.length}</span>
             </div>
             <div className="panel-badge compact-badge">
-              <span>Live categories</span>
-              <strong>{liveRaceCount}</strong>
-              <span>{finishedRaceCount} finished</span>
-            </div>
-            <div className="panel-badge compact-badge">
-              <span>Blocked categories</span>
-              <strong>{blockedRaceReadiness.length}</strong>
-              <span>need attention</span>
-            </div>
-            <div className="panel-badge compact-badge">
               <span>Current focus</span>
               <strong>{selectedRace?.title ?? "No race selected"}</strong>
               <span>
@@ -313,13 +301,18 @@ export function OrganizerConsole({
             </div>
           </div>
 
-          <div className="organizer-launch-detail">
+          <div className="organizer-launch-detail organizer-launch-detail-condensed">
             <div className="organizer-launch-card">
-              <p className="section-label">Priority blockers</p>
-              <h3>Most common issues before publish</h3>
+              <p className="section-label">Current launch signal</p>
+              <h3>{primaryBlocker ? primaryBlocker[0] : "All publish checks are green"}</h3>
+              <p className="organizer-launch-copy">
+                {primaryBlocker
+                  ? `${primaryBlocker[1]} categories still need this item before they can be published.`
+                  : `${liveRaceCount} live categories and ${finishedRaceCount} finished categories are already aligned for spectator view.`}
+              </p>
               <div className="organizer-launch-tags">
-                {topBlockers.length ? (
-                  topBlockers.map(([label, count]) => (
+                {topBlockers.length > 1 ? (
+                  topBlockers.slice(1, 4).map(([label, count]) => (
                     <span className="organizer-validation-tag" key={`blocker-${label}`}>
                       {label} · {count}
                     </span>
@@ -328,16 +321,6 @@ export function OrganizerConsole({
                   <span className="organizer-validation-tag success">All publish checks are green</span>
                 )}
               </div>
-            </div>
-
-            <div className="organizer-launch-card">
-              <p className="section-label">Selected race</p>
-              <h3>{selectedRace?.title ?? "Choose a race"}</h3>
-              <p className="organizer-launch-copy">
-                {selectedRaceReadiness
-                  ? `${selectedRaceReadiness.passCount}/${selectedRaceReadiness.checks.length} checks complete for the currently selected category.`
-                  : "Pick a category race to review setup, checkpoints, crew, and participant import."}
-              </p>
             </div>
           </div>
         </article>
