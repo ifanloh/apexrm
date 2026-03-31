@@ -6494,6 +6494,12 @@ body {
   gap: 0.9rem;
 }
 
+.organizer-readiness-actions {
+  display: grid;
+  justify-items: end;
+  gap: 0.5rem;
+}
+
 .organizer-readiness-head strong {
   color: #3b2a12;
   font-size: 1rem;
@@ -6519,6 +6525,11 @@ body {
 .organizer-readiness-pill.ready {
   background: rgba(42, 133, 86, 0.12);
   color: #1f6f49;
+}
+
+.organizer-readiness-pill.published {
+  background: rgba(183, 120, 23, 0.14);
+  color: #98620f;
 }
 
 .organizer-readiness-pill.draft {
@@ -6581,6 +6592,30 @@ body {
 .organizer-status-pill.finished {
   background: rgba(39, 197, 95, 0.14);
   color: #147a3b;
+}
+
+.organizer-status-pill.draft {
+  background: rgba(191, 72, 39, 0.11);
+  color: #a34d1f;
+}
+
+.organizer-status-pill.published {
+  background: rgba(183, 120, 23, 0.14);
+  color: #98620f;
+}
+
+.organizer-publish-button.secondary {
+  border-color: rgba(183, 120, 23, 0.28);
+  color: #98620f;
+}
+
+.organizer-publish-button.secondary:hover {
+  background: rgba(183, 120, 23, 0.08);
+}
+
+.organizer-publish-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .organizer-checkpoint-list {

@@ -18,6 +18,7 @@ type OrganizerConsoleProps = {
   onSelectRace: (slug: string) => void;
   onImportTextChange: (value: string) => void;
   onApplyImport: () => void;
+  onToggleRacePublish: (slug: string, nextPublished: boolean) => void;
   onCheckpointChange: (checkpointId: string, patch: Partial<DemoCourseCheckpoint>) => void;
   onAddCheckpoint: () => void;
   onRemoveCheckpoint: (checkpointId: string) => void;
@@ -42,6 +43,7 @@ export function OrganizerConsole({
   onSelectRace,
   onImportTextChange,
   onApplyImport,
+  onToggleRacePublish,
   onCheckpointChange,
   onAddCheckpoint,
   onRemoveCheckpoint,
@@ -242,7 +244,19 @@ export function OrganizerConsole({
                       {passCount}/{checks.length} setup checks complete
                     </p>
                   </div>
-                  <span className={`organizer-readiness-pill ${ready ? "ready" : "draft"}`}>{ready ? "Ready" : "Needs setup"}</span>
+                  <div className="organizer-readiness-actions">
+                    <span className={`organizer-readiness-pill ${race.isPublished ? "published" : ready ? "ready" : "draft"}`}>
+                      {race.isPublished ? "Published" : ready ? "Ready" : "Needs setup"}
+                    </span>
+                    <button
+                      className={`toolbar-link organizer-publish-button ${race.isPublished ? "secondary" : ""}`}
+                      disabled={!race.isPublished && !ready}
+                      onClick={() => onToggleRacePublish(race.slug, !race.isPublished)}
+                      type="button"
+                    >
+                      {race.isPublished ? "Unpublish" : "Publish"}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="organizer-readiness-list">
@@ -276,6 +290,7 @@ export function OrganizerConsole({
                   <strong>{race.title}</strong>
                   <div className="organizer-race-card-actions">
                     <span className={`organizer-status-pill ${race.editionLabel.toLowerCase() === "live" ? "live" : "finished"}`}>{race.editionLabel}</span>
+                    <span className={`organizer-status-pill ${race.isPublished ? "published" : "draft"}`}>{race.isPublished ? "Published" : "Draft"}</span>
                     <button className="toolbar-link organizer-remove-race" onClick={() => onRemoveRace(race.slug)} type="button">
                       Remove
                     </button>

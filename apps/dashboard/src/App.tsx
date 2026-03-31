@@ -928,11 +928,17 @@ export default function App() {
       races
     };
   }, [organizerSetup]);
-  const featuredRace = festivalData.races.find((race) => race.editionLabel.toLowerCase() === "live") ?? festivalData.races[0];
+  const spectatorRaces = useMemo(
+    () => festivalData.races.filter((race) => organizerSetup.races.find((draft) => draft.slug === race.slug)?.isPublished !== false),
+    [festivalData.races, organizerSetup.races]
+  );
+  const visibleRaces = spectatorRaces;
+  const fallbackVisibleRace = visibleRaces[0] ?? festivalData.races[0];
+  const featuredRace = visibleRaces.find((race) => race.editionLabel.toLowerCase() === "live") ?? fallbackVisibleRace;
   const selectedRaceCard =
-    festivalData.races.find((race) => race.slug === selectedRaceSlug) ??
-    festivalData.races.find((race) => race.slug === featuredRace.slug) ??
-    festivalData.races[0];
+    visibleRaces.find((race) => race.slug === selectedRaceSlug) ??
+    (selectedRaceSlug === EDITION_HOME_VALUE ? featuredRace : festivalData.races.find((race) => race.slug === selectedRaceSlug)) ??
+    featuredRace;
   const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
   const isFeaturedRace = selectedRaceCard.slug === featuredRace.slug;
   const activeCourse = useMemo(() => {
@@ -1018,6 +1024,19 @@ export default function App() {
       setOrganizerSetupRaceSlug(organizerSetup.races[0].slug);
     }
   }, [organizerSetup.races, organizerSetupRaceSlug]);
+
+  useEffect(() => {
+    if (isOrganizerConsoleOpen || selectedRaceSlug === EDITION_HOME_VALUE) {
+      return;
+    }
+
+    if (visibleRaces.some((race) => race.slug === selectedRaceSlug)) {
+      return;
+    }
+
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+  }, [isOrganizerConsoleOpen, selectedRaceSlug, visibleRaces]);
 
   useEffect(() => {
     if (!isLoginModalOpen) {
@@ -1554,7 +1573,7 @@ export default function App() {
     return previewTime ?? formatElapsedRaceTime(scannedAt, race.startAt);
   };
   const runnerDirectoryEntries = useMemo<RunnerDirectoryEntry[]>(() => {
-    return festivalData.races.flatMap((race) => {
+    return visibleRaces.flatMap((race) => {
       const organizerRaceDraft = organizerSetup.races.find((item) => item.slug === race.slug);
       const useLiveEntries = race.slug === featuredRace.slug && overallLeaderboard.topEntries.length > 0;
       const rankedRows: RunnerDirectoryEntry[] = (useLiveEntries
@@ -1682,7 +1701,7 @@ export default function App() {
 
       return [...mergedRows, ...extraRows];
     });
-  }, [festivalData.races, featuredRace.slug, organizerSetup.races, overallLeaderboard.topEntries]);
+  }, [featuredRace.slug, organizerSetup.races, overallLeaderboard.topEntries, visibleRaces]);
   const runnerDirectoryCountries = useMemo(
     () =>
       [...new Set(runnerDirectoryEntries.map((entry) => entry.countryCode))]
@@ -1690,8 +1709,8 @@ export default function App() {
     [runnerDirectoryEntries]
   );
   const rankingSelectedRace = useMemo(
-    () => festivalData.races.find((race) => race.slug === rankingRaceFilter) ?? (isEditionHome ? featuredRace : selectedRaceCard),
-    [festivalData.races, featuredRace, isEditionHome, rankingRaceFilter, selectedRaceCard]
+    () => visibleRaces.find((race) => race.slug === rankingRaceFilter) ?? (isEditionHome ? featuredRace : selectedRaceCard),
+    [featuredRace, isEditionHome, rankingRaceFilter, selectedRaceCard, visibleRaces]
   );
   const rankingRaceIsLive = rankingSelectedRace.editionLabel.toLowerCase() === "live";
   const rankingRaceEntries = useMemo(() => {
@@ -1816,7 +1835,7 @@ export default function App() {
     return runnerDirectoryEntries
       .filter((entry) => entry.rank !== null && (entry.state === "in-race" || entry.state === "finisher"))
       .map((entry) => {
-        const race = festivalData.races.find((item) => item.slug === entry.raceSlug) ?? selectedRaceCard;
+        const race = visibleRaces.find((item) => item.slug === entry.raceSlug) ?? selectedRaceCard;
         const nextPassing = estimateNextPassing(race, entry);
         const lastPointLabel =
           entry.checkpointId === "finish"
@@ -1843,7 +1862,7 @@ export default function App() {
 
         return (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER);
       });
-  }, [festivalData.races, runnerDirectoryEntries, selectedRaceCard]);
+  }, [runnerDirectoryEntries, selectedRaceCard, visibleRaces]);
   const raceLeaderCountries = useMemo(
     () =>
       [...new Set(raceLeaderEntries.map((entry) => entry.countryCode))]
@@ -1851,8 +1870,8 @@ export default function App() {
     [raceLeaderEntries]
   );
   const leadersSelectedRace = useMemo(
-    () => (leadersRaceFilter === "all" ? null : festivalData.races.find((race) => race.slug === leadersRaceFilter) ?? selectedRaceCard),
-    [festivalData.races, leadersRaceFilter, selectedRaceCard]
+    () => (leadersRaceFilter === "all" ? null : visibleRaces.find((race) => race.slug === leadersRaceFilter) ?? selectedRaceCard),
+    [leadersRaceFilter, selectedRaceCard, visibleRaces]
   );
   const filteredRaceLeaderEntries = useMemo(() => {
     return raceLeaderEntries.filter((entry) => {
@@ -1898,8 +1917,8 @@ export default function App() {
       )} of ${searchRunnerEntries.length}`
     : "0-0 of 0";
   const runnerSearchSelectedRace = useMemo(
-    () => (runnerSearchRaceFilter === "all" ? null : festivalData.races.find((race) => race.slug === runnerSearchRaceFilter) ?? selectedRaceCard),
-    [festivalData.races, runnerSearchRaceFilter, selectedRaceCard]
+    () => (runnerSearchRaceFilter === "all" ? null : visibleRaces.find((race) => race.slug === runnerSearchRaceFilter) ?? selectedRaceCard),
+    [runnerSearchRaceFilter, selectedRaceCard, visibleRaces]
   );
   const runnerSearchScopeItems = useMemo(
     () => [
@@ -1923,8 +1942,8 @@ export default function App() {
     [festivalData.editionLabel, normalizedRunnerQuery, runnerSearchMode, runnerSearchSelectedRace, searchRunnerEntries.length]
   );
   const runnerDirectorySelectedRace = useMemo(
-    () => (runnerDirectoryRaceFilter ? festivalData.races.find((race) => race.slug === runnerDirectoryRaceFilter) ?? selectedRaceCard : selectedRaceCard),
-    [festivalData.races, runnerDirectoryRaceFilter, selectedRaceCard]
+    () => (runnerDirectoryRaceFilter ? visibleRaces.find((race) => race.slug === runnerDirectoryRaceFilter) ?? selectedRaceCard : selectedRaceCard),
+    [runnerDirectoryRaceFilter, selectedRaceCard, visibleRaces]
   );
   const runnerDirectoryScopeItems = useMemo(
     () => [
@@ -2014,8 +2033,8 @@ export default function App() {
       )} of ${filteredFavoriteDirectoryEntries.length}`
     : "0-0 of 0";
   const favoritesSelectedRace = useMemo(
-    () => (favoritesRaceFilter === "all" ? null : festivalData.races.find((race) => race.slug === favoritesRaceFilter) ?? selectedRaceCard),
-    [favoritesRaceFilter, festivalData.races, selectedRaceCard]
+    () => (favoritesRaceFilter === "all" ? null : visibleRaces.find((race) => race.slug === favoritesRaceFilter) ?? selectedRaceCard),
+    [favoritesRaceFilter, selectedRaceCard, visibleRaces]
   );
   const favoritesScopeItems = useMemo(
     () => [
@@ -2070,8 +2089,8 @@ export default function App() {
     [favoriteDirectoryEntries.length, selectedFavoriteRunner]
   );
   const statisticsSelectedRace = useMemo(
-    () => (statisticsRaceFilter === "all" ? null : festivalData.races.find((race) => race.slug === statisticsRaceFilter) ?? selectedRaceCard),
-    [festivalData.races, selectedRaceCard, statisticsRaceFilter]
+    () => (statisticsRaceFilter === "all" ? null : visibleRaces.find((race) => race.slug === statisticsRaceFilter) ?? selectedRaceCard),
+    [selectedRaceCard, statisticsRaceFilter, visibleRaces]
   );
   const statisticsEntries = useMemo(() => {
     return statisticsRaceFilter === "all"
@@ -2181,7 +2200,7 @@ export default function App() {
   }, [statisticsCountries]);
   const statisticsContextLabel = statisticsSelectedRace
     ? `${statisticsSelectedRace.title} · ${statisticsSelectedRace.distanceKm.toFixed(1)} km · ${statisticsSelectedRace.ascentM} m+`
-    : `${festivalData.races.length} races · ${statisticsRegisteredCount.toLocaleString()} registered runners`;
+    : `${visibleRaces.length} races · ${statisticsRegisteredCount.toLocaleString()} registered runners`;
   const leadersScopeItems = useMemo(() => {
     if (leadersSelectedRace) {
       return [
@@ -2244,7 +2263,7 @@ export default function App() {
       )} of ${fullRankingEntries.length}`
     : "0-0 of 0";
   const raceHomeCards = useMemo(() => {
-    return festivalData.races.map((race) => {
+    return visibleRaces.map((race) => {
       if (race.slug !== featuredRace.slug) {
         return {
           ...race,
@@ -2276,7 +2295,7 @@ export default function App() {
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
-  }, [dnfDnsCount, featuredRace.slug, finisherCount, overallLeaderboard.topEntries, previewOverallLeaderboard.topEntries, selectedRaceCard.slug]);
+  }, [dnfDnsCount, featuredRace.slug, finisherCount, overallLeaderboard.topEntries, previewOverallLeaderboard.topEntries, selectedRaceCard.slug, visibleRaces]);
   const eventTitle = isEditionHome ? festivalData.brandName : selectedRaceCard.title;
   const liveStatusLabel =
     liveStatus === "live"
@@ -2334,6 +2353,10 @@ export default function App() {
       ...current,
       races: current.races.map((race) => (race.slug === slug ? { ...race, ...patch } : race))
     }));
+  }
+
+  function toggleOrganizerRacePublish(slug: string, nextPublished: boolean) {
+    updateOrganizerRace(slug, { isPublished: nextPublished });
   }
 
   function addOrganizerRace() {
@@ -2867,6 +2890,7 @@ export default function App() {
             onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
             onGpxChange={handleOrganizerGpxChange}
             onImportTextChange={setOrganizerImportText}
+            onToggleRacePublish={toggleOrganizerRacePublish}
             onRemoveCheckpoint={removeOrganizerCheckpoint}
             onRemoveRace={removeOrganizerRace}
             onRaceChange={updateOrganizerRace}
@@ -2996,7 +3020,7 @@ export default function App() {
             In which race ?
             <select value={statisticsRaceFilter} onChange={(event) => setStatisticsRaceFilter(event.target.value)}>
               <option value="all">All races</option>
-              {festivalData.races.map((race) => (
+              {visibleRaces.map((race) => (
                 <option key={`statistics-race-${race.slug}`} value={race.slug}>
                   {race.title}
                 </option>
@@ -3111,7 +3135,7 @@ export default function App() {
               <label className="ranking-toolbar-label">
                 In which race ?
                 <select value={rankingRaceFilter} onChange={(event) => setRankingRaceFilter(event.target.value)}>
-                  {festivalData.races.map((race) => (
+                  {visibleRaces.map((race) => (
                     <option key={`ranking-race-${race.slug}`} value={race.slug}>
                       {race.title}
                     </option>
@@ -3454,7 +3478,7 @@ export default function App() {
               In which race ?
               <select value={runnerSearchRaceFilter} onChange={(event) => setRunnerSearchRaceFilter(event.target.value)}>
                 <option value="all">All races</option>
-                {festivalData.races.map((race) => (
+                {visibleRaces.map((race) => (
                   <option key={`runner-search-race-${race.slug}`} value={race.slug}>
                     {race.title}
                   </option>
@@ -3682,7 +3706,7 @@ export default function App() {
               <label className="ranking-toolbar-label">
                 In which race ?
                 <select value={runnerDirectoryRaceFilter} onChange={(event) => setRunnerDirectoryRaceFilter(event.target.value)}>
-                  {festivalData.races.map((race) => (
+                  {visibleRaces.map((race) => (
                     <option key={`runner-list-race-${race.slug}`} value={race.slug}>
                       {race.title}
                     </option>
@@ -3939,7 +3963,7 @@ export default function App() {
               In which race ?
               <select value={favoritesRaceFilter} onChange={(event) => setFavoritesRaceFilter(event.target.value)}>
                 <option value="all">All races</option>
-                {festivalData.races.map((race) => (
+                {visibleRaces.map((race) => (
                   <option key={`favorites-race-${race.slug}`} value={race.slug}>
                     {race.title}
                   </option>
@@ -4527,7 +4551,7 @@ export default function App() {
                 In which race ?
                 <select value={leadersRaceFilter} onChange={(event) => setLeadersRaceFilter(event.target.value)}>
                   <option value="all">All races</option>
-                  {festivalData.races.map((race) => (
+                  {visibleRaces.map((race) => (
                     <option key={`leaders-race-${race.slug}`} value={race.slug}>
                       {race.title}
                     </option>
@@ -4615,7 +4639,7 @@ export default function App() {
                     const canShowPodium = shouldShowLivePodium(
                       entry.rank ?? 0,
                       entry.checkpointId ?? "",
-                        (festivalData.races.find((race) => race.slug === entry.raceSlug)?.editionLabel.toLowerCase() ?? "finished") === "live"
+                        (visibleRaces.find((race) => race.slug === entry.raceSlug)?.editionLabel.toLowerCase() ?? "finished") === "live"
                     );
 
                     return (

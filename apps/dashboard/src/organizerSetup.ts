@@ -23,6 +23,7 @@ export type OrganizerBrandingDraft = {
 export type OrganizerRaceDraft = {
   slug: string;
   title: string;
+  isPublished: boolean;
   editionLabel: string;
   scheduleLabel: string;
   startAt: string;
@@ -75,6 +76,7 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
   return {
     slug: race.slug,
     title: race.title,
+    isPublished: true,
     editionLabel: race.editionLabel,
     scheduleLabel: race.scheduleLabel,
     startAt: race.startAt,
@@ -111,6 +113,7 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
   return {
     slug,
     title: `Custom Race ${index}`,
+    isPublished: false,
     editionLabel: "Live",
     scheduleLabel: "Sun 01 Jan 05:00",
     startAt: "2026-01-01T05:00:00+07:00",
