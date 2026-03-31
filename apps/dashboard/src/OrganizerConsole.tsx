@@ -180,6 +180,12 @@ export function OrganizerConsole({
     };
   });
   const readyRaceCount = raceReadiness.filter((item) => item.ready).length;
+  const blockedRaceReadiness = raceReadiness
+    .map((item) => ({
+      ...item,
+      blockedChecks: item.checks.filter((check) => !check.pass)
+    }))
+    .filter((item) => !item.ready || !item.race.isPublished);
 
   return (
     <section className="organizer-console-shell" id="organizer-console">
@@ -458,6 +464,50 @@ export function OrganizerConsole({
                 </div>
               </article>
             ))}
+          </div>
+        </article>
+
+        <article className="panel organizer-console-panel organizer-console-wide">
+          <div className="panel-head compact">
+            <div>
+              <p className="section-label">Publish Validation</p>
+              <h3>Blocked categories</h3>
+            </div>
+            <div className="panel-badge compact-badge">
+              <span>Need attention</span>
+              <strong>{blockedRaceReadiness.length}</strong>
+              <span>categories</span>
+            </div>
+          </div>
+
+          <div className="organizer-validation-list">
+            {blockedRaceReadiness.map(({ race, blockedChecks, ready }) => (
+              <article className="organizer-validation-row" key={`validation-${race.slug}`}>
+                <div>
+                  <strong>{race.title}</strong>
+                  <p>
+                    {race.isPublished ? "Published with open blockers" : ready ? "Ready to publish" : "Draft with pending setup"}
+                  </p>
+                </div>
+                <div className="organizer-validation-meta">
+                  <div className="organizer-validation-tags">
+                    {blockedChecks.length ? (
+                      blockedChecks.slice(0, 4).map((check) => (
+                        <span className="organizer-validation-tag" key={`${race.slug}-${check.label}`}>
+                          {check.label}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="organizer-validation-tag success">Ready for publish</span>
+                    )}
+                  </div>
+                  <button className="toolbar-link organizer-secondary-action" onClick={() => onSelectRace(race.slug)} type="button">
+                    Inspect race
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!blockedRaceReadiness.length ? <div className="empty-compact">All race categories are ready and published.</div> : null}
           </div>
         </article>
 

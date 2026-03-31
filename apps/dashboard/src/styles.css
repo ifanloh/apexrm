@@ -6517,6 +6517,58 @@ body {
   gap: 1rem;
 }
 
+.organizer-validation-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.organizer-validation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(225, 183, 76, 0.24);
+  background: rgba(255, 252, 245, 0.9);
+}
+
+.organizer-validation-row p {
+  margin: 0.2rem 0 0;
+  color: #8d6a2a;
+  font-size: 0.88rem;
+}
+
+.organizer-validation-meta {
+  display: grid;
+  justify-items: end;
+  gap: 0.55rem;
+}
+
+.organizer-validation-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.organizer-validation-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(191, 72, 39, 0.11);
+  color: #a34d1f;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.organizer-validation-tag.success {
+  background: rgba(42, 133, 86, 0.1);
+  color: #1f6f49;
+}
+
 .organizer-readiness-card {
   display: grid;
   gap: 0.9rem;
