@@ -107,17 +107,21 @@ async function runOrganizerBrowserChecks() {
 
   try {
     await runStep("organizer browser login flow", async () => {
-      await page.goto(dashboardUrl, { waitUntil: "networkidle" });
-      await page.getByRole("button", { name: "Login" }).click();
-      await page.getByLabel("Username").fill(organizerEmail);
-      await page.getByLabel("Password").fill(organizerPassword);
-      await page.getByRole("button", { name: "Login" }).click();
+      await page.goto(dashboardUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.locator("header").getByRole("button", { name: "Login", exact: true }).waitFor({ timeout: 15000 });
+      await page.locator("header").getByRole("button", { name: "Login", exact: true }).click();
+      const loginDialog = page.locator(".auth-modal");
+      await loginDialog.waitFor({ timeout: 10000 });
+      await loginDialog.getByLabel("Username").fill(organizerEmail);
+      await loginDialog.getByLabel("Password").fill(organizerPassword);
+      await loginDialog.getByRole("button", { name: "Login", exact: true }).click();
       await page.getByText("Event Setup Console").waitFor({ timeout: 15000 });
-      await page.getByRole("button", { name: "Branding" }).waitFor();
-      await page.getByRole("button", { name: "Races" }).waitFor();
-      await page.getByRole("button", { name: "Participants" }).waitFor();
-      await page.getByRole("button", { name: "Crew" }).waitFor();
-      await page.getByRole("button", { name: "Review" }).waitFor();
+      const setupNav = page.locator(".organizer-console-nav").first();
+      await setupNav.getByRole("button", { name: /Branding/ }).waitFor();
+      await setupNav.getByRole("button", { name: /Races/ }).waitFor();
+      await setupNav.getByRole("button", { name: /Participants/ }).waitFor();
+      await setupNav.getByRole("button", { name: /Crew/ }).waitFor();
+      await setupNav.getByRole("button", { name: /Review/ }).waitFor();
       return "Organizer console opened after login";
     });
 
