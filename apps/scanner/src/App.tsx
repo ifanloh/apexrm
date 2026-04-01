@@ -904,20 +904,33 @@ export default function App() {
               </button>
             </div>
 
-            <div className="scanner-utility-bar">
-              <button className="scanner-utility-chip" onClick={() => setScreen("checkpoint")} type="button">
-                Checkpoints
-              </button>
-              <button className="scanner-utility-chip" disabled={!canScan || isBusy} onClick={openCameraScanner} type="button">
-                Scan QR
-              </button>
-              <button className="scanner-utility-chip" disabled={isBusy || !bib} onClick={removeLastBibCharacter} type="button">
-                Delete last
-              </button>
+            <div className="scanner-utility-meta">
               <div className="scanner-utility-chip quiet">
                 Crew {effectiveProfile?.displayName ?? effectiveProfile?.crewCode ?? crewId}
               </div>
             </div>
+
+            <nav className="scanner-bottom-nav" aria-label="Scanner quick actions">
+              <button className="scanner-nav-button" onClick={() => setScreen("checkpoint")} type="button">
+                Checkpoints
+              </button>
+              <button
+                className="scanner-nav-button scanner-nav-button-primary"
+                disabled={!canScan || isBusy}
+                onClick={openCameraScanner}
+                type="button"
+              >
+                Scan QR
+              </button>
+              <button
+                className="scanner-nav-button"
+                disabled={isBusy || !bib}
+                onClick={removeLastBibCharacter}
+                type="button"
+              >
+                Delete
+              </button>
+            </nav>
           </section>
         ) : null}
 
