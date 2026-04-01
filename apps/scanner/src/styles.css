@@ -40,9 +40,9 @@ select {
 
 .scanner-shell {
   margin: 0 auto;
-  max-width: 1440px;
+  max-width: 560px;
   overflow-x: clip;
-  padding: 24px 18px 42px;
+  padding: 14px 14px 28px;
 }
 
 .scanner-topbar,
@@ -54,22 +54,20 @@ select {
   backdrop-filter: blur(14px);
   background: var(--surface);
   border: 1px solid var(--stroke);
-  border-radius: 24px;
-  box-shadow: var(--shadow);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px rgba(18, 26, 39, 0.07);
 }
 
 .scanner-topbar,
 .scanner-stage,
 .queue-section {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .scanner-topbar {
-  align-items: center;
-  display: flex;
-  gap: 18px;
-  justify-content: space-between;
-  padding: 18px 22px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
 }
 
 .scanner-kicker {
@@ -90,31 +88,33 @@ select {
 
 .scanner-topbar h1 {
   color: var(--primary);
-  font-size: clamp(1.9rem, 2.4vw, 2.6rem);
+  font-size: 1.7rem;
 }
 
 .scanner-event-label {
   color: var(--ink-soft);
   display: inline-block;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 700;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .scanner-topbar-meta {
-  align-items: center;
-  display: flex;
-  gap: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .scanner-pill {
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 800;
-  gap: 10px;
-  padding: 11px 14px;
+  gap: 8px;
+  justify-content: center;
+  min-height: 42px;
+  padding: 9px 12px;
   text-transform: uppercase;
 }
 
@@ -149,20 +149,21 @@ select {
   background: rgba(255, 255, 255, 0.66);
   color: var(--primary);
   font-weight: 800;
-  padding: 11px 14px;
+  min-height: 42px;
+  padding: 10px 14px;
 }
 
 .scanner-stage {
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.9fr);
+  gap: 14px;
+  grid-template-columns: 1fr;
   min-width: 0;
 }
 
 .camera-panel,
 .scanner-panel,
 .queue-section {
-  padding: 22px;
+  padding: 16px;
 }
 
 .camera-panel {
@@ -170,7 +171,7 @@ select {
     linear-gradient(180deg, rgba(215, 226, 255, 0.4), rgba(255, 255, 255, 0.92) 28%),
     var(--surface-strong);
   display: grid;
-  gap: 18px;
+  gap: 14px;
   min-width: 0;
 }
 
@@ -195,12 +196,12 @@ select {
 }
 
 .camera-frame {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 3 / 4;
   background:
     linear-gradient(180deg, rgba(0, 70, 145, 0) 0%, rgba(0, 70, 145, 0.12) 50%, rgba(0, 70, 145, 0) 100%),
     linear-gradient(135deg, #0f1720, #121c29 42%, #132238);
-  border-radius: 28px;
-  min-height: 340px;
+  border-radius: 24px;
+  min-height: 360px;
   min-width: 0;
   overflow: hidden;
   position: relative;
@@ -278,11 +279,11 @@ select {
 .camera-overlay {
   background: rgba(5, 10, 18, 0.58);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
+  border-radius: 16px;
   color: white;
   max-width: min(320px, 82%);
   overflow-wrap: anywhere;
-  padding: 12px 14px;
+  padding: 10px 12px;
   position: absolute;
 }
 
@@ -326,38 +327,38 @@ select {
 
 .quick-actions {
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(200px, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  grid-template-columns: 1fr;
 }
 
 .primary-button,
 .submit-button {
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   border: 0;
-  border-radius: 18px;
+  border-radius: 16px;
   color: white;
   font-weight: 800;
-  min-height: 58px;
-  padding: 12px 18px;
+  min-height: 52px;
+  padding: 12px 16px;
 }
 
 .tool-group {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--stroke);
-  border-radius: 18px;
+  border-radius: 16px;
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 10px;
+  padding: 8px;
 }
 
 .tool-group button {
   background: transparent;
   border: 0;
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--ink-soft);
   font-weight: 700;
-  min-height: 48px;
+  min-height: 42px;
 }
 
 .tool-group button:hover {
@@ -367,7 +368,7 @@ select {
 
 .scanner-rail {
   display: grid;
-  gap: 18px;
+  gap: 14px;
 }
 
 .scanner-panel {
@@ -393,7 +394,7 @@ select {
 }
 
 .total-panel strong {
-  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-size: 2.4rem;
   line-height: 1;
 }
 
@@ -404,16 +405,16 @@ select {
 
 .rail-head {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .rail-head div {
   background: rgba(0, 70, 145, 0.05);
-  border-radius: 18px;
+  border-radius: 14px;
   display: grid;
   gap: 6px;
-  padding: 14px;
+  padding: 12px;
 }
 
 .rail-head.compact {
@@ -438,17 +439,17 @@ select {
 
 .manual-helper {
   color: var(--ink-soft);
-  font-size: 0.84rem;
-  line-height: 1.5;
+  font-size: 0.8rem;
+  line-height: 1.45;
 }
 
 input,
 select {
   background: rgba(255, 255, 255, 0.8);
   border: 1px solid var(--stroke);
-  border-radius: 16px;
+  border-radius: 14px;
   color: inherit;
-  min-height: 48px;
+  min-height: 46px;
   padding: 12px 14px;
 }
 
@@ -457,7 +458,7 @@ select {
 .result-card {
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--stroke);
-  border-radius: 20px;
+  border-radius: 16px;
 }
 
 .placeholder-card {
@@ -493,19 +494,19 @@ select {
 .queue-section {
   background: var(--surface-strong);
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .queue-grid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  grid-template-columns: 1fr;
 }
 
 .scanner-activity-grid {
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+  gap: 12px;
+  grid-template-columns: 1fr;
 }
 
 .scanner-activity-card {
@@ -561,8 +562,8 @@ select {
   color: var(--ink-muted);
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  justify-content: flex-end;
+  gap: 10px;
+  justify-content: center;
   padding: 4px 4px 0;
   font-size: 0.78rem;
 }
@@ -579,54 +580,39 @@ select {
 }
 
 @media (max-width: 1120px) {
-  .scanner-stage {
-    grid-template-columns: 1fr;
-  }
-
   .camera-frame {
     min-height: 320px;
-  }
-
-  .scanner-activity-grid {
-    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 760px) {
   .scanner-shell {
-    padding: 14px 12px 28px;
+    padding: 12px 12px 24px;
   }
 
   .scanner-topbar {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 18px 16px;
-  }
-
-  .scanner-topbar-meta,
-  .quick-actions,
-  .rail-head {
-    grid-template-columns: 1fr;
+    padding: 14px;
   }
 
   .scanner-topbar-meta {
     display: grid;
     width: 100%;
+    grid-template-columns: 1fr 1fr;
   }
 
   .camera-panel,
   .scanner-panel,
   .queue-section {
-    padding: 16px;
+    padding: 14px;
   }
 
   .scanner-topbar h1 {
-    font-size: 2.15rem;
+    font-size: 1.55rem;
   }
 
   .camera-frame {
-    aspect-ratio: auto;
-    min-height: 260px;
+    aspect-ratio: 3 / 4;
+    min-height: 320px;
   }
 
   .camera-overlay {
@@ -664,6 +650,6 @@ select {
   }
 
   .tool-group {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

@@ -606,22 +606,22 @@ export default function App() {
   return (
     <main className="scanner-shell">
       <header className="scanner-topbar">
-        <div>
+        <div className="scanner-topbar-copy">
           <p className="scanner-kicker">Field Scanner</p>
-          <h1>Race Control Scanner</h1>
+          <h1>Scanner</h1>
           <span className="scanner-event-label">{DEMO_EVENT_LABEL}</span>
         </div>
-          <div className="scanner-topbar-meta">
-            <div className={`scanner-pill ${isOnline ? "online" : "offline"}`}>
-              <span className="status-dot" />
-              {isOnline ? "Live Connectivity" : "Offline Queue Mode"}
-            </div>
-            <div className="scanner-pill neutral">
-              <span className="status-dot" />
-              {selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Checkpoint"}
-            </div>
+        <div className="scanner-topbar-meta">
+          <div className={`scanner-pill ${isOnline ? "online" : "offline"}`}>
+            <span className="status-dot" />
+            {isOnline ? "Online" : "Offline"}
+          </div>
+          <div className="scanner-pill neutral">
+            <span className="status-dot" />
+            {selectedCheckpoint ? selectedCheckpoint.code : "Checkpoint"}
+          </div>
           <button className="ghost-button" onClick={() => void syncQueue()} type="button">
-            {isSyncing ? "Syncing..." : "Sync Queue"}
+            {isSyncing ? "Syncing..." : "Sync"}
           </button>
           <button
             className="ghost-button"
@@ -696,7 +696,7 @@ export default function App() {
             </div>
             <div className="rail-head compact">
               <div>
-                <span>Scan crew</span>
+                <span>Crew</span>
                 <strong>{effectiveProfile?.displayName ?? effectiveProfile?.crewCode ?? crewId}</strong>
               </div>
               <div>
@@ -729,16 +729,15 @@ export default function App() {
               <label>
                 <input
                   disabled={!canScan || isBusy}
-                  placeholder="contoh: T0001 atau BIB baru"
+                  placeholder="Masukkan atau scan BIB"
                   value={bib}
                   onChange={(event) => setBib(normalizeBib(event.target.value))}
                 />
               </label>
 
-              <div className="manual-helper">
-                Demo event berisi 500 runner seed. BIB <strong>T0001-T0500</strong> sudah tersedia dan scan baru tetap bisa
-                ditambahkan untuk trial.
-              </div>
+                <div className="manual-helper">
+                  BIB demo <strong>T0001-T0500</strong> sudah tersedia. Kamu juga bisa trial dengan BIB baru.
+                </div>
 
               <button className="submit-button" disabled={!canScan || isBusy} type="submit">
                 {isBusy ? "Memproses..." : "Submit Scan"}
