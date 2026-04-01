@@ -339,6 +339,59 @@ select {
   gap: 10px;
 }
 
+.scanner-camera-sheet {
+  background: var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 20px;
+  box-shadow: 0 6px 16px rgba(31, 44, 32, 0.08);
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.scanner-camera-head,
+.scanner-camera-copy {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.scanner-camera-head strong {
+  display: block;
+  font-size: 1rem;
+  margin-top: 2px;
+}
+
+.scanner-camera-frame {
+  background: #101510;
+  border-radius: 18px;
+  min-height: 220px;
+  overflow: hidden;
+  position: relative;
+}
+
+.scanner-camera-video {
+  display: block;
+  height: 100%;
+  min-height: 220px;
+  object-fit: cover;
+  width: 100%;
+}
+
+.scanner-camera-guide {
+  border: 2px solid rgba(19, 225, 11, 0.92);
+  border-radius: 18px;
+  inset: 18px;
+  position: absolute;
+}
+
+.scanner-camera-copy {
+  align-items: flex-start;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
 .scanner-result-card {
   display: grid;
   gap: 4px;
@@ -444,6 +497,27 @@ select {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   justify-items: center;
   padding: 2px 2px 0;
+}
+
+.scanner-prefix-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.scanner-prefix-chip {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  color: #213124;
+  display: inline-flex;
+  font-size: 1rem;
+  font-weight: 900;
+  height: 44px;
+  justify-content: center;
+  min-width: 72px;
+  padding: 0 18px;
 }
 
 .scanner-key {

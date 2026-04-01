@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
+import QrScanner from "qr-scanner";
 import {
   authProfileSchema,
   defaultCheckpoints,
@@ -54,6 +55,52 @@ function isValidBib(rawValue: string) {
 
 function normalizeBib(rawValue: string) {
   return rawValue.trim().toUpperCase();
+}
+
+function extractBibFromPayload(rawValue: string) {
+  const trimmed = rawValue.trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  if (isValidBib(trimmed)) {
+    return normalizeBib(trimmed);
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    const candidate =
+      parsed.bib ??
+      parsed.bibCode ??
+      parsed.code ??
+      parsed.runnerBib ??
+      parsed.value;
+
+    if (typeof candidate === "string" && candidate.trim()) {
+      return normalizeBib(candidate);
+    }
+  } catch {
+    // Keep falling back to URL/plain-text parsing.
+  }
+
+  try {
+    const url = new URL(trimmed);
+    const queryCandidate =
+      url.searchParams.get("bib") ??
+      url.searchParams.get("code") ??
+      url.searchParams.get("bibCode") ??
+      url.pathname.split("/").filter(Boolean).at(-1);
+
+    if (queryCandidate && isValidBib(queryCandidate)) {
+      return normalizeBib(queryCandidate);
+    }
+  } catch {
+    // Not a URL payload.
+  }
+
+  const fallbackCandidate = trimmed.match(/[A-Za-z0-9-]{2,32}/)?.[0] ?? trimmed;
+  return normalizeBib(fallbackCandidate);
 }
 
 function getApiHost() {
@@ -129,7 +176,14 @@ export default function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [recentActivity, setRecentActivity] = useState<ScannerActivity[]>([]);
   const [screen, setScreen] = useState<ScannerScreen>("timing");
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isCameraBusy, setIsCameraBusy] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraHint, setCameraHint] = useState("Arahkan QR ke area kamera.");
   const syncLockRef = useRef(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
+  const cameraLockRef = useRef(false);
 
   const selectedCheckpoint = useMemo(
     () => checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ?? null,
@@ -271,6 +325,77 @@ export default function App() {
     };
   }, [session]);
 
+  useEffect(() => {
+    if (!isCameraOpen || !videoRef.current) {
+      return;
+    }
+
+    let isDisposed = false;
+
+    async function startCameraScanner() {
+      try {
+        const hasCamera = await QrScanner.hasCamera();
+
+        if (!hasCamera) {
+          setCameraError("Perangkat ini tidak menemukan kamera yang bisa dipakai untuk scan QR.");
+          return;
+        }
+
+        const scanner = new QrScanner(
+          videoRef.current!,
+          async (result) => {
+            if (cameraLockRef.current) {
+              return;
+            }
+
+            cameraLockRef.current = true;
+            setIsCameraBusy(true);
+            setCameraHint("QR terdeteksi. Memproses scan...");
+
+            try {
+              const payload = typeof result === "string" ? result : result.data;
+              await processScan(payload);
+              setIsCameraOpen(false);
+            } finally {
+              cameraLockRef.current = false;
+              setIsCameraBusy(false);
+            }
+          },
+          {
+            preferredCamera: "environment",
+            returnDetailedScanResult: true,
+            highlightCodeOutline: false,
+            highlightScanRegion: false,
+            maxScansPerSecond: 8
+          }
+        );
+
+        qrScannerRef.current = scanner;
+
+        await scanner.start();
+        if (!isDisposed) {
+          setCameraError(null);
+          setCameraHint("Arahkan QR ke dalam frame. Scanner akan membaca otomatis.");
+        }
+      } catch (error) {
+        if (!isDisposed) {
+          setCameraError(error instanceof Error ? error.message : "Kamera gagal dibuka.");
+        }
+      }
+    }
+
+    void startCameraScanner();
+
+    return () => {
+      isDisposed = true;
+      cameraLockRef.current = false;
+      setIsCameraBusy(false);
+      qrScannerRef.current?.stop();
+      qrScannerRef.current?.destroy();
+      qrScannerRef.current = null;
+    };
+  }, [isCameraOpen]);
+
   async function refreshQueue() {
     setQueue(await getQueuedScans());
   }
@@ -363,7 +488,7 @@ export default function App() {
       return;
     }
 
-    const normalizedBib = normalizeBib(rawValue);
+    const normalizedBib = extractBibFromPayload(rawValue);
 
     if (!checkpointId || !normalizedBib) {
       setStatusMessage("Checkpoint dan payload QR/BIB wajib ada.");
@@ -444,6 +569,10 @@ export default function App() {
     setBib((current) => `${current}${digit}`);
   }
 
+  function appendBibPrefix(prefix: "M" | "W") {
+    setBib((current) => normalizeBib(`${current}${prefix}`));
+  }
+
   function clearBib() {
     setBib("");
   }
@@ -454,6 +583,16 @@ export default function App() {
 
   async function submitCurrentBib() {
     await processScan(bib);
+  }
+
+  function openCameraScanner() {
+    setCameraError(null);
+    setCameraHint("Arahkan QR ke area kamera.");
+    setIsCameraOpen(true);
+  }
+
+  function closeCameraScanner() {
+    setIsCameraOpen(false);
   }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -668,6 +807,31 @@ export default function App() {
               )}
             </div>
 
+            {isCameraOpen ? (
+              <div className="scanner-camera-sheet">
+                <div className="scanner-camera-head">
+                  <div>
+                    <p className="scanner-kicker">Camera Scan</p>
+                    <strong>Scan QR bib runner</strong>
+                  </div>
+                  <button className="scanner-utility-chip" onClick={closeCameraScanner} type="button">
+                    Close
+                  </button>
+                </div>
+                <div className="scanner-camera-frame">
+                  <video className="scanner-camera-video" muted playsInline ref={videoRef} />
+                  <div className="scanner-camera-guide" />
+                </div>
+                <div className="scanner-camera-copy">
+                  {cameraError ? (
+                    <div className="placeholder-card">{cameraError}</div>
+                  ) : (
+                    <span>{isCameraBusy ? "Memproses QR..." : cameraHint}</span>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
             <div className="scanner-recent-list">
               {recentPreview.map((entry) => (
                 <article className={`scanner-recent-row ${entry.status}`} key={entry.id}>
@@ -687,6 +851,25 @@ export default function App() {
             <form className="scanner-hidden-submit" onSubmit={handleSubmit}>
               <button type="submit" />
             </form>
+
+            <div className="scanner-prefix-row">
+              <button
+                className="scanner-prefix-chip"
+                disabled={!canScan || isBusy}
+                onClick={() => appendBibPrefix("M")}
+                type="button"
+              >
+                M
+              </button>
+              <button
+                className="scanner-prefix-chip"
+                disabled={!canScan || isBusy}
+                onClick={() => appendBibPrefix("W")}
+                type="button"
+              >
+                W
+              </button>
+            </div>
 
             <div className="scanner-keypad">
               {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
@@ -724,6 +907,9 @@ export default function App() {
             <div className="scanner-utility-bar">
               <button className="scanner-utility-chip" onClick={() => setScreen("checkpoint")} type="button">
                 Checkpoints
+              </button>
+              <button className="scanner-utility-chip" disabled={!canScan || isBusy} onClick={openCameraScanner} type="button">
+                Scan QR
               </button>
               <button className="scanner-utility-chip" disabled={isBusy || !bib} onClick={removeLastBibCharacter} type="button">
                 Delete last
