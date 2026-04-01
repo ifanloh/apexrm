@@ -29,6 +29,15 @@ function getStoredValue(key: string, fallback: string) {
   return window.localStorage.getItem(key) ?? fallback;
 }
 
+function createClientId() {
+  const randomUuid = globalThis.crypto?.randomUUID;
+  if (typeof randomUuid === "function") {
+    return randomUuid.call(globalThis.crypto);
+  }
+
+  return `scanner-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString([], {
     hour: "2-digit",
@@ -104,7 +113,7 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const [crewId, setCrewId] = useState(() => getStoredValue("arm:crewId", "crew-01"));
-  const [deviceId, setDeviceId] = useState(() => getStoredValue("arm:deviceId", crypto.randomUUID()));
+  const [deviceId, setDeviceId] = useState(() => getStoredValue("arm:deviceId", createClientId()));
   const [checkpointId, setCheckpointId] = useState("cp-10");
   const [bib, setBib] = useState("");
   const [isOnline, setIsOnline] = useState(window.navigator.onLine);
@@ -377,7 +386,7 @@ export default function App() {
     }
 
     const payload: ScanSubmission = {
-      clientScanId: crypto.randomUUID(),
+      clientScanId: createClientId(),
       raceId: DEFAULT_RACE_ID,
       checkpointId,
       bib: normalizedBib,
