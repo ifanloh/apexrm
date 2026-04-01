@@ -25,7 +25,8 @@
     "dev:scanner": "npm --workspace @arm/scanner run dev",
     "dev:dashboard": "npm --workspace @arm/dashboard run dev",
     "scanner:android:apk": "npm run android:apk --workspace @arm/scanner",
-    "scanner:android:open": "npm run android:open --workspace @arm/scanner"
+    "scanner:android:open": "npm run android:open --workspace @arm/scanner",
+    "scanner:android:live": "npm run android:live --workspace @arm/scanner"
   },
   "devDependencies": {
     "playwright": "^1.58.2"
