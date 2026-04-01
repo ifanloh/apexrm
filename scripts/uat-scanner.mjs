@@ -121,7 +121,6 @@ async function runBrowserChecks() {
     }
 
     await displayCard.waitFor({ timeout: 20000 });
-    await page.getByRole("button", { name: "Sync Queue" }).waitFor({ timeout: 20000 });
     await page.getByRole("button", { name: "Checkpoint locked" }).waitFor({ timeout: 20000 });
     await page.getByRole("button", { name: "Scanner" }).waitFor({ timeout: 20000 });
     await page.getByRole("button", { name: "History" }).waitFor({ timeout: 20000 });

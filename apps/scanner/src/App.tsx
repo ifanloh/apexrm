@@ -250,6 +250,8 @@ export default function App() {
   const apiHost = getApiHost();
   const recentPreview = recentActivity.slice(0, 3);
   const queueCount = queue.length;
+  const showSyncAction = queueCount > 0 || isSyncing;
+  const syncActionLabel = isSyncing ? `Syncing ${queueCount || ""}`.trim() : !isOnline ? `Queued ${queueCount}` : `Sync ${queueCount}`;
 
   useEffect(() => {
     if (!supabase) {
@@ -787,14 +789,16 @@ export default function App() {
               {isOnline ? "Live" : "Offline"}
             </div>
             <div className="scanner-app-actions">
-              <button
-                className="scanner-icon-button"
-                disabled={isSyncing}
-                onClick={() => void syncQueue()}
-                type="button"
-              >
-                {isSyncing ? "Syncing..." : "Sync Queue"}
-              </button>
+              {showSyncAction ? (
+                <button
+                  className="scanner-icon-button"
+                  disabled={isSyncing || !isOnline || queueCount === 0}
+                  onClick={() => void syncQueue()}
+                  type="button"
+                >
+                  {syncActionLabel}
+                </button>
+              ) : null}
               <button
                 className="scanner-icon-button"
                 onClick={() => void handleLogout()}
