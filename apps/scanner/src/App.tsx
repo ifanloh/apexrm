@@ -23,9 +23,6 @@ import "./styles.css";
 
 const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
 const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Grand Trail des Templiers Demo";
-const THEME_STORAGE_KEY = "arm:scanner-theme";
-
-type ScannerTheme = "light" | "dark";
 
 type BarcodeDetectorLike = {
   detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
@@ -39,24 +36,6 @@ declare global {
 
 function getStoredValue(key: string, fallback: string) {
   return window.localStorage.getItem(key) ?? fallback;
-}
-
-function getInitialTheme(): ScannerTheme {
-  if (typeof window === "undefined") {
-    return "light";
-  }
-
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-
-  if (stored === "light" || stored === "dark") {
-    return stored;
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-function getNextTheme(theme: ScannerTheme): ScannerTheme {
-  return theme === "dark" ? "light" : "dark";
 }
 
 function formatDateTime(value: string) {
@@ -83,6 +62,34 @@ function getApiHost() {
   } catch {
     return import.meta.env.VITE_API_BASE_URL ?? "unknown-api";
   }
+}
+
+type ScannerActivityStatus = "queued" | "accepted" | "duplicate" | "rejected";
+
+type ScannerActivity = {
+  id: string;
+  bib: string;
+  checkpointLabel: string;
+  status: ScannerActivityStatus;
+  detail: string;
+  time: string;
+};
+
+function createActivityEntry(
+  bib: string,
+  checkpointLabel: string,
+  status: ScannerActivityStatus,
+  detail: string,
+  time = new Date().toISOString()
+): ScannerActivity {
+  return {
+    id: `${status}-${bib}-${time}-${Math.random().toString(36).slice(2, 8)}`,
+    bib,
+    checkpointLabel,
+    status,
+    detail,
+    time
+  };
 }
 
 function deriveProfileFromSession(session: Session, fallbackCrewCode: string): AuthProfile {
@@ -121,7 +128,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
-  const [theme, setTheme] = useState<ScannerTheme>(() => getInitialTheme());
+  const [recentActivity, setRecentActivity] = useState<ScannerActivity[]>([]);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const scanLockRef = useRef<string>("");
@@ -131,6 +138,7 @@ export default function App() {
     () => checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ?? null,
     [checkpointId, checkpoints]
   );
+  const activeCheckpointLabel = selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : checkpointId;
   const effectiveProfile = useMemo(() => {
     if (profile) {
       return profile;
@@ -170,20 +178,6 @@ export default function App() {
       !isBootstrapping
   );
   const apiHost = getApiHost();
-  const themeLabel = theme === "dark" ? "Dark" : "Light";
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-    document.documentElement.dataset.theme = theme;
-
-    return () => {
-      delete document.documentElement.dataset.theme;
-    };
-  }, [theme]);
 
   useEffect(() => {
     if (!supabase) {
@@ -348,6 +342,36 @@ export default function App() {
     setQueue(await getQueuedScans());
   }
 
+  function addActivityEntry(entry: ScannerActivity) {
+    setRecentActivity((current) => [entry, ...current].slice(0, 10));
+  }
+
+  function addResultActivities(results: IngestScanResponse[]) {
+    const nextEntries = results
+      .map((result) => {
+        if (result.status === "accepted") {
+          return createActivityEntry(
+            result.officialScan.bib,
+            result.officialScan.checkpointId,
+            "accepted",
+            `Accepted at position #${result.officialScan.position}`,
+            result.officialScan.serverReceivedAt
+          );
+        }
+
+        return createActivityEntry(
+          result.duplicate.bib,
+          result.duplicate.checkpointId,
+          "duplicate",
+          `Duplicate of ${result.duplicate.firstAcceptedClientScanId}`,
+          result.duplicate.serverReceivedAt
+        );
+      })
+      .reverse();
+
+    setRecentActivity((current) => [...nextEntries, ...current].slice(0, 10));
+  }
+
   async function syncQueue() {
     if (!session?.access_token || syncLockRef.current) {
       return;
@@ -374,6 +398,7 @@ export default function App() {
 
       setStatusMessage(`Sync selesai. ${result.accepted} scan baru, ${result.duplicates} duplikat.`);
       setLastResponse(result.results[result.results.length - 1] ?? null);
+      addResultActivities(result.results);
       await refreshQueue();
     } catch {
       setStatusMessage("Sync offline gagal. Queue lokal tetap disimpan.");
@@ -415,12 +440,18 @@ export default function App() {
     if (!isValidBib(normalizedBib)) {
       navigator.vibrate?.(240);
       setStatusMessage("Format QR/BIB tidak valid.");
+      addActivityEntry(
+        createActivityEntry(normalizedBib || rawValue.trim() || "UNKNOWN", activeCheckpointLabel, "rejected", "Invalid BIB format")
+      );
       return;
     }
 
     if (await hasLocalDuplicate(checkpointId, normalizedBib)) {
       navigator.vibrate?.([100, 80, 100]);
       setStatusMessage(`BIB ${normalizedBib} sudah pernah discan di device ini untuk checkpoint aktif.`);
+      addActivityEntry(
+        createActivityEntry(normalizedBib, activeCheckpointLabel, "duplicate", "Already scanned on this device")
+      );
       return;
     }
 
@@ -446,6 +477,9 @@ export default function App() {
       if (!isOnline) {
         navigator.vibrate?.(160);
         setStatusMessage(`BIB ${normalizedBib} disimpan offline. Antrean lokal siap disinkronkan nanti.`);
+        addActivityEntry(
+          createActivityEntry(normalizedBib, activeCheckpointLabel, "queued", "Saved to offline queue")
+        );
         return;
       }
 
@@ -453,9 +487,15 @@ export default function App() {
       setStatusMessage(
         `BIB ${normalizedBib} diterima device di ${selectedCheckpoint?.code ?? checkpointId}. Sinkronisasi ke server berjalan di background.`
       );
+      addActivityEntry(
+        createActivityEntry(normalizedBib, activeCheckpointLabel, "queued", "Queued for immediate sync")
+      );
       void syncQueue();
     } catch {
       setStatusMessage(`BIB ${normalizedBib} gagal diproses di device. Coba ulangi sekali lagi.`);
+      addActivityEntry(
+        createActivityEntry(normalizedBib, activeCheckpointLabel, "rejected", "Device processing failed")
+      );
       await refreshQueue();
     } finally {
       setIsBusy(false);
@@ -508,9 +548,6 @@ export default function App() {
               <p className="scanner-kicker">Crew Login</p>
               <h1>Masuk ke Scanner</h1>
             </div>
-            <button className="theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
-              {themeLabel}
-            </button>
           </div>
           <form className="scanner-form" onSubmit={handleLogin}>
             <label>
@@ -544,9 +581,6 @@ export default function App() {
               <p className="scanner-kicker">Unauthorized</p>
               <h1>Akses scanner ditolak</h1>
             </div>
-            <button className="theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
-              {themeLabel}
-            </button>
           </div>
           <div className="placeholder-card">
             Akun dengan role <strong>{effectiveProfile.role}</strong> tidak boleh melakukan scan lapangan.
@@ -577,18 +611,15 @@ export default function App() {
           <h1>Race Control Scanner</h1>
           <span className="scanner-event-label">{DEMO_EVENT_LABEL}</span>
         </div>
-        <div className="scanner-topbar-meta">
-          <div className={`scanner-pill ${isOnline ? "online" : "offline"}`}>
-            <span className="status-dot" />
-            {isOnline ? "Live Connectivity" : "Offline Queue Mode"}
-          </div>
-          <div className="scanner-pill neutral">
-            <span className="status-dot" />
-            {selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Checkpoint"}
-          </div>
-          <button className="ghost-button theme-toggle" onClick={() => setTheme((current) => getNextTheme(current))} type="button">
-            {themeLabel}
-          </button>
+          <div className="scanner-topbar-meta">
+            <div className={`scanner-pill ${isOnline ? "online" : "offline"}`}>
+              <span className="status-dot" />
+              {isOnline ? "Live Connectivity" : "Offline Queue Mode"}
+            </div>
+            <div className="scanner-pill neutral">
+              <span className="status-dot" />
+              {selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Checkpoint"}
+            </div>
           <button className="ghost-button" onClick={() => void syncQueue()} type="button">
             {isSyncing ? "Syncing..." : "Sync Queue"}
           </button>
@@ -658,6 +689,31 @@ export default function App() {
         </article>
 
         <aside className="scanner-rail">
+          <section className="scanner-panel">
+            <div className="panel-copy">
+              <p className="scanner-kicker">Station Summary</p>
+              <h3>Scanner Assignment</h3>
+            </div>
+            <div className="rail-head compact">
+              <div>
+                <span>Scan crew</span>
+                <strong>{effectiveProfile?.displayName ?? effectiveProfile?.crewCode ?? crewId}</strong>
+              </div>
+              <div>
+                <span>Device</span>
+                <strong>{deviceId.slice(0, 8)}</strong>
+              </div>
+              <div>
+                <span>Checkpoint</span>
+                <strong>{selectedCheckpoint ? selectedCheckpoint.code : "None"}</strong>
+              </div>
+              <div>
+                <span>Mode</span>
+                <strong>{isOnline ? "Live sync" : "Offline queue"}</strong>
+              </div>
+            </div>
+          </section>
+
           <section className="scanner-panel total-panel">
             <span>Pending sync</span>
             <strong>{queue.length}</strong>
@@ -710,21 +766,41 @@ export default function App() {
 
       <section className="queue-section">
         <div className="panel-copy">
-          <p className="scanner-kicker">Local Queue</p>
-          <h3>Recent Offline Captures</h3>
+          <p className="scanner-kicker">Recent Scanner Activity</p>
+          <h3>Latest Captures & Sync Results</h3>
         </div>
-        <div className="queue-grid">
-          {queue.length ? (
-            queue.map((scan) => (
-              <article className="queue-card" key={scan.clientScanId}>
-                <strong>BIB {scan.bib}</strong>
-                <span>{scan.checkpointId}</span>
-                <time>{formatDateTime(scan.scannedAt)}</time>
-              </article>
-            ))
-          ) : (
-            <div className="placeholder-card">Belum ada item di antrean lokal.</div>
-          )}
+        <div className="scanner-activity-grid">
+          <div className="queue-grid">
+            {recentActivity.length ? (
+              recentActivity.map((entry) => (
+                <article className={`queue-card scanner-activity-card ${entry.status}`} key={entry.id}>
+                  <div className="scanner-activity-head">
+                    <strong>BIB {entry.bib}</strong>
+                    <span className={`scanner-activity-badge ${entry.status}`}>{entry.status}</span>
+                  </div>
+                  <span>{entry.checkpointLabel}</span>
+                  <span>{entry.detail}</span>
+                  <time>{formatDateTime(entry.time)}</time>
+                </article>
+              ))
+            ) : (
+              <div className="placeholder-card">Belum ada aktivitas scanner. Mulai dari scan manual atau aktifkan kamera.</div>
+            )}
+          </div>
+          <div className="queue-grid">
+            {queue.length ? (
+              queue.map((scan) => (
+                <article className="queue-card" key={scan.clientScanId}>
+                  <strong>BIB {scan.bib}</strong>
+                  <span>{scan.checkpointId}</span>
+                  <span>Queued offline</span>
+                  <time>{formatDateTime(scan.scannedAt)}</time>
+                </article>
+              ))
+            ) : (
+              <div className="placeholder-card">Belum ada item di antrean lokal.</div>
+            )}
+          </div>
         </div>
       </section>
 
