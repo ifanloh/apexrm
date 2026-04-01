@@ -696,21 +696,10 @@ export default function App() {
       <section className="scanner-app">
         <header className={`scanner-app-header ${screen !== "timing" ? "subscreen" : ""}`}>
           <div className="scanner-app-header-row">
-            {screen !== "timing" ? (
-              <button
-                aria-label="Back to timing"
-                className="scanner-icon-button"
-                onClick={() => setScreen("timing")}
-                type="button"
-              >
-                Back
-              </button>
-            ) : (
-              <div className={`scanner-connection-pill ${isOnline ? "online" : "offline"}`}>
-                <span className="status-dot" />
-                {isOnline ? "Live" : "Offline"}
-              </div>
-            )}
+            <div className={`scanner-connection-pill ${isOnline ? "online" : "offline"}`}>
+              <span className="status-dot" />
+              {isOnline ? "Live" : "Offline"}
+            </div>
             <div className="scanner-app-actions">
               <button
                 className="scanner-icon-button"

@@ -215,7 +215,7 @@ button {
 }
 
 .scanner-screen-timing {
-  padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(106px + env(safe-area-inset-bottom, 0px));
 }
 
 .scanner-display-card,
@@ -544,33 +544,29 @@ select {
 
 .scanner-bottom-nav {
   align-items: center;
-  backdrop-filter: blur(16px);
-  background: rgba(247, 250, 245, 0.92);
-  border: 1px solid rgba(37, 54, 39, 0.08);
-  border-radius: 22px;
-  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 14px 28px rgba(31, 44, 32, 0.12);
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1px solid rgba(37, 54, 39, 0.08);
+  bottom: 0;
   display: grid;
   gap: 10px;
   grid-template-columns: 1fr 1.2fr 1fr;
-  left: 50%;
-  max-width: 448px;
-  padding: 10px;
+  left: 0;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   position: fixed;
-  right: auto;
-  transform: translateX(-50%);
-  width: calc(100% - 24px);
+  right: 0;
+  transform: none;
+  width: 100%;
   z-index: 60;
 }
 
 .scanner-nav-button {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid rgba(37, 54, 39, 0.08);
+  background: transparent;
+  border: 0;
   border-radius: 999px;
   color: #213124;
   display: inline-flex;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 800;
   height: 46px;
   justify-content: center;
@@ -580,14 +576,12 @@ select {
 
 .scanner-nav-button.active:not(.scanner-nav-button-primary) {
   background: rgba(19, 225, 11, 0.12);
-  border-color: rgba(19, 225, 11, 0.2);
   color: #148712;
 }
 
 .scanner-nav-button-primary {
   background: linear-gradient(180deg, #1df416 0%, #11d80a 100%);
-  border-color: rgba(15, 191, 8, 0.24);
-  box-shadow: 0 12px 22px rgba(19, 225, 11, 0.22);
+  box-shadow: none;
   color: #102410;
   font-size: 0.96rem;
   font-weight: 900;
@@ -717,7 +711,9 @@ select {
   .scanner-bottom-nav {
     gap: 8px;
     grid-template-columns: 1fr 1.15fr 1fr;
-    width: calc(100% - 16px);
+    padding-left: 12px;
+    padding-right: 12px;
+    width: 100%;
   }
 
   .scanner-nav-button {
