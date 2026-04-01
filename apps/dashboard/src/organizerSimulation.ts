@@ -262,6 +262,10 @@ function createCheckpointCrewForRace(race: OrganizerRaceDraft): OrganizerCrewAss
 }
 
 export function shouldAutoSeedOrganizerTrial(setup: OrganizerSetupDraft) {
+  if (setup.races.length === 0) {
+    return false;
+  }
+
   const totalParticipants = setup.races.reduce((sum, race) => sum + race.participants.length, 0);
   const totalSimulatedScans = setup.races.reduce((sum, race) => sum + race.simulatedScans.length, 0);
 

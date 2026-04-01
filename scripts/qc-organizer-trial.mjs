@@ -42,6 +42,7 @@ try {
 
   const {
     createDefaultOrganizerSetup,
+    createDemoOrganizerSetup,
     createParticipantImportTemplateCsv,
     createParticipantImportTemplateWorkbook,
     createOrganizerInviteCode,
@@ -62,17 +63,26 @@ try {
   } = organizerWorkflow;
 
   const baseSetup = createDefaultOrganizerSetup();
-  const seededSetup = seedOrganizerTrialSetup(clone(baseSetup));
+  const demoSetup = createDemoOrganizerSetup();
+  const seededSetup = seedOrganizerTrialSetup(clone(demoSetup));
   const liveRace = seededSetup.races.find((race) => race.editionLabel.toLowerCase() === "live") ?? seededSetup.races[0];
   const finishedRace = seededSetup.races.find((race) => race.editionLabel.toLowerCase() === "finished") ?? seededSetup.races[1];
 
-  await runCheck("default setup contains seeded demo races", () => {
-    assert(baseSetup.races.length >= 3, "expected at least 3 organizer races");
-    assert(baseSetup.races.every((race) => race.checkpoints.length >= 3), "every race should have 3+ checkpoints");
+  await runCheck("default organizer setup starts empty", () => {
+    assert(baseSetup.races.length === 0, "expected first-time organizer setup to start without races");
   });
 
-  await runCheck("default organizer workspace is eligible for auto-seed", () => {
-    assert(shouldAutoSeedOrganizerTrial(baseSetup) === true, "blank organizer setup should auto-seed");
+  await runCheck("empty organizer setup does not auto-seed", () => {
+    assert(shouldAutoSeedOrganizerTrial(baseSetup) === false, "blank organizer setup should stay empty");
+  });
+
+  await runCheck("demo organizer setup contains seeded demo races", () => {
+    assert(demoSetup.races.length >= 3, "expected at least 3 organizer demo races");
+    assert(demoSetup.races.every((race) => race.checkpoints.length >= 3), "every demo race should have 3+ checkpoints");
+  });
+
+  await runCheck("demo organizer workspace is eligible for trial seeding", () => {
+    assert(shouldAutoSeedOrganizerTrial(demoSetup) === true, "demo organizer setup should be eligible for trial seeding");
   });
 
   await runCheck("auto-seed populates participants, crew, and simulated scans", () => {

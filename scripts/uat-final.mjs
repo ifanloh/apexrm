@@ -115,14 +115,29 @@ async function runOrganizerBrowserChecks() {
       await loginDialog.getByLabel("Username").fill(organizerEmail);
       await loginDialog.getByLabel("Password").fill(organizerPassword);
       await loginDialog.getByRole("button", { name: "Login", exact: true }).click();
-      await page.getByText("Event Setup Console").waitFor({ timeout: 15000 });
+      const homeTitle = page.getByText("Organizer Home");
+      const consoleTitle = page.getByText("Event Setup Console");
+      await page.getByText(/Organizer Home|Event Setup Console/).waitFor({ timeout: 15000 });
+
+      if (await homeTitle.isVisible().catch(() => false)) {
+      const createFirstEventButton = page.getByRole("button", { name: "Create your first event" });
+        if (await createFirstEventButton.count()) {
+          await createFirstEventButton.click();
+        } else {
+          await page.getByRole("button", { name: "Open event setup" }).click();
+        }
+        await consoleTitle.waitFor({ timeout: 15000 });
+      }
+
       const setupNav = page.locator(".organizer-console-nav").first();
       await setupNav.getByRole("button", { name: /Branding/ }).waitFor();
       await setupNav.getByRole("button", { name: /Races/ }).waitFor();
       await setupNav.getByRole("button", { name: /Participants/ }).waitFor();
       await setupNav.getByRole("button", { name: /Crew/ }).waitFor();
       await setupNav.getByRole("button", { name: /Review/ }).waitFor();
-      return "Organizer console opened after login";
+      return await homeTitle.isVisible().catch(() => false)
+        ? "Organizer home opened first, then event setup console"
+        : "Organizer console opened after login";
     });
 
     await runStep("organizer browser race day ops essentials", async () => {

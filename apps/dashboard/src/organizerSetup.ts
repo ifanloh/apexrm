@@ -291,7 +291,7 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
   };
 }
 
-export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
+export function createEmptyOrganizerSetup(): OrganizerSetupDraft {
   return {
     branding: {
       organizerName: "Trailnesia Organizer",
@@ -309,8 +309,21 @@ export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
       gpxFileName: null,
       gpxFileSize: null
     },
+    races: []
+  };
+}
+
+export function createDemoOrganizerSetup(): OrganizerSetupDraft {
+  return {
+    branding: {
+      ...createEmptyOrganizerSetup().branding
+    },
     races: demoRaceFestival.races.map((race) => createOrganizerRaceDraftFromCard(race))
   };
+}
+
+export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
+  return createEmptyOrganizerSetup();
 }
 
 export function loadOrganizerSetup(): OrganizerSetupDraft {
@@ -319,6 +332,7 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
   }
 
   const fallback = createDefaultOrganizerSetup();
+  const fallbackDemo = createDemoOrganizerSetup();
 
   try {
     const raw = window.localStorage.getItem(ORGANIZER_SETUP_STORAGE_KEY);
@@ -335,7 +349,7 @@ export function loadOrganizerSetup(): OrganizerSetupDraft {
         ...(parsed?.branding ?? {})
       },
       races: [
-        ...fallback.races.map((race) => {
+        ...fallbackDemo.races.map((race) => {
           const override = parsed?.races?.find((item) => item.slug === race.slug);
           return {
             ...race,

@@ -34,6 +34,7 @@ import { RaceEditionHome } from "./RaceEditionHome";
 import {
   buildOrganizerCourseFromRaceDraft,
   createOrganizerInviteCode,
+  createDemoOrganizerSetup,
   createOrganizerRaceTemplate,
   createDefaultOrganizerSetup,
   getOrganizerCheckpointsForRace,
@@ -118,7 +119,7 @@ const COUNTRY_META: Record<
 type LiveStatus = "idle" | "live" | "polling" | "fallback";
 type RankingView = "overall" | "women" | "men";
 type RaceDetailView = "race-page" | "runner-search" | "runners-list" | "favorites" | "my-runners" | "ranking" | "leaders" | "statistics";
-type OrganizerWorkspaceView = "spectator" | "console";
+type OrganizerWorkspaceView = "spectator" | "home" | "console";
 type RunnerDirectoryState = "all" | "registered" | "in-race" | "finisher" | "dns" | "withdrawn";
 type RunnerDirectoryEntry = {
   raceSlug: string;
@@ -930,14 +931,16 @@ export default function App() {
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
   const festivalData = useMemo(() => {
     const demoRaceBySlug = new Map(demoRaceFestival.races.map((race) => [race.slug, race]));
-    const races = organizerSetup.races.map((raceDraft) => {
-      const baseRace = demoRaceBySlug.get(raceDraft.slug);
+    const races = organizerSetup.races.length
+      ? organizerSetup.races.map((raceDraft) => {
+          const baseRace = demoRaceBySlug.get(raceDraft.slug);
 
-      return {
-        ...(baseRace ?? {}),
-        ...raceDraft
-      } as DemoRaceCard;
-    });
+          return {
+            ...(baseRace ?? {}),
+            ...raceDraft
+          } as DemoRaceCard;
+        })
+      : demoRaceFestival.races;
 
     return {
       ...demoRaceFestival,
@@ -975,8 +978,9 @@ export default function App() {
     return buildOrganizerCourseFromRaceDraft(organizerRaceDraft);
   }, [organizerSetup.races, selectedRaceCard]);
   const showEditionHome = isEditionHome && raceDetailView === "race-page";
+  const isOrganizerHomeOpen = organizerSessionActive && organizerWorkspaceView === "home";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
-  const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && raceDetailView === "race-page";
+  const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && !isOrganizerHomeOpen && raceDetailView === "race-page";
   const organizerSelectedRace =
     organizerSetup.races.find((race) => race.slug === organizerSetupRaceSlug) ?? organizerSetup.races[0] ?? null;
   const organizerCheckpointDraft = organizerSelectedRace ? getOrganizerCheckpointsForRace(organizerSelectedRace) : [];
@@ -1052,7 +1056,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerWorkspaceView((current) => (current === "spectator" ? "console" : current));
+    setOrganizerWorkspaceView((current) => (current === "spectator" ? "home" : current));
   }, [organizerSessionActive]);
 
   useEffect(() => {
@@ -1084,7 +1088,7 @@ export default function App() {
   }, [organizerSetup.races, organizerSetupRaceSlug]);
 
   useEffect(() => {
-    if (isOrganizerConsoleOpen || selectedRaceSlug === EDITION_HOME_VALUE) {
+    if (isOrganizerConsoleOpen || isOrganizerHomeOpen || selectedRaceSlug === EDITION_HOME_VALUE) {
       return;
     }
 
@@ -1094,7 +1098,7 @@ export default function App() {
 
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
-  }, [isOrganizerConsoleOpen, selectedRaceSlug, visibleRaces]);
+  }, [isOrganizerConsoleOpen, isOrganizerHomeOpen, selectedRaceSlug, visibleRaces]);
 
   useEffect(() => {
     if (!isLoginModalOpen) {
@@ -2445,8 +2449,11 @@ export default function App() {
       ? `Organizer tools aktif untuk ${profile?.displayName ?? profile?.email ?? profile?.role ?? "akun ini"}.`
       : profile
         ? `Akun role ${profile.role} tetap berada di spectator view. Login dengan admin, panitia, atau observer untuk tools organizer.`
-        : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
+      : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
   const showAccessNotice = organizerSessionActive;
+  const organizerPublishedCount = organizerSetup.races.filter((race) => race.isPublished).length;
+  const organizerDraftCount = organizerSetup.races.length - organizerPublishedCount;
+  const organizerHasEvents = organizerSetup.races.length > 0;
   const activeRaceStartAt = selectedRaceCard.startAt;
   const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
   const publicRunnerResults =
@@ -2469,6 +2476,22 @@ export default function App() {
     setLoginPassword("");
     setIsLoginModalOpen(false);
     setOrganizerWorkspaceView("spectator");
+  }
+
+  function openOrganizerHome() {
+    setOrganizerWorkspaceView("home");
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+  }
+
+  function openOrganizerConsole() {
+    if (!organizerSetup.races.length) {
+      handleCreateOrganizerFirstEvent();
+      return;
+    }
+
+    setOrganizerSetupRaceSlug((current) => current || organizerSetup.races[0]?.slug || "");
+    setOrganizerWorkspaceView("console");
   }
 
   function updateOrganizerBranding(patch: Partial<OrganizerBrandingDraft>) {
@@ -2508,6 +2531,24 @@ export default function App() {
     setOrganizerSetupRaceSlug(nextRace.slug);
     setSelectedRaceSlug(nextRace.slug);
     setRaceDetailView("race-page");
+  }
+
+  function handleCreateOrganizerFirstEvent() {
+    if (organizerSetup.races.length) {
+      openOrganizerConsole();
+      return;
+    }
+
+    const firstRace = createOrganizerRaceTemplate(1);
+    setOrganizerSetup((current) => ({
+      ...current,
+      races: [firstRace]
+    }));
+    setOrganizerSetupRaceSlug(firstRace.slug);
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    setOrganizerWorkspaceView("console");
+    clearOrganizerImportDraft();
   }
 
   function removeOrganizerRace(slug: string) {
@@ -2781,14 +2822,27 @@ export default function App() {
   }
 
   function resetOrganizerDemoEvent() {
-    const freshSetup = createDefaultOrganizerSetup();
+    const freshSetup = seedOrganizerTrialSetup(createDemoOrganizerSetup());
     if (typeof window !== "undefined") {
-      window.localStorage.removeItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY);
+      window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
     }
     setOrganizerSetup(freshSetup);
     setOrganizerSetupRaceSlug(freshSetup.races[0]?.slug ?? "");
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
+    clearOrganizerImportDraft();
+  }
+
+  function loadOrganizerTrialWorkspace() {
+    const seededSetup = seedOrganizerTrialSetup(createDemoOrganizerSetup());
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
+    }
+    setOrganizerSetup(seededSetup);
+    setOrganizerSetupRaceSlug(seededSetup.races[0]?.slug ?? "");
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    setOrganizerWorkspaceView("console");
     clearOrganizerImportDraft();
   }
 
@@ -2927,7 +2981,7 @@ export default function App() {
 
     setLoginError(null);
     setIsLoginModalOpen(false);
-    setOrganizerWorkspaceView("console");
+    setOrganizerWorkspaceView("home");
   }
 
   function jumpToSection(sectionId?: string) {
@@ -3133,11 +3187,15 @@ export default function App() {
           <div className="topbar-actions live-topbar-actions">
             {organizerSessionActive ? (
               <button
-                className={`topbar-login-link ${isOrganizerConsoleOpen ? "topbar-login-link-active" : ""}`}
-                onClick={() => setOrganizerWorkspaceView((current) => (current === "console" ? "spectator" : "console"))}
+                className={`topbar-login-link ${isOrganizerHomeOpen || isOrganizerConsoleOpen ? "topbar-login-link-active" : ""}`}
+                onClick={() =>
+                  setOrganizerWorkspaceView((current) =>
+                    current === "spectator" ? "home" : current === "home" ? "spectator" : "home"
+                  )
+                }
                 type="button"
               >
-                {isOrganizerConsoleOpen ? "Spectator View" : "Organizer Console"}
+                {isOrganizerHomeOpen ? "Spectator View" : "Organizer Home"}
               </button>
             ) : null}
 
@@ -3166,7 +3224,82 @@ export default function App() {
 
         {showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
 
-        {isOrganizerConsoleOpen ? (
+        {isOrganizerHomeOpen ? (
+          <section className="panel organizer-home-shell">
+            <div className="organizer-home-hero">
+              <div className="organizer-home-copy">
+                <span className="detail-label">Organizer portal</span>
+                <h2>Organizer Home</h2>
+                <p>
+                  Mulai dari draft, isi event tahap demi tahap, lalu publish hanya saat kategori race dan operasional checkpoint
+                  sudah siap.
+                </p>
+              </div>
+
+              <div className="organizer-home-actions">
+                {organizerHasEvents ? (
+                  <button className="auth-trigger" onClick={openOrganizerConsole} type="button">
+                    Open event setup
+                  </button>
+                ) : (
+                  <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
+                    Create your first event
+                  </button>
+                )}
+                <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWorkspaceView("spectator")} type="button">
+                  Open spectator preview
+                </button>
+              </div>
+            </div>
+
+            {organizerHasEvents ? (
+              <div className="organizer-home-grid">
+                <article className="organizer-home-card">
+                  <span className="detail-label">Edition snapshot</span>
+                  <h3>{organizerSetup.branding.homeTitle || organizerSetup.branding.brandName}</h3>
+                  <p>Kelola kategori race, peserta, dan scan crew dari satu workspace setup yang sama.</p>
+                </article>
+                <article className="organizer-home-card">
+                  <span className="detail-label">Categories</span>
+                  <strong>{organizerSetup.races.length}</strong>
+                  <p>{organizerPublishedCount} published and {organizerDraftCount} draft.</p>
+                </article>
+                <article className="organizer-home-card organizer-home-card-wide">
+                  <span className="detail-label">Current races</span>
+                  <div className="organizer-home-race-list">
+                    {organizerSetup.races.map((race) => (
+                      <div className="organizer-home-race-row" key={race.slug}>
+                        <div>
+                          <strong>{race.title}</strong>
+                          <p>{race.scheduleLabel}</p>
+                        </div>
+                        <span className={`ranking-chip ${race.isPublished ? "chip-finish" : "chip-live"}`}>
+                          {race.isPublished ? "Published" : "Draft"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              </div>
+            ) : (
+              <section className="organizer-empty-state">
+                <span className="detail-label">First-time organizer</span>
+                <h3>You have no events yet</h3>
+                <p>
+                  Buat event pertama untuk mulai isi branding, kategori race, participants, dan scan crew secara terstruktur.
+                </p>
+                <div className="organizer-home-actions">
+                  <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
+                    Create your first event
+                  </button>
+                  <button className="toolbar-link organizer-secondary-action" onClick={loadOrganizerTrialWorkspace} type="button">
+                    Load trial demo
+                  </button>
+                </div>
+              </section>
+            )}
+          </section>
+        ) : isOrganizerConsoleOpen ? (
           <Suspense
             fallback={
               <section className="panel organizer-console-loading" aria-busy="true">
