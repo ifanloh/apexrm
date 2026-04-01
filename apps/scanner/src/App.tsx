@@ -231,7 +231,6 @@ export default function App() {
   const apiHost = getApiHost();
   const recentPreview = recentActivity.slice(0, 3);
   const queueCount = queue.length;
-  const totalHandledCount = recentActivity.length + queueCount;
 
   useEffect(() => {
     if (!supabase) {
@@ -724,45 +723,17 @@ export default function App() {
           </div>
 
           <div className="scanner-app-title">
-            <p className="scanner-kicker">Race Control Scanner</p>
             <h1>{DEMO_EVENT_LABEL}</h1>
             <p>{selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Pilih checkpoint"}</p>
-          </div>
-
-          <div className="scanner-station-strip">
-            <article className="scanner-station-chip">
-              <span className="scanner-station-label">Checkpoint</span>
-              <strong>{selectedCheckpoint?.code ?? checkpointId}</strong>
-            </article>
-            <article className="scanner-station-chip">
-              <span className="scanner-station-label">Crew</span>
-              <strong>{effectiveProfile?.crewCode ?? crewId}</strong>
-            </article>
-            <article className="scanner-station-chip">
-              <span className="scanner-station-label">Queue</span>
-              <strong>{queueCount}</strong>
-            </article>
           </div>
         </header>
 
         {screen === "timing" ? (
           <section className="scanner-screen scanner-screen-timing">
             <div className="scanner-display-card">
-              <div className="scanner-display-head">
-                <div className="scanner-display-stat">
-                  <span className="scanner-display-stat-label">Handled</span>
-                  <strong>
-                    {totalHandledCount}/{Math.max(totalHandledCount, 1)}
-                  </strong>
-                </div>
-                <span className={`scanner-display-badge ${canScan ? "ready" : "locked"}`}>
-                  {canScan ? "Ready" : "Locked"}
-                </span>
-              </div>
               <p className="scanner-kicker">Input BIB Manual</p>
               <strong className="scanner-display-value">{bib || "0"}</strong>
               <label className="scanner-inline-field">
-                <span>Alphanumeric BIB</span>
                 <input
                   disabled={!canScan || isBusy}
                   placeholder="Tap keypad atau ketik BIB"
@@ -772,20 +743,15 @@ export default function App() {
               </label>
             </div>
 
-            <div className="scanner-result-strip">
-              {lastResultSummary ? (
+            {lastResultSummary ? (
+              <div className="scanner-result-strip">
                 <article className={`scanner-result-card ${lastResponse?.status === "accepted" ? "success" : "duplicate"}`}>
                   <strong>{lastResultSummary.title}</strong>
                   <span>{lastResultSummary.meta}</span>
                   <time>{lastResultSummary.time}</time>
                 </article>
-              ) : (
-                <article className="scanner-result-card neutral">
-                  <strong>Scanner siap</strong>
-                  <span>{statusMessage}</span>
-                </article>
-              )}
-            </div>
+              </div>
+            ) : null}
 
             <button
               className="scanner-scan-cta"
@@ -820,22 +786,6 @@ export default function App() {
                 </div>
               </div>
             ) : null}
-
-            <div className="scanner-recent-list">
-              {recentPreview.map((entry) => (
-                <article className={`scanner-recent-row ${entry.status}`} key={entry.id}>
-                  <span className="scanner-recent-dot" />
-                  <div className="scanner-recent-copy">
-                    <strong>{entry.bib}</strong>
-                    <span>{entry.checkpointLabel}</span>
-                  </div>
-                  <time>{formatDateTime(entry.time)}</time>
-                  <span className="scanner-recent-mark">
-                    {entry.status === "accepted" ? "OK" : entry.status === "duplicate" ? "DUP" : entry.status === "queued" ? "Q" : "ERR"}
-                  </span>
-                </article>
-              ))}
-            </div>
 
             <form className="scanner-hidden-submit" onSubmit={handleSubmit}>
               <button type="submit" />
@@ -901,18 +851,37 @@ export default function App() {
               </button>
             </div>
 
-            <div className="scanner-utility-meta">
-              <div className="scanner-utility-chip quiet">
-                Crew {effectiveProfile?.displayName ?? effectiveProfile?.crewCode ?? crewId}
-              </div>
-            </div>
+            {recentPreview.length ? (
+              <section className="scanner-log-block">
+                <div className="scanner-log-head">
+                  <h3>Recent Logs</h3>
+                  <span className="scanner-log-pill">
+                    {recentPreview.length} scanned
+                  </span>
+                </div>
+                <div className="scanner-recent-list">
+                  {recentPreview.map((entry) => (
+                    <article className={`scanner-recent-row ${entry.status}`} key={entry.id}>
+                      <span className="scanner-recent-dot" />
+                      <div className="scanner-recent-copy">
+                        <strong>{entry.bib}</strong>
+                        <span>{entry.checkpointLabel}</span>
+                      </div>
+                      <time>{formatDateTime(entry.time)}</time>
+                      <span className="scanner-recent-mark">
+                        {entry.status === "accepted" ? "OK" : entry.status === "duplicate" ? "DUP" : entry.status === "queued" ? "Q" : "ERR"}
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </section>
         ) : null}
 
         {screen === "checkpoint" ? (
           <section className="scanner-screen scanner-screen-checkpoint">
             <div className="panel-copy">
-              <p className="scanner-kicker">Select checkpoint</p>
               <h2>Checkpoint list</h2>
             </div>
             <div className="scanner-checkpoint-list">
@@ -945,7 +914,6 @@ export default function App() {
         {screen === "history" ? (
           <section className="scanner-screen scanner-screen-history">
             <div className="panel-copy">
-              <p className="scanner-kicker">Recent Scanner Activity</p>
               <h2>History & Queue</h2>
             </div>
 
@@ -969,7 +937,6 @@ export default function App() {
             </div>
 
             <div className="panel-copy">
-              <p className="scanner-kicker">Pending sync</p>
               <h3>Offline queue</h3>
             </div>
             <div className="scanner-history-list">
