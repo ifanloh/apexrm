@@ -162,6 +162,14 @@ async function runBrowserChecks() {
       await waitForScannerWorkspace();
       return "Scanner essentials are visible";
     });
+
+    await runStep("scanner browser withdraw mode", async () => {
+      await page.getByRole("button", { name: "Withdraw", exact: true }).click();
+      await page.getByPlaceholder("Alasan / catatan withdraw (opsional)").waitFor({ timeout: 15000 });
+      await page.getByRole("button", { name: "Timing", exact: true }).click();
+      await page.getByPlaceholder("Tap keypad atau ketik BIB").waitFor({ timeout: 15000 });
+      return "Withdraw mode toggles correctly";
+    });
   } finally {
     await page.close().catch(() => {});
     await browser.close().catch(() => {});

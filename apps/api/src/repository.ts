@@ -3,15 +3,18 @@ import type {
   AcceptedScan,
   CheckpointLeaderboard,
   DuplicateScan,
+  DuplicateWithdrawal,
   LeaderboardEntry,
   NotificationEvent,
   OverallLeaderboard,
   OverallLeaderboardEntry,
+  RecordedWithdrawal,
   RecentPassing,
   RunnerDetail,
   RunnerSearchEntry,
   RunnerPassing,
-  ScanSubmission
+  ScanSubmission,
+  WithdrawalSubmission
 } from "./contracts.js";
 import { defaultCheckpoints } from "./contracts.js";
 import type { AuthUser } from "./auth.js";
@@ -38,6 +41,55 @@ export type ScanProcessResult =
       leaderboard: CheckpointLeaderboard;
     };
 
+export type WithdrawalProcessResult =
+  | {
+      status: "recorded";
+      withdrawal: RecordedWithdrawal;
+    }
+  | {
+      status: "already_withdrawn";
+      withdrawal: DuplicateWithdrawal;
+    };
+
+async function ensureCrewAndParticipant(
+  tx: Sql,
+  actor: AuthUser,
+  input: {
+    crewId: string;
+    bib: string;
+  }
+) {
+  const crewCode = actor.crewCode ?? input.crewId;
+  const crewName = actor.displayName ?? actor.email ?? crewCode;
+  const normalizedBib = normalizeBib(input.bib);
+
+  const [crew] = await tx<{ id: string }[]>`
+    insert into public.crews (auth_user_id, code, name, role)
+    values (${actor.userId}, ${crewCode}, ${crewName}, ${actor.role})
+    on conflict (code) do update
+    set
+      auth_user_id = excluded.auth_user_id,
+      name = excluded.name,
+      role = excluded.role
+    returning id
+  `;
+
+  const [participant] = await tx<{ id: string }[]>`
+    insert into public.participants (bib, name)
+    values (${normalizedBib}, ${`Runner ${normalizedBib}`})
+    on conflict (bib) do update
+    set name = public.participants.name
+    returning id
+  `;
+
+  return {
+    crew,
+    crewCode,
+    normalizedBib,
+    participant
+  };
+}
+
 export async function ensureDefaultCheckpoints(sql: Sql) {
   for (const checkpoint of defaultCheckpoints) {
     await sql`
@@ -60,28 +112,10 @@ export async function processSingleScan(
 ): Promise<ScanProcessResult> {
   const result = await sql.begin(async (txAny) => {
     const tx = txAny as unknown as Sql;
-    const crewCode = actor.crewCode ?? scan.crewId;
-    const crewName = actor.displayName ?? actor.email ?? crewCode;
-    const normalizedBib = normalizeBib(scan.bib);
-
-    const [crew] = await tx<{ id: string }[]>`
-      insert into public.crews (auth_user_id, code, name, role)
-      values (${actor.userId}, ${crewCode}, ${crewName}, ${actor.role})
-      on conflict (code) do update
-      set
-        auth_user_id = excluded.auth_user_id,
-        name = excluded.name,
-        role = excluded.role
-      returning id
-    `;
-
-    const [participant] = await tx<{ id: string }[]>`
-      insert into public.participants (bib, name)
-      values (${normalizedBib}, ${`Runner ${normalizedBib}`})
-      on conflict (bib) do update
-      set name = public.participants.name
-      returning id
-    `;
+    const { crew, crewCode, normalizedBib, participant } = await ensureCrewAndParticipant(tx, actor, {
+      crewId: scan.crewId,
+      bib: scan.bib
+    });
 
     const existing = await tx<{
       client_scan_id: string;
@@ -223,6 +257,110 @@ export async function syncOfflineScans(sql: Sql, scans: ScanSubmission[], actor:
   };
 }
 
+export async function processSingleWithdrawal(
+  sql: Sql,
+  withdrawal: WithdrawalSubmission,
+  actor: AuthUser
+): Promise<WithdrawalProcessResult> {
+  const result = await sql.begin(async (txAny) => {
+    const tx = txAny as unknown as Sql;
+    const { crewCode, normalizedBib, participant } = await ensureCrewAndParticipant(tx, actor, {
+      crewId: withdrawal.crewId,
+      bib: withdrawal.bib
+    });
+
+    const existing = await tx<{
+      created_at: string | Date;
+      payload: {
+        clientWithdrawId?: string;
+      };
+    }[]>`
+      select created_at, payload
+      from public.audit_logs
+      where type = 'runner_withdrawn'
+        and race_id = ${withdrawal.raceId}
+        and upper(trim(bib)) = ${normalizedBib}
+      order by created_at asc
+      limit 1
+    `;
+
+    if (existing.length > 0) {
+      return {
+        status: "already_withdrawn",
+        withdrawal: {
+          clientWithdrawId: withdrawal.clientWithdrawId,
+          raceId: withdrawal.raceId,
+          checkpointId: withdrawal.checkpointId,
+          bib: normalizedBib,
+          crewId: withdrawal.crewId,
+          deviceId: withdrawal.deviceId,
+          reportedAt: withdrawal.reportedAt,
+          capturedOffline: withdrawal.capturedOffline,
+          note: withdrawal.note ?? null,
+          serverReceivedAt: toIsoString(existing[0].created_at),
+          firstRecordedClientWithdrawId: existing[0].payload?.clientWithdrawId ?? "server-withdrawal",
+          reason: "already_withdrawn"
+        }
+      } satisfies WithdrawalProcessResult;
+    }
+
+    const [auditRow] = await tx<{
+      created_at: string | Date;
+    }[]>`
+      insert into public.audit_logs (type, race_id, checkpoint_id, bib, payload)
+      values (
+        'runner_withdrawn',
+        ${withdrawal.raceId},
+        ${withdrawal.checkpointId},
+        ${normalizedBib},
+        ${tx.json({
+          clientWithdrawId: withdrawal.clientWithdrawId,
+          participantId: participant.id,
+          crewCode,
+          deviceId: withdrawal.deviceId,
+          reportedAt: withdrawal.reportedAt,
+          note: withdrawal.note ?? null
+        })}
+      )
+      returning created_at
+    `;
+
+    return {
+      status: "recorded",
+      withdrawal: {
+        clientWithdrawId: withdrawal.clientWithdrawId,
+        raceId: withdrawal.raceId,
+        checkpointId: withdrawal.checkpointId,
+        bib: normalizedBib,
+        crewId: crewCode,
+        deviceId: withdrawal.deviceId,
+        reportedAt: withdrawal.reportedAt,
+        capturedOffline: withdrawal.capturedOffline,
+        note: withdrawal.note ?? null,
+        serverReceivedAt: toIsoString(auditRow.created_at),
+        reason: "runner_withdrawn"
+      }
+    } satisfies WithdrawalProcessResult;
+  });
+
+  return result as WithdrawalProcessResult;
+}
+
+export async function syncOfflineWithdrawals(sql: Sql, withdrawals: WithdrawalSubmission[], actor: AuthUser) {
+  const results: WithdrawalProcessResult[] = [];
+
+  for (const withdrawal of withdrawals) {
+    results.push(await processSingleWithdrawal(sql, withdrawal, actor));
+  }
+
+  return {
+    total: withdrawals.length,
+    recorded: results.filter((item) => item.status === "recorded").length,
+    duplicates: results.filter((item) => item.status === "already_withdrawn").length,
+    results
+  };
+}
+
 export async function getCheckpointLeaderboard(sql: Sql, checkpointId: string): Promise<CheckpointLeaderboard> {
   const [totals] = await sql<{ total: number }[]>`
     select count(*)::int as total
@@ -353,6 +491,13 @@ export async function getOverallLeaderboard(
       inner join public.checkpoints c on c.id = s.checkpoint_id
       inner join public.participants p on p.id = s.participant_id
       where c.is_active = true
+        and not exists (
+          select 1
+          from public.audit_logs a
+          where a.type = 'runner_withdrawn'
+            and a.race_id = s.race_id
+            and upper(trim(a.bib)) = upper(trim(s.bib))
+        )
         and ${normalizedCategory ? sql`lower(p.category) = ${normalizedCategory}` : sql`true`}
     ),
     latest_progress as (

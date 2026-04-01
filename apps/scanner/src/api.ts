@@ -1,8 +1,10 @@
 import {
   checkpointSchema,
   ingestScanResponseSchema,
+  ingestWithdrawalResponseSchema,
   type Checkpoint,
-  type ScanSubmission
+  type ScanSubmission,
+  type WithdrawalSubmission
 } from "@arm/contracts";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
@@ -125,6 +127,33 @@ export async function syncOffline(scans: ScanSubmission[], accessToken: string) 
     method: "POST",
     accessToken,
     body: { scans },
+    retries: 0,
+    timeoutMs: 20000
+  });
+}
+
+export async function sendWithdrawal(withdrawal: WithdrawalSubmission, accessToken: string) {
+  const payload = await requestJson<unknown>("/withdraw", {
+    method: "POST",
+    accessToken,
+    body: withdrawal,
+    retries: 0,
+    timeoutMs: 15000
+  });
+
+  return ingestWithdrawalResponseSchema.parse(payload);
+}
+
+export async function syncOfflineWithdrawals(withdrawals: WithdrawalSubmission[], accessToken: string) {
+  return requestJson<{
+    total: number;
+    recorded: number;
+    duplicates: number;
+    results: ReturnType<typeof ingestWithdrawalResponseSchema.parse>[];
+  }>("/sync-withdrawals", {
+    method: "POST",
+    accessToken,
+    body: { withdrawals },
     retries: 0,
     timeoutMs: 20000
   });

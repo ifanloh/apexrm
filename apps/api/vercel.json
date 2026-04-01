@@ -59,6 +59,14 @@
       "destination": "/api/ops?view=sync-offline"
     },
     {
+      "source": "/api/withdraw",
+      "destination": "/api/ops?view=withdraw"
+    },
+    {
+      "source": "/api/sync-withdrawals",
+      "destination": "/api/ops?view=sync-withdrawals"
+    },
+    {
       "source": "/api/leaderboard/overall",
       "destination": "/api/leaderboard?view=overall"
     },

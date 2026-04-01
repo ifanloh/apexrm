@@ -1,14 +1,18 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { z } from "zod";
-import { scanSubmissionSchema } from "../src/contracts.js";
+import { scanSubmissionSchema, withdrawalSubmissionSchema } from "../src/contracts.js";
 import { authenticateToken, getBearerToken, requireRole } from "../src/auth.js";
 import { sql } from "../src/db.js";
-import { processSingleScan, syncOfflineScans } from "../src/repository.js";
+import { processSingleScan, processSingleWithdrawal, syncOfflineScans, syncOfflineWithdrawals } from "../src/repository.js";
 import { ensureCheckpointBootstrap } from "../src/service.js";
 import { handlePreflight, readJsonBody, sendError, sendJson } from "../src/vercel-shared.js";
 
 const syncOfflineSchema = z.object({
   scans: z.array(scanSubmissionSchema).min(1)
+});
+
+const syncOfflineWithdrawalsSchema = z.object({
+  withdrawals: z.array(withdrawalSubmissionSchema).min(1)
 });
 
 export default async function handler(request: IncomingMessage, response: ServerResponse) {
@@ -35,6 +39,20 @@ export default async function handler(request: IncomingMessage, response: Server
       const payload = syncOfflineSchema.parse(await readJsonBody(request));
       const result = await syncOfflineScans(sql, payload.scans, actor);
       sendJson(request, response, 200, result);
+      return;
+    }
+
+    if (view === "sync-withdrawals") {
+      const payload = syncOfflineWithdrawalsSchema.parse(await readJsonBody(request));
+      const result = await syncOfflineWithdrawals(sql, payload.withdrawals, actor);
+      sendJson(request, response, 200, result);
+      return;
+    }
+
+    if (view === "withdraw") {
+      const payload = withdrawalSubmissionSchema.parse(await readJsonBody(request));
+      const result = await processSingleWithdrawal(sql, payload, actor);
+      sendJson(request, response, result.status === "recorded" ? 201 : 200, result);
       return;
     }
 

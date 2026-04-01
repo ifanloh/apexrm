@@ -8,16 +8,24 @@ import {
   type AuthProfile,
   type Checkpoint,
   type IngestScanResponse,
-  type ScanSubmission
+  type IngestWithdrawalResponse,
+  type ScanSubmission,
+  type WithdrawalSubmission
 } from "@arm/contracts";
-import { fetchCheckpoints, syncOffline } from "./api";
+import { fetchCheckpoints, syncOffline, syncOfflineWithdrawals } from "./api";
 import {
   getQueuedScans,
+  getQueuedWithdrawals,
   hasLocalDuplicate,
+  hasLocalWithdrawalDuplicate,
   markLocalScan,
+  markLocalWithdrawal,
   queueScan,
+  queueWithdrawal,
   removeQueuedScan,
-  type QueuedScan
+  removeQueuedWithdrawal,
+  type QueuedScan,
+  type QueuedWithdrawal
 } from "./db";
 import { supabase } from "./supabase";
 import "./styles.css";
@@ -25,6 +33,7 @@ import "./styles.css";
 const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
 const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Grand Trail des Templiers Demo";
 type ScannerScreen = "timing" | "checkpoint" | "history";
+type ScannerEntryMode = "timing" | "withdraw";
 type ScannerAlertTone = "warning" | "danger";
 type WakeLockState = "idle" | "active" | "unsupported" | "released";
 
@@ -164,7 +173,7 @@ function getApiHost() {
   }
 }
 
-type ScannerActivityStatus = "queued" | "accepted" | "duplicate" | "rejected";
+type ScannerActivityStatus = "queued" | "accepted" | "duplicate" | "rejected" | "withdrawn";
 
 type ScannerActivity = {
   id: string;
@@ -173,6 +182,15 @@ type ScannerActivity = {
   status: ScannerActivityStatus;
   detail: string;
   time: string;
+};
+
+type ScannerActionSummaryTone = "success" | "duplicate" | "withdrawn";
+
+type ScannerActionSummary = {
+  title: string;
+  meta: string;
+  time: string;
+  tone: ScannerActionSummaryTone;
 };
 
 function createActivityEntry(
@@ -219,16 +237,18 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(window.navigator.onLine);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([...defaultCheckpoints]);
   const [queue, setQueue] = useState<QueuedScan[]>([]);
+  const [withdrawalQueue, setWithdrawalQueue] = useState<QueuedWithdrawal[]>([]);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [statusMessage, setStatusMessage] = useState(
     `Scanner siap untuk ${DEMO_EVENT_LABEL}. Gunakan BIB T0001-T0500 atau BIB baru untuk trial.`
   );
-  const [lastResponse, setLastResponse] = useState<IngestScanResponse | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [recentActivity, setRecentActivity] = useState<ScannerActivity[]>([]);
   const [screen, setScreen] = useState<ScannerScreen>("timing");
+  const [entryMode, setEntryMode] = useState<ScannerEntryMode>("timing");
+  const [withdrawNote, setWithdrawNote] = useState("");
   const [isCheckpointLocked, setIsCheckpointLocked] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCameraBusy, setIsCameraBusy] = useState(false);
@@ -238,6 +258,7 @@ export default function App() {
   const [batteryPercent, setBatteryPercent] = useState<number | null>(null);
   const [isCharging, setIsCharging] = useState<boolean | null>(null);
   const [wakeLockState, setWakeLockState] = useState<WakeLockState>("idle");
+  const [lastActionSummary, setLastActionSummary] = useState<ScannerActionSummary | null>(null);
   const syncLockRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -261,25 +282,7 @@ export default function App() {
 
     return null;
   }, [crewId, profile, session]);
-  const lastResultSummary = useMemo(() => {
-    if (!lastResponse) {
-      return null;
-    }
-
-    if (lastResponse.status === "accepted") {
-      return {
-        title: `BIB ${lastResponse.officialScan.bib} diterima`,
-        meta: `Posisi #${lastResponse.officialScan.position} di ${lastResponse.officialScan.checkpointId}`,
-        time: formatDateTime(lastResponse.officialScan.serverReceivedAt)
-      };
-    }
-
-    return {
-      title: `BIB ${lastResponse.duplicate.bib} duplikat`,
-      meta: `Scan pertama ${lastResponse.duplicate.firstAcceptedClientScanId}`,
-      time: formatDateTime(lastResponse.duplicate.serverReceivedAt)
-    };
-  }, [lastResponse]);
+  const lastResultSummary = lastActionSummary;
   const canScan = Boolean(
     session?.access_token &&
       effectiveProfile &&
@@ -291,7 +294,7 @@ export default function App() {
   );
   const apiHost = getApiHost();
   const recentPreview = recentActivity.slice(0, 3);
-  const queueCount = queue.length;
+  const queueCount = queue.length + withdrawalQueue.length;
   const showSyncAction = queueCount > 0 || isSyncing;
   const syncActionLabel = isSyncing ? `Syncing ${queueCount || ""}`.trim() : !isOnline ? `Queued ${queueCount}` : `Sync ${queueCount}`;
   const operationalAlert = useMemo(() => {
@@ -301,8 +304,8 @@ export default function App() {
         title: "Offline mode",
         detail:
           queueCount > 0
-            ? `${queueCount} scan sedang menunggu sinkronisasi ke server.`
-            : "Scan baru akan disimpan lokal sampai koneksi kembali."
+            ? `${queueCount} item sedang menunggu sinkronisasi ke server.`
+            : "Scan atau withdraw baru akan disimpan lokal sampai koneksi kembali."
       };
     }
 
@@ -310,7 +313,7 @@ export default function App() {
       return {
         tone: "warning" as const,
         title: "Sync backlog",
-        detail: `${queueCount} scan masih ada di queue. Jalankan sinkronisasi sebelum antrean bertambah.`
+        detail: `${queueCount} item masih ada di queue. Jalankan sinkronisasi sebelum antrean bertambah.`
       };
     }
 
@@ -382,10 +385,15 @@ export default function App() {
 
   useEffect(() => {
     async function bootstrap() {
-      const [remoteCheckpoints, pendingScans] = await Promise.all([fetchCheckpoints(), getQueuedScans()]);
+      const [remoteCheckpoints, pendingScans, pendingWithdrawals] = await Promise.all([
+        fetchCheckpoints(),
+        getQueuedScans(),
+        getQueuedWithdrawals()
+      ]);
       const nextCheckpoints = remoteCheckpoints.length > 0 ? remoteCheckpoints : [...defaultCheckpoints];
       setCheckpoints(nextCheckpoints);
       setQueue(pendingScans);
+      setWithdrawalQueue(pendingWithdrawals);
       setCheckpointId((currentValue) =>
         currentValue && nextCheckpoints.some((checkpoint) => checkpoint.id === currentValue) ? currentValue : ""
       );
@@ -428,7 +436,7 @@ export default function App() {
 
     const handleOffline = () => {
       setIsOnline(false);
-      setStatusMessage("Koneksi terputus. Scan baru akan masuk antrean lokal.");
+      setStatusMessage("Koneksi terputus. Scan atau withdraw baru akan masuk antrean lokal.");
     };
 
     window.addEventListener("online", handleOnline);
@@ -506,7 +514,7 @@ export default function App() {
     return () => {
       window.clearTimeout(focusTimer);
     };
-  }, [canScan, isCameraOpen, lastResponse, screen]);
+  }, [canScan, isCameraOpen, lastActionSummary, screen]);
 
   useEffect(() => {
     if (!session?.access_token || !isCheckpointLocked) {
@@ -596,7 +604,7 @@ export default function App() {
 
             try {
               const payload = typeof result === "string" ? result : result.data;
-              await processScan(payload);
+              await processCurrentEntry(payload);
               setIsCameraOpen(false);
             } finally {
               cameraLockRef.current = false;
@@ -639,7 +647,9 @@ export default function App() {
   }, [isCameraOpen]);
 
   async function refreshQueue() {
-    setQueue(await getQueuedScans());
+    const [pendingScans, pendingWithdrawals] = await Promise.all([getQueuedScans(), getQueuedWithdrawals()]);
+    setQueue(pendingScans);
+    setWithdrawalQueue(pendingWithdrawals);
   }
 
   function addActivityEntry(entry: ScannerActivity) {
@@ -672,6 +682,68 @@ export default function App() {
     setRecentActivity((current) => [...nextEntries, ...current].slice(0, 10));
   }
 
+  function createScanActionSummary(result: IngestScanResponse): ScannerActionSummary {
+    if (result.status === "accepted") {
+      return {
+        title: `BIB ${result.officialScan.bib} diterima`,
+        meta: `Posisi #${result.officialScan.position} di ${result.officialScan.checkpointId}`,
+        time: formatDateTime(result.officialScan.serverReceivedAt),
+        tone: "success"
+      };
+    }
+
+    return {
+      title: `BIB ${result.duplicate.bib} duplikat`,
+      meta: `Scan pertama ${result.duplicate.firstAcceptedClientScanId}`,
+      time: formatDateTime(result.duplicate.serverReceivedAt),
+      tone: "duplicate"
+    };
+  }
+
+  function createWithdrawalActionSummary(result: IngestWithdrawalResponse): ScannerActionSummary {
+    if (result.status === "recorded") {
+      return {
+        title: `BIB ${result.withdrawal.bib} withdraw tercatat`,
+        meta: `Withdraw dilaporkan di ${result.withdrawal.checkpointId}`,
+        time: formatDateTime(result.withdrawal.serverReceivedAt),
+        tone: "withdrawn"
+      };
+    }
+
+    return {
+      title: `BIB ${result.withdrawal.bib} sudah withdraw`,
+      meta: `Tercatat pertama ${result.withdrawal.firstRecordedClientWithdrawId}`,
+      time: formatDateTime(result.withdrawal.serverReceivedAt),
+      tone: "duplicate"
+    };
+  }
+
+  function addWithdrawalActivities(results: IngestWithdrawalResponse[]) {
+    const nextEntries = results
+      .map((result) => {
+        if (result.status === "recorded") {
+          return createActivityEntry(
+            result.withdrawal.bib,
+            result.withdrawal.checkpointId,
+            "withdrawn",
+            result.withdrawal.note?.trim() ? `Withdraw: ${result.withdrawal.note.trim()}` : "Withdraw recorded",
+            result.withdrawal.serverReceivedAt
+          );
+        }
+
+        return createActivityEntry(
+          result.withdrawal.bib,
+          result.withdrawal.checkpointId,
+          "duplicate",
+          `Withdraw sudah tercatat (${result.withdrawal.firstRecordedClientWithdrawId})`,
+          result.withdrawal.serverReceivedAt
+        );
+      })
+      .reverse();
+
+    setRecentActivity((current) => [...nextEntries, ...current].slice(0, 10));
+  }
+
   async function syncQueue() {
     if (!session?.access_token || syncLockRef.current) {
       return;
@@ -679,26 +751,47 @@ export default function App() {
 
     syncLockRef.current = true;
     setIsSyncing(true);
-    const pendingScans = await getQueuedScans();
+    const [pendingScans, pendingWithdrawals] = await Promise.all([getQueuedScans(), getQueuedWithdrawals()]);
 
-    if (pendingScans.length === 0) {
+    if (pendingScans.length === 0 && pendingWithdrawals.length === 0) {
       syncLockRef.current = false;
       setIsSyncing(false);
       return;
     }
 
-    setStatusMessage(`Menyinkronkan ${pendingScans.length} scan lokal...`);
+    setStatusMessage(`Menyinkronkan ${pendingScans.length + pendingWithdrawals.length} item lokal...`);
 
     try {
-      const result = await syncOffline(pendingScans, session.access_token);
+      if (pendingScans.length > 0) {
+        const scanResult = await syncOffline(pendingScans, session.access_token);
 
-      for (const pendingScan of pendingScans) {
-        await removeQueuedScan(pendingScan.clientScanId);
+        for (const pendingScan of pendingScans) {
+          await removeQueuedScan(pendingScan.clientScanId);
+        }
+
+        setLastActionSummary(scanResult.results.length ? createScanActionSummary(scanResult.results[scanResult.results.length - 1]) : null);
+        addResultActivities(scanResult.results);
+        setStatusMessage(`Sync scan selesai. ${scanResult.accepted} scan baru, ${scanResult.duplicates} duplikat.`);
       }
 
-      setStatusMessage(`Sync selesai. ${result.accepted} scan baru, ${result.duplicates} duplikat.`);
-      setLastResponse(result.results[result.results.length - 1] ?? null);
-      addResultActivities(result.results);
+      if (pendingWithdrawals.length > 0) {
+        const withdrawalResult = await syncOfflineWithdrawals(pendingWithdrawals, session.access_token);
+
+        for (const pendingWithdrawal of pendingWithdrawals) {
+          await removeQueuedWithdrawal(pendingWithdrawal.clientWithdrawId);
+        }
+
+        setLastActionSummary(
+          withdrawalResult.results.length
+            ? createWithdrawalActionSummary(withdrawalResult.results[withdrawalResult.results.length - 1])
+            : null
+        );
+        addWithdrawalActivities(withdrawalResult.results);
+        setStatusMessage(
+          `Sync withdraw selesai. ${withdrawalResult.recorded} tercatat, ${withdrawalResult.duplicates} sudah pernah withdraw.`
+        );
+      }
+
       await refreshQueue();
     } catch {
       setStatusMessage("Sync offline gagal. Queue lokal tetap disimpan.");
@@ -708,9 +801,9 @@ export default function App() {
       setIsSyncing(false);
 
       if (window.navigator.onLine) {
-        const nextPending = await getQueuedScans();
+        const [nextPendingScans, nextPendingWithdrawals] = await Promise.all([getQueuedScans(), getQueuedWithdrawals()]);
 
-        if (nextPending.length > 0) {
+        if (nextPendingScans.length > 0 || nextPendingWithdrawals.length > 0) {
           void syncQueue();
         }
       }
@@ -772,6 +865,7 @@ export default function App() {
       await queueScan(payload);
       await markLocalScan(checkpointId, normalizedBib);
       setBib("");
+      setLastActionSummary(null);
       await refreshQueue();
 
       if (!isOnline) {
@@ -803,9 +897,115 @@ export default function App() {
     }
   }
 
+  async function processWithdrawal(rawValue: string) {
+    if (!canScan || !session?.access_token) {
+      setStatusMessage("Login crew diperlukan sebelum input withdraw.");
+      return;
+    }
+
+    const actorProfile = effectiveProfile;
+
+    if (!actorProfile || !["crew", "panitia", "admin"].includes(actorProfile.role)) {
+      setStatusMessage("Akun ini tidak diizinkan menginput withdraw.");
+      return;
+    }
+
+    const normalizedBib = extractBibFromPayload(rawValue);
+
+    if (!checkpointId || !normalizedBib) {
+      setStatusMessage("Checkpoint dan payload QR/BIB wajib ada.");
+      return;
+    }
+
+    if (!isValidBib(normalizedBib)) {
+      runHapticFeedback("rejected");
+      setStatusMessage("Format QR/BIB tidak valid untuk withdraw.");
+      addActivityEntry(
+        createActivityEntry(normalizedBib || rawValue.trim() || "UNKNOWN", activeCheckpointLabel, "rejected", "Invalid withdraw BIB format")
+      );
+      return;
+    }
+
+    if (await hasLocalWithdrawalDuplicate(DEFAULT_RACE_ID, normalizedBib)) {
+      runHapticFeedback("duplicate");
+      setStatusMessage(`BIB ${normalizedBib} sudah pernah dicatat withdraw untuk race ini.`);
+      addActivityEntry(
+        createActivityEntry(normalizedBib, activeCheckpointLabel, "duplicate", "Withdraw already recorded on this device")
+      );
+      return;
+    }
+
+    const payload: WithdrawalSubmission = {
+      clientWithdrawId: createClientId(),
+      raceId: DEFAULT_RACE_ID,
+      checkpointId,
+      bib: normalizedBib,
+      crewId: crewId.trim() || "crew-unknown",
+      deviceId,
+      reportedAt: new Date().toISOString(),
+      capturedOffline: !isOnline,
+      note: withdrawNote.trim() || null
+    };
+
+    setIsBusy(true);
+
+    try {
+      await queueWithdrawal(payload);
+      await markLocalWithdrawal(DEFAULT_RACE_ID, normalizedBib);
+      setBib("");
+      setWithdrawNote("");
+      setLastActionSummary(null);
+      await refreshQueue();
+
+      if (!isOnline) {
+        runHapticFeedback("queued");
+        setStatusMessage(`Withdraw BIB ${normalizedBib} disimpan offline. Antrean lokal akan disinkronkan nanti.`);
+        addActivityEntry(
+          createActivityEntry(
+            normalizedBib,
+            activeCheckpointLabel,
+            "queued",
+            payload.note ? `Withdraw queued: ${payload.note}` : "Withdraw saved to offline queue"
+          )
+        );
+        return;
+      }
+
+      runHapticFeedback("queued");
+      setStatusMessage(`Withdraw BIB ${normalizedBib} tersimpan di device. Sinkronisasi ke server berjalan di background.`);
+      addActivityEntry(
+        createActivityEntry(
+          normalizedBib,
+          activeCheckpointLabel,
+          "queued",
+          payload.note ? `Withdraw queued: ${payload.note}` : "Withdraw queued for immediate sync"
+        )
+      );
+      void syncQueue();
+    } catch {
+      runHapticFeedback("rejected");
+      setStatusMessage(`Withdraw BIB ${normalizedBib} gagal diproses di device. Coba ulangi sekali lagi.`);
+      addActivityEntry(
+        createActivityEntry(normalizedBib, activeCheckpointLabel, "rejected", "Device withdrawal processing failed")
+      );
+      await refreshQueue();
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function processCurrentEntry(rawValue: string) {
+    if (entryMode === "withdraw") {
+      await processWithdrawal(rawValue);
+      return;
+    }
+
+    await processScan(rawValue);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await processScan(bib);
+    await processCurrentEntry(bib);
   }
 
   function lockCheckpointSelection(nextCheckpointId: string) {
@@ -818,6 +1018,7 @@ export default function App() {
     setCheckpointId(nextCheckpointId);
     setIsCheckpointLocked(true);
     setScreen("timing");
+    setEntryMode("timing");
     setCameraDismissed(false);
     setStatusMessage(
       nextCheckpoint
@@ -843,7 +1044,7 @@ export default function App() {
   }
 
   async function submitCurrentBib() {
-    await processScan(bib);
+    await processCurrentEntry(bib);
   }
 
   function openCameraScanner() {
@@ -885,11 +1086,13 @@ export default function App() {
     }
 
     setBib("");
-    setLastResponse(null);
+    setWithdrawNote("");
+    setLastActionSummary(null);
     setRecentActivity([]);
     setCheckpointId("");
     setIsCheckpointLocked(false);
     setScreen("timing");
+    setEntryMode("timing");
     setIsCameraOpen(false);
     setCameraDismissed(false);
 
@@ -1018,22 +1221,51 @@ export default function App() {
               </div>
             ) : null}
             <div className="scanner-display-card">
+              <div className="scanner-entry-mode-switch" role="tablist" aria-label="Scanner mode">
+                <button
+                  className={`scanner-entry-mode-button ${entryMode === "timing" ? "active" : ""}`}
+                  disabled={!isCheckpointLocked || isBusy}
+                  onClick={() => setEntryMode("timing")}
+                  type="button"
+                >
+                  Timing
+                </button>
+                <button
+                  className={`scanner-entry-mode-button ${entryMode === "withdraw" ? "active" : ""}`}
+                  disabled={!isCheckpointLocked || isBusy}
+                  onClick={() => setEntryMode("withdraw")}
+                  type="button"
+                >
+                  Withdraw
+                </button>
+              </div>
               <p className="scanner-kicker">Input BIB Manual</p>
               <strong className="scanner-display-value">{bib || "0"}</strong>
               <label className="scanner-inline-field">
                 <input
                   ref={inputRef}
                   disabled={!canScan || isBusy}
-                  placeholder="Tap keypad atau ketik BIB"
+                  placeholder={entryMode === "withdraw" ? "Tap keypad atau ketik BIB withdraw" : "Tap keypad atau ketik BIB"}
                   value={bib}
                   onChange={(event) => setBib(normalizeBib(event.target.value))}
                 />
               </label>
+              {entryMode === "withdraw" ? (
+                <label className="scanner-inline-field">
+                  <input
+                    disabled={!canScan || isBusy}
+                    maxLength={280}
+                    placeholder="Alasan / catatan withdraw (opsional)"
+                    value={withdrawNote}
+                    onChange={(event) => setWithdrawNote(event.target.value)}
+                  />
+                </label>
+              ) : null}
             </div>
 
             {lastResultSummary ? (
               <div className="scanner-result-strip">
-                <article className={`scanner-result-card ${lastResponse?.status === "accepted" ? "success" : "duplicate"}`}>
+                <article className={`scanner-result-card ${lastResultSummary.tone}`}>
                   <strong>{lastResultSummary.title}</strong>
                   <span>{lastResultSummary.meta}</span>
                   <time>{lastResultSummary.time}</time>
@@ -1048,7 +1280,7 @@ export default function App() {
                 onClick={openCameraScanner}
                 type="button"
               >
-                Scan QR
+                {entryMode === "withdraw" ? "Scan QR Withdraw" : "Scan QR"}
               </button>
             ) : null}
 
@@ -1058,6 +1290,7 @@ export default function App() {
                   <div>
                     <p className="scanner-kicker">Camera Scan</p>
                     <strong>Scan QR bib runner</strong>
+                    <span>{entryMode === "withdraw" ? "Mode withdraw aktif" : "Mode timing aktif"}</span>
                   </div>
                   <button className="scanner-utility-chip" onClick={closeCameraScanner} type="button">
                     Close
@@ -1137,7 +1370,7 @@ export default function App() {
                 onClick={() => void submitCurrentBib()}
                 type="button"
               >
-                {isBusy ? "..." : "OK"}
+                {isBusy ? "..." : entryMode === "withdraw" ? "WD" : "OK"}
               </button>
             </div>
 
@@ -1146,7 +1379,7 @@ export default function App() {
                 <div className="scanner-log-head">
                   <h3>Recent Logs</h3>
                   <span className="scanner-log-pill">
-                    {recentPreview.length} scanned
+                    {recentPreview.length} recent
                   </span>
                 </div>
                 <div className="scanner-recent-list">
@@ -1159,7 +1392,15 @@ export default function App() {
                       </div>
                       <time>{formatDateTime(entry.time)}</time>
                       <span className="scanner-recent-mark">
-                        {entry.status === "accepted" ? "OK" : entry.status === "duplicate" ? "DUP" : entry.status === "queued" ? "Q" : "ERR"}
+                        {entry.status === "accepted"
+                          ? "OK"
+                          : entry.status === "duplicate"
+                            ? "DUP"
+                            : entry.status === "queued"
+                              ? "Q"
+                              : entry.status === "withdrawn"
+                                ? "WD"
+                                : "ERR"}
                       </span>
                     </article>
                   ))}
@@ -1232,19 +1473,33 @@ export default function App() {
               <h3>Offline queue</h3>
             </div>
             <div className="scanner-history-list">
-              {queue.length ? (
-                queue.map((scan) => (
-                  <article className="scanner-history-row queued" key={scan.clientScanId}>
-                    <div>
-                      <strong>{scan.bib}</strong>
-                      <span>{scan.checkpointId}</span>
-                    </div>
-                    <div>
-                      <strong>Queued offline</strong>
-                      <time>{formatDateTime(scan.scannedAt)}</time>
-                    </div>
-                  </article>
-                ))
+              {queue.length || withdrawalQueue.length ? (
+                <>
+                  {queue.map((scan) => (
+                    <article className="scanner-history-row queued" key={scan.clientScanId}>
+                      <div>
+                        <strong>{scan.bib}</strong>
+                        <span>{scan.checkpointId}</span>
+                      </div>
+                      <div>
+                        <strong>Queued scan</strong>
+                        <time>{formatDateTime(scan.scannedAt)}</time>
+                      </div>
+                    </article>
+                  ))}
+                  {withdrawalQueue.map((withdrawal) => (
+                    <article className="scanner-history-row withdrawn" key={withdrawal.clientWithdrawId}>
+                      <div>
+                        <strong>{withdrawal.bib}</strong>
+                        <span>{withdrawal.checkpointId}</span>
+                      </div>
+                      <div>
+                        <strong>{withdrawal.note?.trim() ? `Queued withdraw: ${withdrawal.note.trim()}` : "Queued withdraw"}</strong>
+                        <time>{formatDateTime(withdrawal.reportedAt)}</time>
+                      </div>
+                    </article>
+                  ))}
+                </>
               ) : (
                 <div className="placeholder-card">Belum ada item di antrean lokal.</div>
               )}

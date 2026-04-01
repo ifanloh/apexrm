@@ -1,7 +1,12 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { z } from "zod";
-import { defaultCheckpoints, liveRaceSnapshotSchema, scanSubmissionSchema } from "./contracts.js";
+import {
+  defaultCheckpoints,
+  liveRaceSnapshotSchema,
+  scanSubmissionSchema,
+  withdrawalSubmissionSchema
+} from "./contracts.js";
 import { requireAuth, requireRole } from "./auth.js";
 import { sql } from "./db.js";
 import {
@@ -13,14 +18,20 @@ import {
   getOverallLeaderboard,
   getRecentPassings,
   getRunnerDetail,
-  searchRunners,
   processSingleScan,
-  syncOfflineScans
+  processSingleWithdrawal,
+  searchRunners,
+  syncOfflineScans,
+  syncOfflineWithdrawals
 } from "./repository.js";
 import { config } from "./config.js";
 
 const syncOfflineSchema = z.object({
   scans: z.array(scanSubmissionSchema).min(1)
+});
+
+const syncOfflineWithdrawalsSchema = z.object({
+  withdrawals: z.array(withdrawalSubmissionSchema).min(1)
 });
 
 let checkpointBootstrapPromise: Promise<void> | null = null;
@@ -219,6 +230,24 @@ export async function createServer() {
     await ensureCheckpointBootstrap();
     const payload = syncOfflineSchema.parse(request.body);
     return syncOfflineScans(sql, payload.scans, actor);
+  });
+
+  server.post(`${config.apiPrefix}/withdraw`, async (request, reply) => {
+    const actor = await requireAuth(request);
+    requireRole(actor, ["crew", "panitia", "admin"]);
+    await ensureCheckpointBootstrap();
+    const payload = withdrawalSubmissionSchema.parse(request.body);
+    const response = await processSingleWithdrawal(sql, payload, actor);
+
+    return reply.code(response.status === "recorded" ? 201 : 200).send(response);
+  });
+
+  server.post(`${config.apiPrefix}/sync-withdrawals`, async (request) => {
+    const actor = await requireAuth(request);
+    requireRole(actor, ["crew", "panitia", "admin"]);
+    await ensureCheckpointBootstrap();
+    const payload = syncOfflineWithdrawalsSchema.parse(request.body);
+    return syncOfflineWithdrawals(sql, payload.withdrawals, actor);
   });
 
   server.setErrorHandler((error, _request, reply) => {

@@ -219,6 +219,34 @@ button {
   padding: 16px;
 }
 
+.scanner-entry-mode-switch {
+  background: rgba(226, 184, 77, 0.14);
+  border-radius: 999px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 6px;
+}
+
+.scanner-entry-mode-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--text-soft);
+  display: inline-flex;
+  font-size: 0.92rem;
+  font-weight: 800;
+  height: 40px;
+  justify-content: center;
+}
+
+.scanner-entry-mode-button.active {
+  background: linear-gradient(180deg, #ff474b 0%, #ff1014 100%);
+  color: #fff7f4;
+  box-shadow: 0 8px 16px rgba(255, 16, 20, 0.16);
+}
+
 .scanner-display-value {
   display: block;
   color: var(--brand-strong);
@@ -313,6 +341,13 @@ select {
   margin-top: 2px;
 }
 
+.scanner-camera-head span {
+  color: var(--text-soft);
+  display: block;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
 .scanner-camera-frame {
   background: #2a1b16;
   border-radius: 18px;
@@ -368,6 +403,11 @@ select {
 
 .scanner-result-card.duplicate {
   border-color: rgba(210, 58, 49, 0.24);
+}
+
+.scanner-result-card.withdrawn {
+  border-color: rgba(255, 16, 20, 0.24);
+  background: linear-gradient(180deg, rgba(255, 16, 20, 0.08) 0%, rgba(255, 253, 248, 0.98) 100%);
 }
 
 .scanner-result-card.neutral {
@@ -473,6 +513,10 @@ select {
 
 .scanner-recent-row.queued .scanner-recent-dot {
   background: #c8b28a;
+}
+
+.scanner-recent-row.withdrawn .scanner-recent-dot {
+  background: var(--brand);
 }
 
 .scanner-recent-mark {
@@ -658,6 +702,11 @@ select {
 
 .scanner-history-row.queued {
   border-left: 4px solid rgba(124, 132, 126, 0.4);
+}
+
+.scanner-history-row.withdrawn {
+  border-left: 4px solid rgba(255, 16, 20, 0.72);
+  background-color: rgba(255, 16, 20, 0.04);
 }
 
 .scanner-panel {

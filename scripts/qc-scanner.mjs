@@ -56,12 +56,13 @@ async function main() {
   const bundleMarkers = [
     "Crew Login",
     "Masuk ke Scanner",
-    "Race Control Scanner",
     "Input BIB Manual",
+    "Withdraw",
+    "Scan QR",
     "Checkpoints",
+    "Checkpoint locked",
+    "Scanner",
     "History",
-    "Sync Queue",
-    "Alphanumeric BIB",
     "Logout"
   ];
 
