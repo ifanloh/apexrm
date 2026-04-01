@@ -1,26 +1,5 @@
-import https from "node:https";
-
 const scannerUrl = (process.env.QC_SCANNER_URL ?? "https://apexrm-scanner.vercel.app").replace(/\/+$/, "");
 const apiBaseUrl = (process.env.QC_API_BASE_URL ?? "https://apexrm-api.vercel.app/api").replace(/\/+$/, "");
-
-function get(url) {
-  return new Promise((resolve, reject) => {
-    https
-      .get(url, (response) => {
-        let body = "";
-        response.on("data", (chunk) => {
-          body += chunk;
-        });
-        response.on("end", () => {
-          resolve({
-            status: response.statusCode ?? 0,
-            body
-          });
-        });
-      })
-      .on("error", reject);
-  });
-}
 
 async function fetchText(url, timeoutMs = 20000) {
   const controller = new AbortController();
@@ -64,10 +43,10 @@ async function fetchWithRetry(url, attempts = 4, timeoutMs = 20000) {
 }
 
 async function main() {
-  const scannerHtml = await get(scannerUrl);
+  const scannerHtml = await fetchText(scannerUrl, 20000);
   const bundlePath = scannerHtml.body.match(/assets\/index-[^"']+\.js/)?.[0] ?? null;
 
-  if (scannerHtml.status !== 200 || !bundlePath) {
+  if (!scannerHtml.ok || scannerHtml.status !== 200 || !bundlePath) {
     throw new Error("Scanner HTML or bundle path unavailable.");
   }
 
@@ -78,10 +57,11 @@ async function main() {
     "Crew Login",
     "Masuk ke Scanner",
     "Race Control Scanner",
-    "Field Scanner",
     "Input BIB Manual",
+    "Checkpoints",
+    "History",
     "Sync Queue",
-    "Pending sync",
+    "Alphanumeric BIB",
     "Logout"
   ];
 

@@ -9,7 +9,7 @@ import {
   type IngestScanResponse,
   type ScanSubmission
 } from "@arm/contracts";
-import { fetchCheckpoints, sendScan, syncOffline } from "./api";
+import { fetchCheckpoints, syncOffline } from "./api";
 import {
   getQueuedScans,
   hasLocalDuplicate,
@@ -23,16 +23,7 @@ import "./styles.css";
 
 const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
 const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Grand Trail des Templiers Demo";
-
-type BarcodeDetectorLike = {
-  detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue?: string }>>;
-};
-
-declare global {
-  interface Window {
-    BarcodeDetector?: new (options?: { formats?: string[] }) => BarcodeDetectorLike;
-  }
-}
+type ScannerScreen = "timing" | "checkpoint" | "history";
 
 function getStoredValue(key: string, fallback: string) {
   return window.localStorage.getItem(key) ?? fallback;
@@ -126,12 +117,9 @@ export default function App() {
   const [lastResponse, setLastResponse] = useState<IngestScanResponse | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [cameraEnabled, setCameraEnabled] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [recentActivity, setRecentActivity] = useState<ScannerActivity[]>([]);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanLockRef = useRef<string>("");
+  const [screen, setScreen] = useState<ScannerScreen>("timing");
   const syncLockRef = useRef(false);
 
   const selectedCheckpoint = useMemo(
@@ -270,73 +258,6 @@ export default function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, [session]);
-
-  useEffect(() => {
-    if (!cameraEnabled || !videoRef.current || !navigator.mediaDevices?.getUserMedia) {
-      return;
-    }
-
-    let cancelled = false;
-    let detectorInterval: number | null = null;
-
-    async function startCamera() {
-      streamRef.current = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment"
-        },
-        audio: false
-      });
-
-      if (!videoRef.current || cancelled) {
-        return;
-      }
-
-      videoRef.current.srcObject = streamRef.current;
-      await videoRef.current.play();
-      setStatusMessage("Kamera aktif. Arahkan QR ke area target.");
-
-      if (!window.BarcodeDetector) {
-        setStatusMessage("Browser ini belum mendukung BarcodeDetector. Pakai input manual untuk sementara.");
-        return;
-      }
-
-      const detector = new window.BarcodeDetector({
-        formats: ["qr_code"]
-      });
-
-      detectorInterval = window.setInterval(async () => {
-        if (!videoRef.current || scanLockRef.current) {
-          return;
-        }
-
-        const results = await detector.detect(videoRef.current);
-        const rawValue = results[0]?.rawValue?.trim();
-
-        if (rawValue) {
-          scanLockRef.current = rawValue;
-          await processScan(rawValue);
-          window.setTimeout(() => {
-            scanLockRef.current = "";
-          }, 1500);
-        }
-      }, 700);
-    }
-
-    startCamera().catch(() => {
-      setStatusMessage("Izin kamera gagal atau device tidak punya kamera yang bisa dipakai.");
-    });
-
-    return () => {
-      cancelled = true;
-
-      if (detectorInterval) {
-        window.clearInterval(detectorInterval);
-      }
-
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    };
-  }, [cameraEnabled, checkpointId, session]);
 
   async function refreshQueue() {
     setQueue(await getQueuedScans());
@@ -507,6 +428,22 @@ export default function App() {
     await processScan(bib);
   }
 
+  function appendBibDigit(digit: string) {
+    setBib((current) => `${current}${digit}`);
+  }
+
+  function clearBib() {
+    setBib("");
+  }
+
+  function removeLastBibCharacter() {
+    setBib((current) => current.slice(0, -1));
+  }
+
+  async function submitCurrentBib() {
+    await processScan(bib);
+  }
+
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -605,202 +542,271 @@ export default function App() {
 
   return (
     <main className="scanner-shell">
-      <header className="scanner-topbar">
-        <div className="scanner-topbar-copy">
-          <p className="scanner-kicker">Field Scanner</p>
-          <h1>Scanner</h1>
-          <span className="scanner-event-label">{DEMO_EVENT_LABEL}</span>
-        </div>
-        <div className="scanner-topbar-meta">
-          <div className={`scanner-pill ${isOnline ? "online" : "offline"}`}>
-            <span className="status-dot" />
-            {isOnline ? "Online" : "Offline"}
-          </div>
-          <div className="scanner-pill neutral">
-            <span className="status-dot" />
-            {selectedCheckpoint ? selectedCheckpoint.code : "Checkpoint"}
-          </div>
-          <button className="ghost-button" onClick={() => void syncQueue()} type="button">
-            {isSyncing ? "Syncing..." : "Sync"}
-          </button>
-          <button
-            className="ghost-button"
-            onClick={() => {
-              if (supabase) {
-                void supabase.auth.signOut();
-              }
-            }}
-            type="button"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <section className="scanner-stage">
-        <article className="camera-panel">
-          <div className="panel-copy">
-            <p className="scanner-kicker">Active Station</p>
-            <h2>{selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Pilih checkpoint"}</h2>
-          </div>
-
-          <label className="checkpoint-field">
-            <span>Pilih Checkpoint</span>
-            <select disabled={isBusy || checkpoints.length === 0} value={checkpointId} onChange={(event) => setCheckpointId(event.target.value)}>
-              {checkpoints.map((checkpoint) => (
-                <option key={checkpoint.id} value={checkpoint.id}>
-                  {formatCheckpointLabel(checkpoint)}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="camera-frame">
-            <video className="camera-video" muted playsInline ref={videoRef} />
-            <div className="scan-target">
-              <div className="scan-line" />
-            </div>
-            <div className="camera-overlay top-left">
-              <span>Target</span>
-              <strong>{bib.trim() || "SCANNING..."}</strong>
-            </div>
-            <div className="camera-overlay top-right">
-              {cameraEnabled ? "QR engine aktif" : "Kamera belum aktif"}
-            </div>
-            <div className="camera-overlay bottom-left">{statusMessage}</div>
-          </div>
-
-          <div className="quick-actions">
-            <button className="primary-button" disabled={!canScan} onClick={() => setCameraEnabled((value) => !value)} type="button">
-              {cameraEnabled ? "Matikan Kamera" : "Aktifkan Kamera"}
-            </button>
-            <div className="tool-group">
-              <button disabled={isBusy} onClick={() => setBib("")} type="button">
-                Clear
+      <section className="scanner-app">
+        <header className={`scanner-app-header ${screen !== "timing" ? "subscreen" : ""}`}>
+          <div className="scanner-app-header-row">
+            {screen !== "timing" ? (
+              <button
+                aria-label="Back to timing"
+                className="scanner-icon-button"
+                onClick={() => setScreen("timing")}
+                type="button"
+              >
+                Back
               </button>
-                <button disabled={isSyncing} onClick={() => void syncQueue()} type="button">
-                  {isSyncing ? "Syncing" : "Sync"}
-                </button>
-              <button onClick={() => navigator.vibrate?.(120)} type="button">
-                Haptic
+            ) : (
+              <div className={`scanner-connection-pill ${isOnline ? "online" : "offline"}`}>
+                <span className="status-dot" />
+                {isOnline ? "Live" : "Offline"}
+              </div>
+            )}
+            <div className="scanner-app-actions">
+              {screen === "timing" ? (
+                <>
+                  <button
+                    className="scanner-icon-button"
+                    onClick={() => setScreen("checkpoint")}
+                    type="button"
+                  >
+                    Checkpoints
+                  </button>
+                  <button
+                    className="scanner-icon-button"
+                    onClick={() => setScreen("history")}
+                    type="button"
+                  >
+                    History
+                  </button>
+                </>
+              ) : null}
+              <button
+                className="scanner-icon-button"
+                disabled={isSyncing}
+                onClick={() => void syncQueue()}
+                type="button"
+              >
+                {isSyncing ? "Syncing..." : "Sync Queue"}
+              </button>
+              <button
+                className="scanner-icon-button"
+                onClick={() => {
+                  if (supabase) {
+                    void supabase.auth.signOut();
+                  }
+                }}
+                type="button"
+              >
+                Logout
               </button>
             </div>
           </div>
-        </article>
 
-        <aside className="scanner-rail">
-          <section className="scanner-panel">
-            <div className="panel-copy">
-              <p className="scanner-kicker">Station Summary</p>
-              <h3>Scanner Assignment</h3>
-            </div>
-            <div className="rail-head compact">
-              <div>
-                <span>Crew</span>
-                <strong>{effectiveProfile?.displayName ?? effectiveProfile?.crewCode ?? crewId}</strong>
-              </div>
-              <div>
-                <span>Device</span>
-                <strong>{deviceId.slice(0, 8)}</strong>
-              </div>
-              <div>
-                <span>Checkpoint</span>
-                <strong>{selectedCheckpoint ? selectedCheckpoint.code : "None"}</strong>
-              </div>
-              <div>
-                <span>Mode</span>
-                <strong>{isOnline ? "Live sync" : "Offline queue"}</strong>
-              </div>
-            </div>
-          </section>
+          <div className="scanner-app-title">
+            <p className="scanner-kicker">Race Control Scanner</p>
+            <h1>{DEMO_EVENT_LABEL}</h1>
+            <p>{selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Pilih checkpoint"}</p>
+          </div>
+        </header>
 
-          <section className="scanner-panel total-panel">
-            <span>Pending sync</span>
-            <strong>{queue.length}</strong>
-            <p>Queue lokal akan dikirim ke endpoint `/api/sync-offline` saat koneksi kembali.</p>
-          </section>
-
-          <section className="scanner-panel">
-            <div className="panel-copy">
-              <p className="scanner-kicker">Manual Entry</p>
-              <h3>Input BIB Manual</h3>
+        {screen === "timing" ? (
+          <section className="scanner-screen">
+            <div className="scanner-mode-switch">
+              <button className="active" type="button">
+                Timing
+              </button>
+              <button onClick={() => setScreen("history")} type="button">
+                History
+              </button>
             </div>
-            <form className="scanner-form" onSubmit={handleSubmit}>
-              <label>
+
+            <div className="scanner-display-card">
+              <div className="scanner-display-head">
+                <span>
+                  {queue.length}/{Math.max(queue.length + recentActivity.length, 1)}
+                </span>
+                <span>{canScan ? "Ready" : "Locked"}</span>
+              </div>
+              <p className="scanner-kicker">Input BIB Manual</p>
+              <strong className="scanner-display-value">{bib || "0"}</strong>
+              <label className="scanner-inline-field">
+                <span>Alphanumeric BIB</span>
                 <input
                   disabled={!canScan || isBusy}
-                  placeholder="Masukkan atau scan BIB"
+                  placeholder="Tap keypad atau ketik BIB"
                   value={bib}
                   onChange={(event) => setBib(normalizeBib(event.target.value))}
                 />
               </label>
-
-                <div className="manual-helper">
-                  BIB demo <strong>T0001-T0500</strong> sudah tersedia. Kamu juga bisa trial dengan BIB baru.
-                </div>
-
-              <button className="submit-button" disabled={!canScan || isBusy} type="submit">
-                {isBusy ? "Memproses..." : "Submit Scan"}
-              </button>
-            </form>
-          </section>
-
-          <section className="scanner-panel">
-            <div className="panel-copy">
-              <p className="scanner-kicker">Last Response</p>
-              <h3>Scan Result</h3>
             </div>
-            {lastResultSummary ? (
-              <div className={`result-card ${lastResponse?.status === "accepted" ? "success" : "duplicate"}`}>
-                <strong>{lastResultSummary.title}</strong>
-                <span>{lastResultSummary.meta}</span>
-                <time>{lastResultSummary.time}</time>
-              </div>
-            ) : (
-              <div className="placeholder-card">Belum ada respons server. Hasil scan terbaru akan tampil di sini.</div>
-            )}
-          </section>
-        </aside>
-      </section>
 
-      <section className="queue-section">
-        <div className="panel-copy">
-          <p className="scanner-kicker">Recent Scanner Activity</p>
-          <h3>Latest Captures & Sync Results</h3>
-        </div>
-        <div className="scanner-activity-grid">
-          <div className="queue-grid">
-            {recentActivity.length ? (
-              recentActivity.map((entry) => (
-                <article className={`queue-card scanner-activity-card ${entry.status}`} key={entry.id}>
-                  <div className="scanner-activity-head">
-                    <strong>BIB {entry.bib}</strong>
-                    <span className={`scanner-activity-badge ${entry.status}`}>{entry.status}</span>
-                  </div>
-                  <span>{entry.checkpointLabel}</span>
-                  <span>{entry.detail}</span>
+            <div className="scanner-result-strip">
+              {lastResultSummary ? (
+                <article className={`scanner-result-card ${lastResponse?.status === "accepted" ? "success" : "duplicate"}`}>
+                  <strong>{lastResultSummary.title}</strong>
+                  <span>{lastResultSummary.meta}</span>
+                  <time>{lastResultSummary.time}</time>
+                </article>
+              ) : (
+                <article className="scanner-result-card neutral">
+                  <strong>Belum ada hasil scan</strong>
+                  <span>Scan terakhir yang diterima atau duplicate akan tampil di sini.</span>
+                </article>
+              )}
+            </div>
+
+            <div className="scanner-recent-list">
+              {recentActivity.slice(0, 3).map((entry) => (
+                <article className={`scanner-recent-row ${entry.status}`} key={entry.id}>
+                  <span className="scanner-recent-dot" />
+                  <strong>{entry.bib}</strong>
                   <time>{formatDateTime(entry.time)}</time>
+                  <span className="scanner-recent-mark">
+                    {entry.status === "accepted" ? "OK" : entry.status === "duplicate" ? "DUP" : entry.status === "queued" ? "Q" : "ERR"}
+                  </span>
                 </article>
-              ))
-            ) : (
-              <div className="placeholder-card">Belum ada aktivitas scanner. Mulai dari scan manual atau aktifkan kamera.</div>
-            )}
-          </div>
-          <div className="queue-grid">
-            {queue.length ? (
-              queue.map((scan) => (
-                <article className="queue-card" key={scan.clientScanId}>
-                  <strong>BIB {scan.bib}</strong>
-                  <span>{scan.checkpointId}</span>
-                  <span>Queued offline</span>
-                  <time>{formatDateTime(scan.scannedAt)}</time>
+              ))}
+              {recentActivity.length === 0 ? (
+                <article className="scanner-recent-row empty">
+                  <strong>Belum ada activity</strong>
+                  <span>{statusMessage}</span>
                 </article>
-              ))
-            ) : (
-              <div className="placeholder-card">Belum ada item di antrean lokal.</div>
-            )}
-          </div>
-        </div>
+              ) : null}
+            </div>
+
+            <form className="scanner-hidden-submit" onSubmit={handleSubmit}>
+              <button type="submit" />
+            </form>
+
+            <div className="scanner-keypad">
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
+                <button
+                  className="scanner-key scanner-key-digit"
+                  disabled={!canScan || isBusy}
+                  key={digit}
+                  onClick={() => appendBibDigit(digit)}
+                  type="button"
+                >
+                  {digit}
+                </button>
+              ))}
+              <button className="scanner-key scanner-key-clear" disabled={isBusy} onClick={clearBib} type="button">
+                C
+              </button>
+              <button
+                className="scanner-key scanner-key-digit"
+                disabled={!canScan || isBusy}
+                onClick={() => appendBibDigit("0")}
+                type="button"
+              >
+                0
+              </button>
+              <button
+                className="scanner-key scanner-key-submit"
+                disabled={!canScan || isBusy || !bib}
+                onClick={() => void submitCurrentBib()}
+                type="button"
+              >
+                {isBusy ? "..." : "OK"}
+              </button>
+            </div>
+
+            <div className="scanner-utility-bar">
+              <button className="scanner-utility-chip" disabled={isBusy || !bib} onClick={removeLastBibCharacter} type="button">
+                Delete last
+              </button>
+              <button className="scanner-utility-chip" onClick={() => setScreen("checkpoint")} type="button">
+                Change checkpoint
+              </button>
+              <div className="scanner-utility-chip quiet">
+                Crew {effectiveProfile?.displayName ?? effectiveProfile?.crewCode ?? crewId}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {screen === "checkpoint" ? (
+          <section className="scanner-screen">
+            <div className="panel-copy">
+              <p className="scanner-kicker">Select checkpoint</p>
+              <h2>Checkpoint list</h2>
+            </div>
+            <div className="scanner-checkpoint-list">
+              {checkpoints.map((checkpoint) => {
+                const isSelected = checkpoint.id === checkpointId;
+                return (
+                  <button
+                    className={`scanner-checkpoint-row ${isSelected ? "selected" : ""}`}
+                    key={checkpoint.id}
+                    onClick={() => {
+                      setCheckpointId(checkpoint.id);
+                      setScreen("timing");
+                    }}
+                    type="button"
+                  >
+                    <span className="scanner-checkpoint-order">{checkpoint.order}</span>
+                    <span className="scanner-checkpoint-copy">
+                      <strong>{checkpoint.name}</strong>
+                      <span>
+                        {checkpoint.kmMarker} km
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
+
+        {screen === "history" ? (
+          <section className="scanner-screen">
+            <div className="panel-copy">
+              <p className="scanner-kicker">Recent Scanner Activity</p>
+              <h2>History & Queue</h2>
+            </div>
+
+            <div className="scanner-history-list">
+              {recentActivity.length ? (
+                recentActivity.map((entry) => (
+                  <article className={`scanner-history-row ${entry.status}`} key={entry.id}>
+                    <div>
+                      <strong>{entry.bib}</strong>
+                      <span>{entry.checkpointLabel}</span>
+                    </div>
+                    <div>
+                      <strong>{entry.detail}</strong>
+                      <time>{formatDateTime(entry.time)}</time>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="placeholder-card">Belum ada activity scanner.</div>
+              )}
+            </div>
+
+            <div className="panel-copy">
+              <p className="scanner-kicker">Pending sync</p>
+              <h3>Offline queue</h3>
+            </div>
+            <div className="scanner-history-list">
+              {queue.length ? (
+                queue.map((scan) => (
+                  <article className="scanner-history-row queued" key={scan.clientScanId}>
+                    <div>
+                      <strong>{scan.bib}</strong>
+                      <span>{scan.checkpointId}</span>
+                    </div>
+                    <div>
+                      <strong>Queued offline</strong>
+                      <time>{formatDateTime(scan.scannedAt)}</time>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="placeholder-card">Belum ada item di antrean lokal.</div>
+              )}
+            </div>
+          </section>
+        ) : null}
       </section>
 
       <footer className="runtime-footer">

@@ -116,9 +116,10 @@ async function runBrowserChecks() {
     });
 
     await runStep("scanner browser workspace essentials", async () => {
-      await page.getByText("Field Scanner").waitFor();
+      await page.getByText("Race Control Scanner").waitFor();
       await page.getByText("Input BIB Manual").waitFor();
-      await page.getByText("Pending sync").waitFor();
+      await page.getByRole("button", { name: "Checkpoints" }).waitFor();
+      await page.getByRole("button", { name: "History" }).waitFor();
       await page.getByRole("button", { name: "Logout" }).waitFor();
       return "Scanner essentials are visible";
     });
