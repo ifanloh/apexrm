@@ -1,0 +1,11 @@
+{
+  "appId": "com.trailnesia.scanner",
+  "appName": "Trailnesia Scanner",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#F7FAF5"
+  },
+  "ios": {
+    "backgroundColor": "#F7FAF5"
+  }
+}

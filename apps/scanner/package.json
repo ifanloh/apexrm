@@ -6,10 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -p ../../packages/contracts/tsconfig.json && tsc -p tsconfig.json && vite build",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:android": "npm run build && npx cap sync android",
+    "cap:ios": "npm run build && npx cap sync ios",
+    "android:apk": "npm run cap:android && cd android && gradlew.bat assembleDebug",
+    "android:open": "npx cap open android",
+    "ios:open": "npx cap open ios"
   },
   "dependencies": {
     "@arm/contracts": "0.1.0",
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/ios": "^6.2.1",
     "@supabase/supabase-js": "^2.49.4",
     "idb": "^8.0.2",
     "react": "^18.3.1",
