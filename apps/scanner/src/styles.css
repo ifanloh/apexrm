@@ -215,32 +215,7 @@ button {
 }
 
 .scanner-screen-timing {
-  padding-bottom: calc(116px + env(safe-area-inset-bottom, 0px));
-}
-
-.scanner-mode-switch {
-  background: var(--surface-soft);
-  border: 1px solid var(--stroke);
-  border-radius: 999px;
-  display: grid;
-  gap: 6px;
-  grid-template-columns: 1fr 1fr;
-  padding: 4px;
-}
-
-.scanner-mode-switch button {
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  color: var(--text-muted);
-  min-height: 40px;
-  padding: 8px 12px;
-}
-
-.scanner-mode-switch button.active {
-  background: var(--brand);
-  color: #0e180f;
-  font-weight: 800;
+  padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
 }
 
 .scanner-display-card,
@@ -524,6 +499,11 @@ select {
   padding: 0 18px;
 }
 
+.scanner-prefix-chip-muted {
+  background: #f2f4f1;
+  color: var(--text-soft);
+}
+
 .scanner-key {
   align-items: center;
   border: 0;
@@ -573,10 +553,14 @@ select {
   display: grid;
   gap: 10px;
   grid-template-columns: 1fr 1.2fr 1fr;
-  left: 16px;
+  left: 50%;
+  max-width: 448px;
   padding: 10px;
-  position: sticky;
-  right: 16px;
+  position: fixed;
+  right: auto;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  z-index: 60;
 }
 
 .scanner-nav-button {
@@ -594,6 +578,12 @@ select {
   text-align: center;
 }
 
+.scanner-nav-button.active:not(.scanner-nav-button-primary) {
+  background: rgba(19, 225, 11, 0.12);
+  border-color: rgba(19, 225, 11, 0.2);
+  color: #148712;
+}
+
 .scanner-nav-button-primary {
   background: linear-gradient(180deg, #1df416 0%, #11d80a 100%);
   border-color: rgba(15, 191, 8, 0.24);
@@ -602,6 +592,10 @@ select {
   font-size: 0.96rem;
   font-weight: 900;
   height: 54px;
+}
+
+.scanner-nav-button-primary.active {
+  transform: translateY(-1px);
 }
 
 .scanner-nav-button:disabled {
@@ -723,8 +717,7 @@ select {
   .scanner-bottom-nav {
     gap: 8px;
     grid-template-columns: 1fr 1.15fr 1fr;
-    left: 12px;
-    right: 12px;
+    width: calc(100% - 16px);
   }
 
   .scanner-nav-button {

@@ -758,15 +758,6 @@ export default function App() {
 
         {screen === "timing" ? (
           <section className="scanner-screen scanner-screen-timing">
-            <div className="scanner-mode-switch">
-              <button className="active" type="button">
-                Timing
-              </button>
-              <button onClick={() => setScreen("history")} type="button">
-                History
-              </button>
-            </div>
-
             <div className="scanner-display-card">
               <div className="scanner-display-head">
                 <div className="scanner-display-stat">
@@ -869,6 +860,14 @@ export default function App() {
               >
                 W
               </button>
+              <button
+                className="scanner-prefix-chip scanner-prefix-chip-muted"
+                disabled={isBusy || !bib}
+                onClick={removeLastBibCharacter}
+                type="button"
+              >
+                Del
+              </button>
             </div>
 
             <div className="scanner-keypad">
@@ -909,28 +908,6 @@ export default function App() {
                 Crew {effectiveProfile?.displayName ?? effectiveProfile?.crewCode ?? crewId}
               </div>
             </div>
-
-            <nav className="scanner-bottom-nav" aria-label="Scanner quick actions">
-              <button className="scanner-nav-button" onClick={() => setScreen("checkpoint")} type="button">
-                Checkpoints
-              </button>
-              <button
-                className="scanner-nav-button scanner-nav-button-primary"
-                disabled={!canScan || isBusy}
-                onClick={openCameraScanner}
-                type="button"
-              >
-                Scan QR
-              </button>
-              <button
-                className="scanner-nav-button"
-                disabled={isBusy || !bib}
-                onClick={removeLastBibCharacter}
-                type="button"
-              >
-                Delete
-              </button>
-            </nav>
           </section>
         ) : null}
 
@@ -1018,6 +995,31 @@ export default function App() {
           </section>
         ) : null}
       </section>
+
+      <nav className="scanner-bottom-nav" aria-label="Scanner quick actions">
+        <button
+          className={`scanner-nav-button ${screen === "checkpoint" ? "active" : ""}`}
+          onClick={() => setScreen("checkpoint")}
+          type="button"
+        >
+          Checkpoints
+        </button>
+        <button
+          className={`scanner-nav-button scanner-nav-button-primary ${screen === "timing" ? "active" : ""}`}
+          disabled={!canScan || isBusy}
+          onClick={openCameraScanner}
+          type="button"
+        >
+          Scan QR
+        </button>
+        <button
+          className={`scanner-nav-button ${screen === "history" ? "active" : ""}`}
+          onClick={() => setScreen("history")}
+          type="button"
+        >
+          History
+        </button>
+      </nav>
 
       <footer className="runtime-footer">
         <span>Build {__APP_BUILD__}</span>
