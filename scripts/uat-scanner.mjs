@@ -103,13 +103,48 @@ async function runBrowserChecks() {
 
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 
+  async function enterScannerCheckpointOnce() {
+    const checkpointRow = page.locator(".scanner-checkpoint-row").first();
+    const isCheckpointSelectionVisible = await checkpointRow.isVisible({ timeout: 15000 }).catch(() => false);
+
+    if (isCheckpointSelectionVisible) {
+      await checkpointRow.click();
+    }
+  }
+
   async function waitForScannerWorkspace() {
-    await page.getByText("Input BIB Manual").waitFor({ timeout: 20000 });
+    const displayCard = page.locator(".scanner-display-card");
+    const inputAlreadyVisible = await displayCard.isVisible({ timeout: 5000 }).catch(() => false);
+
+    if (!inputAlreadyVisible) {
+      await enterScannerCheckpointOnce();
+    }
+
+    await displayCard.waitFor({ timeout: 20000 });
     await page.getByRole("button", { name: "Sync Queue" }).waitFor({ timeout: 20000 });
-    await page.getByRole("button", { name: "Checkpoints" }).waitFor({ timeout: 20000 });
+    await page.getByRole("button", { name: "Checkpoint locked" }).waitFor({ timeout: 20000 });
     await page.getByRole("button", { name: "Scanner" }).waitFor({ timeout: 20000 });
     await page.getByRole("button", { name: "History" }).waitFor({ timeout: 20000 });
     await page.getByRole("button", { name: "Logout" }).waitFor({ timeout: 20000 });
+  }
+
+  async function waitForPostLoginState() {
+    const displayCard = page.locator(".scanner-display-card");
+    const checkpointList = page.locator(".scanner-checkpoint-list");
+
+    await page.getByRole("button", { name: "Logout" }).waitFor({ timeout: 20000 });
+
+    const displayCardVisible = await displayCard.isVisible({ timeout: 3000 }).catch(() => false);
+    if (displayCardVisible) {
+      return "scanner";
+    }
+
+    const checkpointListVisible = await checkpointList.isVisible({ timeout: 12000 }).catch(() => false);
+    if (checkpointListVisible) {
+      return "checkpoint";
+    }
+
+    throw new Error("Scanner post-login state did not appear");
   }
 
   try {
@@ -118,8 +153,10 @@ async function runBrowserChecks() {
       await page.getByLabel("Email").fill(scannerEmail);
       await page.getByLabel("Password").fill(scannerPassword);
       await page.getByRole("button", { name: "Login", exact: true }).click();
-      await waitForScannerWorkspace();
-      return "Scanner workspace opened after login";
+      const nextState = await waitForPostLoginState();
+      return nextState === "checkpoint"
+        ? "Checkpoint selection opened after login"
+        : "Scanner workspace opened after login";
     });
 
     await runStep("scanner browser workspace essentials", async () => {

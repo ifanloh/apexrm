@@ -30,6 +30,22 @@ function getStoredValue(key: string, fallback: string) {
   return window.localStorage.getItem(key) ?? fallback;
 }
 
+function getCheckpointSessionKey(userId: string) {
+  return `arm:lockedCheckpoint:${userId}`;
+}
+
+function getLockedCheckpointForSession(userId: string) {
+  return window.sessionStorage.getItem(getCheckpointSessionKey(userId)) ?? "";
+}
+
+function setLockedCheckpointForSession(userId: string, checkpointId: string) {
+  window.sessionStorage.setItem(getCheckpointSessionKey(userId), checkpointId);
+}
+
+function clearLockedCheckpointForSession(userId: string) {
+  window.sessionStorage.removeItem(getCheckpointSessionKey(userId));
+}
+
 function createClientId() {
   const randomUuid = globalThis.crypto?.randomUUID;
   if (typeof randomUuid === "function") {
@@ -161,7 +177,7 @@ export default function App() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [crewId, setCrewId] = useState(() => getStoredValue("arm:crewId", "crew-01"));
   const [deviceId, setDeviceId] = useState(() => getStoredValue("arm:deviceId", createClientId()));
-  const [checkpointId, setCheckpointId] = useState("cp-10");
+  const [checkpointId, setCheckpointId] = useState("");
   const [bib, setBib] = useState("");
   const [isOnline, setIsOnline] = useState(window.navigator.onLine);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([...defaultCheckpoints]);
@@ -176,6 +192,7 @@ export default function App() {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [recentActivity, setRecentActivity] = useState<ScannerActivity[]>([]);
   const [screen, setScreen] = useState<ScannerScreen>("timing");
+  const [isCheckpointLocked, setIsCheckpointLocked] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCameraBusy, setIsCameraBusy] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -225,6 +242,7 @@ export default function App() {
     session?.access_token &&
       effectiveProfile &&
       ["crew", "panitia", "admin"].includes(effectiveProfile.role) &&
+      isCheckpointLocked &&
       checkpointId &&
       checkpoints.length > 0 &&
       !isBootstrapping
@@ -259,6 +277,8 @@ export default function App() {
   useEffect(() => {
     if (!session?.access_token) {
       setProfile(null);
+      setCheckpointId("");
+      setIsCheckpointLocked(false);
       return;
     }
 
@@ -284,26 +304,39 @@ export default function App() {
       const nextCheckpoints = remoteCheckpoints.length > 0 ? remoteCheckpoints : [...defaultCheckpoints];
       setCheckpoints(nextCheckpoints);
       setQueue(pendingScans);
-
-      if (nextCheckpoints.length > 0) {
-        setCheckpointId((currentValue) => {
-          if (currentValue && nextCheckpoints.some((checkpoint) => checkpoint.id === currentValue)) {
-            return currentValue;
-          }
-
-          return nextCheckpoints[1]?.id ?? nextCheckpoints[0].id;
-        });
-      }
+      setCheckpointId((currentValue) =>
+        currentValue && nextCheckpoints.some((checkpoint) => checkpoint.id === currentValue) ? currentValue : ""
+      );
       setIsBootstrapping(false);
     }
 
     bootstrap().catch(() => {
       setCheckpoints([...defaultCheckpoints]);
-      setCheckpointId("cp-10");
-      setStatusMessage("Metadata checkpoint dari API gagal dimuat. Scanner memakai checkpoint default.");
+      setCheckpointId("");
+      setStatusMessage("Metadata checkpoint dari API gagal dimuat. Login ulang lalu pilih checkpoint untuk shift ini.");
       setIsBootstrapping(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id || isBootstrapping || checkpoints.length === 0) {
+      return;
+    }
+
+    const lockedCheckpointId = getLockedCheckpointForSession(session.user.id);
+
+    if (lockedCheckpointId && checkpoints.some((checkpoint) => checkpoint.id === lockedCheckpointId)) {
+      setCheckpointId((currentValue) => (currentValue === lockedCheckpointId ? currentValue : lockedCheckpointId));
+      setIsCheckpointLocked(true);
+      setScreen((currentScreen) => (currentScreen === "checkpoint" ? "timing" : currentScreen));
+      return;
+    }
+
+    setCheckpointId("");
+    setIsCheckpointLocked(false);
+    setScreen("checkpoint");
+    setStatusMessage("Pilih checkpoint sekali setelah login. Untuk mengganti checkpoint, logout lalu login lagi.");
+  }, [checkpoints, isBootstrapping, session?.user?.id]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -579,6 +612,24 @@ export default function App() {
     await processScan(bib);
   }
 
+  function lockCheckpointSelection(nextCheckpointId: string) {
+    if (!session?.user?.id) {
+      return;
+    }
+
+    const nextCheckpoint = checkpoints.find((checkpoint) => checkpoint.id === nextCheckpointId) ?? null;
+    setLockedCheckpointForSession(session.user.id, nextCheckpointId);
+    setCheckpointId(nextCheckpointId);
+    setIsCheckpointLocked(true);
+    setScreen("timing");
+    setCameraDismissed(false);
+    setStatusMessage(
+      nextCheckpoint
+        ? `${formatCheckpointLabel(nextCheckpoint)} dikunci untuk shift ini. Logout lalu login ulang jika perlu ganti checkpoint.`
+        : "Checkpoint dikunci untuk shift ini. Logout lalu login ulang jika perlu ganti checkpoint."
+    );
+  }
+
   function appendBibDigit(digit: string) {
     setBib((current) => `${current}${digit}`);
   }
@@ -630,6 +681,25 @@ export default function App() {
     }
 
     setLoginError(null);
+  }
+
+  async function handleLogout() {
+    if (session?.user?.id) {
+      clearLockedCheckpointForSession(session.user.id);
+    }
+
+    setBib("");
+    setLastResponse(null);
+    setRecentActivity([]);
+    setCheckpointId("");
+    setIsCheckpointLocked(false);
+    setScreen("timing");
+    setIsCameraOpen(false);
+    setCameraDismissed(false);
+
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
   }
 
   if (!supabase) {
@@ -727,11 +797,7 @@ export default function App() {
               </button>
               <button
                 className="scanner-icon-button"
-                onClick={() => {
-                  if (supabase) {
-                    void supabase.auth.signOut();
-                  }
-                }}
+                onClick={() => void handleLogout()}
                 type="button"
               >
                 Logout
@@ -902,6 +968,9 @@ export default function App() {
           <section className="scanner-screen scanner-screen-checkpoint">
             <div className="panel-copy">
               <h2>Checkpoint list</h2>
+              <p className="scanner-checkpoint-help">
+                Pilih checkpoint sekali untuk shift scan ini. Setelah dipilih, checkpoint akan dikunci sampai logout.
+              </p>
             </div>
             <div className="scanner-checkpoint-list">
               {checkpoints.map((checkpoint) => {
@@ -911,8 +980,7 @@ export default function App() {
                     className={`scanner-checkpoint-row ${isSelected ? "selected" : ""}`}
                     key={checkpoint.id}
                     onClick={() => {
-                      setCheckpointId(checkpoint.id);
-                      setScreen("timing");
+                      lockCheckpointSelection(checkpoint.id);
                     }}
                     type="button"
                   >
@@ -982,17 +1050,25 @@ export default function App() {
 
       <nav className="scanner-bottom-nav" aria-label="Scanner quick actions">
         <button
-          className={`scanner-nav-button ${screen === "checkpoint" ? "active" : ""}`}
-          onClick={() => setScreen("checkpoint")}
+          className={`scanner-nav-button ${screen === "checkpoint" && !isCheckpointLocked ? "active" : ""}`}
+          disabled={isCheckpointLocked}
+          onClick={() => {
+            if (!isCheckpointLocked) {
+              setScreen("checkpoint");
+            }
+          }}
           type="button"
         >
-          Checkpoints
+          {isCheckpointLocked ? "Checkpoint locked" : "Checkpoints"}
         </button>
         <button
           className={`scanner-nav-button scanner-nav-button-primary ${screen === "timing" ? "active" : ""}`}
+          disabled={!isCheckpointLocked}
           onClick={() => {
-            setCameraDismissed(false);
-            setScreen("timing");
+            if (isCheckpointLocked) {
+              setCameraDismissed(false);
+              setScreen("timing");
+            }
           }}
           type="button"
         >
@@ -1000,7 +1076,12 @@ export default function App() {
         </button>
         <button
           className={`scanner-nav-button ${screen === "history" ? "active" : ""}`}
-          onClick={() => setScreen("history")}
+          disabled={!isCheckpointLocked}
+          onClick={() => {
+            if (isCheckpointLocked) {
+              setScreen("history");
+            }
+          }}
           type="button"
         >
           History
