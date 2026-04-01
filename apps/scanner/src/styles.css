@@ -402,6 +402,22 @@ select {
   background: #fbfcfa;
 }
 
+.scanner-scan-cta {
+  background: linear-gradient(180deg, #1df416 0%, #11d80a 100%);
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 10px 18px rgba(19, 225, 11, 0.18);
+  color: #102410;
+  font-size: 1rem;
+  font-weight: 900;
+  min-height: 52px;
+}
+
+.scanner-scan-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .scanner-recent-row,
 .scanner-history-row,
 .scanner-checkpoint-row {

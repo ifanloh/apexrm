@@ -787,6 +787,15 @@ export default function App() {
               )}
             </div>
 
+            <button
+              className="scanner-scan-cta"
+              disabled={!canScan || isBusy}
+              onClick={openCameraScanner}
+              type="button"
+            >
+              {isCameraOpen ? "Camera active" : "Scan QR"}
+            </button>
+
             {isCameraOpen ? (
               <div className="scanner-camera-sheet">
                 <div className="scanner-camera-head">
@@ -995,11 +1004,13 @@ export default function App() {
         </button>
         <button
           className={`scanner-nav-button scanner-nav-button-primary ${screen === "timing" ? "active" : ""}`}
-          disabled={!canScan || isBusy}
-          onClick={openCameraScanner}
+          onClick={() => {
+            setIsCameraOpen(false);
+            setScreen("timing");
+          }}
           type="button"
         >
-          Scan QR
+          Scanner
         </button>
         <button
           className={`scanner-nav-button ${screen === "history" ? "active" : ""}`}
