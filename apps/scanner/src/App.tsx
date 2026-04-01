@@ -25,6 +25,20 @@ import "./styles.css";
 const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
 const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Grand Trail des Templiers Demo";
 type ScannerScreen = "timing" | "checkpoint" | "history";
+type ScannerAlertTone = "warning" | "danger";
+type WakeLockState = "idle" | "active" | "unsupported" | "released";
+
+type BatteryManagerLike = {
+  level: number;
+  charging: boolean;
+  addEventListener: (type: "levelchange" | "chargingchange", listener: () => void) => void;
+  removeEventListener: (type: "levelchange" | "chargingchange", listener: () => void) => void;
+};
+
+type WakeLockSentinelLike = EventTarget & {
+  released: boolean;
+  release: () => Promise<void>;
+};
 
 function getStoredValue(key: string, fallback: string) {
   return window.localStorage.getItem(key) ?? fallback;
@@ -53,6 +67,29 @@ function createClientId() {
   }
 
   return `scanner-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function runHapticFeedback(type: "accepted" | "queued" | "duplicate" | "rejected") {
+  if (typeof navigator.vibrate !== "function") {
+    return;
+  }
+
+  if (type === "accepted") {
+    navigator.vibrate(70);
+    return;
+  }
+
+  if (type === "queued") {
+    navigator.vibrate([90, 45, 90]);
+    return;
+  }
+
+  if (type === "duplicate") {
+    navigator.vibrate([120, 70, 120]);
+    return;
+  }
+
+  navigator.vibrate(220);
 }
 
 function formatDateTime(value: string) {
@@ -198,10 +235,15 @@ export default function App() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraHint, setCameraHint] = useState("Arahkan QR ke area kamera.");
   const [cameraDismissed, setCameraDismissed] = useState(false);
+  const [batteryPercent, setBatteryPercent] = useState<number | null>(null);
+  const [isCharging, setIsCharging] = useState<boolean | null>(null);
+  const [wakeLockState, setWakeLockState] = useState<WakeLockState>("idle");
   const syncLockRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
   const cameraLockRef = useRef(false);
+  const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
 
   const selectedCheckpoint = useMemo(
     () => checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ?? null,
@@ -252,6 +294,44 @@ export default function App() {
   const queueCount = queue.length;
   const showSyncAction = queueCount > 0 || isSyncing;
   const syncActionLabel = isSyncing ? `Syncing ${queueCount || ""}`.trim() : !isOnline ? `Queued ${queueCount}` : `Sync ${queueCount}`;
+  const operationalAlert = useMemo(() => {
+    if (!isOnline) {
+      return {
+        tone: "danger" as const,
+        title: "Offline mode",
+        detail:
+          queueCount > 0
+            ? `${queueCount} scan sedang menunggu sinkronisasi ke server.`
+            : "Scan baru akan disimpan lokal sampai koneksi kembali."
+      };
+    }
+
+    if (queueCount >= 5) {
+      return {
+        tone: "warning" as const,
+        title: "Sync backlog",
+        detail: `${queueCount} scan masih ada di queue. Jalankan sinkronisasi sebelum antrean bertambah.`
+      };
+    }
+
+    if (batteryPercent !== null && isCharging === false && batteryPercent <= 20) {
+      return {
+        tone: "warning" as const,
+        title: "Battery low",
+        detail: `Baterai tinggal ${batteryPercent}%. Sambungkan daya agar shift scan tidak terputus.`
+      };
+    }
+
+    if (isCheckpointLocked && wakeLockState !== "active") {
+      return {
+        tone: "warning" as const,
+        title: "Screen stay-awake off",
+        detail: "Pastikan layar tidak sleep selama shift scan berjalan."
+      };
+    }
+
+    return null;
+  }, [batteryPercent, isCharging, isCheckpointLocked, isOnline, queueCount, wakeLockState]);
 
   useEffect(() => {
     if (!supabase) {
@@ -361,6 +441,46 @@ export default function App() {
   }, [session]);
 
   useEffect(() => {
+    const batteryApi = (navigator as Navigator & { getBattery?: () => Promise<BatteryManagerLike> }).getBattery;
+
+    if (typeof batteryApi !== "function") {
+      return;
+    }
+
+    let isDisposed = false;
+    let batteryManager: BatteryManagerLike | null = null;
+
+    const handleBatteryUpdate = () => {
+      if (!batteryManager || isDisposed) {
+        return;
+      }
+
+      setBatteryPercent(Math.round(batteryManager.level * 100));
+      setIsCharging(batteryManager.charging);
+    };
+
+    void batteryApi.call(navigator).then((battery) => {
+      if (isDisposed) {
+        return;
+      }
+
+      batteryManager = battery;
+      handleBatteryUpdate();
+      battery.addEventListener("levelchange", handleBatteryUpdate);
+      battery.addEventListener("chargingchange", handleBatteryUpdate);
+    });
+
+    return () => {
+      isDisposed = true;
+
+      if (batteryManager) {
+        batteryManager.removeEventListener("levelchange", handleBatteryUpdate);
+        batteryManager.removeEventListener("chargingchange", handleBatteryUpdate);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (screen !== "timing") {
       setCameraDismissed(false);
       setIsCameraOpen(false);
@@ -373,6 +493,79 @@ export default function App() {
       setIsCameraOpen(true);
     }
   }, [cameraDismissed, canScan, isCameraOpen, screen]);
+
+  useEffect(() => {
+    if (screen !== "timing" || !canScan || isCameraOpen) {
+      return;
+    }
+
+    const focusTimer = window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 120);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+    };
+  }, [canScan, isCameraOpen, lastResponse, screen]);
+
+  useEffect(() => {
+    if (!session?.access_token || !isCheckpointLocked) {
+      setWakeLockState("idle");
+      void wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+      return;
+    }
+
+    const wakeLockApi = (navigator as Navigator & {
+      wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinelLike> };
+    }).wakeLock;
+
+    if (!wakeLockApi?.request) {
+      setWakeLockState("unsupported");
+      return;
+    }
+
+    let isDisposed = false;
+
+    const requestWakeLock = async () => {
+      try {
+        const lock = await wakeLockApi.request("screen");
+
+        if (isDisposed) {
+          await lock.release().catch(() => {});
+          return;
+        }
+
+        wakeLockRef.current = lock;
+        setWakeLockState("active");
+        lock.addEventListener("release", () => {
+          if (!isDisposed) {
+            setWakeLockState("released");
+          }
+        });
+      } catch {
+        if (!isDisposed) {
+          setWakeLockState("released");
+        }
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && (!wakeLockRef.current || wakeLockRef.current.released)) {
+        void requestWakeLock();
+      }
+    };
+
+    void requestWakeLock();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isDisposed = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      void wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+    };
+  }, [isCheckpointLocked, session?.access_token]);
 
   useEffect(() => {
     if (!isCameraOpen || !videoRef.current) {
@@ -545,7 +738,7 @@ export default function App() {
     }
 
     if (!isValidBib(normalizedBib)) {
-      navigator.vibrate?.(240);
+      runHapticFeedback("rejected");
       setStatusMessage("Format QR/BIB tidak valid.");
       addActivityEntry(
         createActivityEntry(normalizedBib || rawValue.trim() || "UNKNOWN", activeCheckpointLabel, "rejected", "Invalid BIB format")
@@ -554,7 +747,7 @@ export default function App() {
     }
 
     if (await hasLocalDuplicate(checkpointId, normalizedBib)) {
-      navigator.vibrate?.([100, 80, 100]);
+      runHapticFeedback("duplicate");
       setStatusMessage(`BIB ${normalizedBib} sudah pernah discan di device ini untuk checkpoint aktif.`);
       addActivityEntry(
         createActivityEntry(normalizedBib, activeCheckpointLabel, "duplicate", "Already scanned on this device")
@@ -582,7 +775,7 @@ export default function App() {
       await refreshQueue();
 
       if (!isOnline) {
-        navigator.vibrate?.(160);
+        runHapticFeedback("queued");
         setStatusMessage(`BIB ${normalizedBib} disimpan offline. Antrean lokal siap disinkronkan nanti.`);
         addActivityEntry(
           createActivityEntry(normalizedBib, activeCheckpointLabel, "queued", "Saved to offline queue")
@@ -590,7 +783,7 @@ export default function App() {
         return;
       }
 
-      navigator.vibrate?.(70);
+      runHapticFeedback("accepted");
       setStatusMessage(
         `BIB ${normalizedBib} diterima device di ${selectedCheckpoint?.code ?? checkpointId}. Sinkronisasi ke server berjalan di background.`
       );
@@ -599,6 +792,7 @@ export default function App() {
       );
       void syncQueue();
     } catch {
+      runHapticFeedback("rejected");
       setStatusMessage(`BIB ${normalizedBib} gagal diproses di device. Coba ulangi sekali lagi.`);
       addActivityEntry(
         createActivityEntry(normalizedBib, activeCheckpointLabel, "rejected", "Device processing failed")
@@ -817,11 +1011,18 @@ export default function App() {
 
         {screen === "timing" ? (
           <section className="scanner-screen scanner-screen-timing">
+            {operationalAlert ? (
+              <div className={`scanner-alert-banner ${operationalAlert.tone}`}>
+                <strong>{operationalAlert.title}</strong>
+                <span>{operationalAlert.detail}</span>
+              </div>
+            ) : null}
             <div className="scanner-display-card">
               <p className="scanner-kicker">Input BIB Manual</p>
               <strong className="scanner-display-value">{bib || "0"}</strong>
               <label className="scanner-inline-field">
                 <input
+                  ref={inputRef}
                   disabled={!canScan || isBusy}
                   placeholder="Tap keypad atau ketik BIB"
                   value={bib}

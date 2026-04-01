@@ -259,6 +259,36 @@ select {
   gap: 10px;
 }
 
+.scanner-alert-banner {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 16, 20, 0.14);
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.scanner-alert-banner strong {
+  font-size: 0.92rem;
+}
+
+.scanner-alert-banner span {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.scanner-alert-banner.warning {
+  background: rgba(226, 184, 77, 0.14);
+  border-color: rgba(226, 184, 77, 0.3);
+  color: #8f6712;
+}
+
+.scanner-alert-banner.danger {
+  background: rgba(255, 16, 20, 0.08);
+  border-color: rgba(255, 16, 20, 0.22);
+  color: var(--brand-strong);
+}
+
 .scanner-camera-sheet {
   background: var(--surface);
   border: 1px solid var(--stroke);
