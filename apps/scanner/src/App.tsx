@@ -175,6 +175,9 @@ export default function App() {
       !isBootstrapping
   );
   const apiHost = getApiHost();
+  const recentPreview = recentActivity.slice(0, 3);
+  const queueCount = queue.length;
+  const totalHandledCount = recentActivity.length + queueCount;
 
   useEffect(() => {
     if (!supabase) {
@@ -570,24 +573,6 @@ export default function App() {
               </div>
             )}
             <div className="scanner-app-actions">
-              {screen === "timing" ? (
-                <>
-                  <button
-                    className="scanner-icon-button"
-                    onClick={() => setScreen("checkpoint")}
-                    type="button"
-                  >
-                    Checkpoints
-                  </button>
-                  <button
-                    className="scanner-icon-button"
-                    onClick={() => setScreen("history")}
-                    type="button"
-                  >
-                    History
-                  </button>
-                </>
-              ) : null}
               <button
                 className="scanner-icon-button"
                 disabled={isSyncing}
@@ -615,10 +600,25 @@ export default function App() {
             <h1>{DEMO_EVENT_LABEL}</h1>
             <p>{selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Pilih checkpoint"}</p>
           </div>
+
+          <div className="scanner-station-strip">
+            <article className="scanner-station-chip">
+              <span className="scanner-station-label">Checkpoint</span>
+              <strong>{selectedCheckpoint?.code ?? checkpointId}</strong>
+            </article>
+            <article className="scanner-station-chip">
+              <span className="scanner-station-label">Crew</span>
+              <strong>{effectiveProfile?.crewCode ?? crewId}</strong>
+            </article>
+            <article className="scanner-station-chip">
+              <span className="scanner-station-label">Queue</span>
+              <strong>{queueCount}</strong>
+            </article>
+          </div>
         </header>
 
         {screen === "timing" ? (
-          <section className="scanner-screen">
+          <section className="scanner-screen scanner-screen-timing">
             <div className="scanner-mode-switch">
               <button className="active" type="button">
                 Timing
@@ -630,10 +630,15 @@ export default function App() {
 
             <div className="scanner-display-card">
               <div className="scanner-display-head">
-                <span>
-                  {queue.length}/{Math.max(queue.length + recentActivity.length, 1)}
+                <div className="scanner-display-stat">
+                  <span className="scanner-display-stat-label">Handled</span>
+                  <strong>
+                    {totalHandledCount}/{Math.max(totalHandledCount, 1)}
+                  </strong>
+                </div>
+                <span className={`scanner-display-badge ${canScan ? "ready" : "locked"}`}>
+                  {canScan ? "Ready" : "Locked"}
                 </span>
-                <span>{canScan ? "Ready" : "Locked"}</span>
               </div>
               <p className="scanner-kicker">Input BIB Manual</p>
               <strong className="scanner-display-value">{bib || "0"}</strong>
@@ -657,29 +662,26 @@ export default function App() {
                 </article>
               ) : (
                 <article className="scanner-result-card neutral">
-                  <strong>Belum ada hasil scan</strong>
-                  <span>Scan terakhir yang diterima atau duplicate akan tampil di sini.</span>
+                  <strong>Scanner siap</strong>
+                  <span>{statusMessage}</span>
                 </article>
               )}
             </div>
 
             <div className="scanner-recent-list">
-              {recentActivity.slice(0, 3).map((entry) => (
+              {recentPreview.map((entry) => (
                 <article className={`scanner-recent-row ${entry.status}`} key={entry.id}>
                   <span className="scanner-recent-dot" />
-                  <strong>{entry.bib}</strong>
+                  <div className="scanner-recent-copy">
+                    <strong>{entry.bib}</strong>
+                    <span>{entry.checkpointLabel}</span>
+                  </div>
                   <time>{formatDateTime(entry.time)}</time>
                   <span className="scanner-recent-mark">
                     {entry.status === "accepted" ? "OK" : entry.status === "duplicate" ? "DUP" : entry.status === "queued" ? "Q" : "ERR"}
                   </span>
                 </article>
               ))}
-              {recentActivity.length === 0 ? (
-                <article className="scanner-recent-row empty">
-                  <strong>Belum ada activity</strong>
-                  <span>{statusMessage}</span>
-                </article>
-              ) : null}
             </div>
 
             <form className="scanner-hidden-submit" onSubmit={handleSubmit}>
@@ -720,11 +722,11 @@ export default function App() {
             </div>
 
             <div className="scanner-utility-bar">
+              <button className="scanner-utility-chip" onClick={() => setScreen("checkpoint")} type="button">
+                Checkpoints
+              </button>
               <button className="scanner-utility-chip" disabled={isBusy || !bib} onClick={removeLastBibCharacter} type="button">
                 Delete last
-              </button>
-              <button className="scanner-utility-chip" onClick={() => setScreen("checkpoint")} type="button">
-                Change checkpoint
               </button>
               <div className="scanner-utility-chip quiet">
                 Crew {effectiveProfile?.displayName ?? effectiveProfile?.crewCode ?? crewId}
@@ -734,7 +736,7 @@ export default function App() {
         ) : null}
 
         {screen === "checkpoint" ? (
-          <section className="scanner-screen">
+          <section className="scanner-screen scanner-screen-checkpoint">
             <div className="panel-copy">
               <p className="scanner-kicker">Select checkpoint</p>
               <h2>Checkpoint list</h2>
@@ -767,7 +769,7 @@ export default function App() {
         ) : null}
 
         {screen === "history" ? (
-          <section className="scanner-screen">
+          <section className="scanner-screen scanner-screen-history">
             <div className="panel-copy">
               <p className="scanner-kicker">Recent Scanner Activity</p>
               <h2>History & Queue</h2>

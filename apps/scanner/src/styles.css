@@ -3,11 +3,11 @@
 :root {
   color-scheme: light;
   font-family: "Red Hat Display", sans-serif;
-  background: linear-gradient(180deg, #f5f7f2 0%, #eef4eb 100%);
+  background: linear-gradient(180deg, #edf7e6 0%, #f7faf5 100%);
   color: #1b261d;
   --app-bg: #f7faf5;
   --surface: #ffffff;
-  --surface-soft: #f1f7ec;
+  --surface-soft: #eef8e8;
   --surface-muted: #eef0ee;
   --stroke: rgba(37, 54, 39, 0.08);
   --text-soft: #647265;
@@ -17,7 +17,7 @@
   --ok: #15c213;
   --danger: #ff4052;
   --chip: #dff2d9;
-  --shadow: 0 10px 26px rgba(31, 44, 32, 0.08);
+  --shadow: 0 10px 26px rgba(31, 44, 32, 0.06);
 }
 
 * {
@@ -25,6 +25,7 @@
 }
 
 body {
+  background: linear-gradient(180deg, #edf7e6 0%, #f7faf5 100%);
   margin: 0;
   min-height: 100vh;
 }
@@ -43,14 +44,12 @@ button {
   margin: 0 auto;
   max-width: 480px;
   min-height: 100vh;
-  padding: 12px 12px 18px;
+  padding: 0;
 }
 
 .scanner-app {
   background: var(--app-bg);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 28px;
-  box-shadow: var(--shadow);
+  min-height: 100vh;
   overflow: hidden;
 }
 
@@ -60,10 +59,10 @@ button {
 }
 
 .scanner-app-header {
-  border-bottom: 1px solid rgba(16, 36, 18, 0.08);
+  border-bottom: 1px solid rgba(16, 36, 18, 0.06);
   display: grid;
   gap: 12px;
-  padding: 14px 14px 12px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 14px;
 }
 
 .scanner-app-header.subscreen {
@@ -159,27 +158,60 @@ button {
 
 .scanner-app-title {
   display: grid;
-  gap: 2px;
+  gap: 4px;
 }
 
 .scanner-app-title h1 {
-  font-size: 1.32rem;
+  font-size: 1.24rem;
   font-weight: 900;
   line-height: 1.05;
 }
 
 .scanner-app-title p:last-child {
   color: #29382c;
-  font-size: 1rem;
+  font-size: 1.02rem;
   font-weight: 800;
   margin: 0;
+}
+
+.scanner-station-strip {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.scanner-station-chip {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(37, 54, 39, 0.08);
+  border-radius: 999px;
+  display: grid;
+  gap: 1px;
+  min-height: 0;
+  padding: 8px 10px;
+}
+
+.scanner-station-label {
+  color: var(--text-muted);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scanner-station-chip strong {
+  font-size: 0.88rem;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .scanner-screen {
   background: var(--app-bg);
   display: grid;
-  gap: 14px;
-  padding: 14px;
+  gap: 12px;
+  padding: 14px 16px 18px;
 }
 
 .scanner-mode-switch {
@@ -217,14 +249,14 @@ button {
   background: var(--surface);
   border: 1px solid var(--stroke);
   border-radius: 18px;
-  box-shadow: 0 6px 16px rgba(31, 44, 32, 0.08);
+  box-shadow: 0 6px 16px rgba(31, 44, 32, 0.06);
 }
 
 .scanner-display-card,
 .scanner-panel {
   display: grid;
   gap: 12px;
-  padding: 14px;
+  padding: 16px;
 }
 
 .scanner-display-head {
@@ -234,9 +266,42 @@ button {
   justify-content: space-between;
 }
 
+.scanner-display-stat {
+  display: grid;
+  gap: 2px;
+}
+
+.scanner-display-stat-label {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scanner-display-badge {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-height: 30px;
+  padding: 6px 10px;
+}
+
+.scanner-display-badge.ready {
+  background: rgba(19, 225, 11, 0.12);
+  color: #148712;
+}
+
+.scanner-display-badge.locked {
+  background: rgba(255, 64, 82, 0.1);
+  color: #bb2938;
+}
+
 .scanner-display-value {
   display: block;
-  font-size: clamp(2.5rem, 10vw, 4rem);
+  font-size: clamp(2.8rem, 12vw, 4.2rem);
   font-weight: 900;
   letter-spacing: -0.05em;
   line-height: 1;
@@ -277,7 +342,7 @@ select {
 .scanner-result-card {
   display: grid;
   gap: 4px;
-  padding: 14px;
+  padding: 12px 14px;
 }
 
 .scanner-result-card strong {
@@ -310,12 +375,22 @@ select {
 .scanner-checkpoint-row {
   gap: 10px;
   justify-content: space-between;
-  padding: 12px 14px;
+  padding: 11px 13px;
 }
 
 .scanner-recent-row strong,
 .scanner-history-row strong {
   font-size: 1rem;
+}
+
+.scanner-recent-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+}
+
+.scanner-recent-copy span {
+  font-size: 0.8rem;
 }
 
 .scanner-recent-row time,
@@ -368,7 +443,7 @@ select {
   gap: 14px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   justify-items: center;
-  padding: 4px 6px 2px;
+  padding: 2px 2px 0;
 }
 
 .scanner-key {
@@ -376,11 +451,12 @@ select {
   border: 0;
   border-radius: 999px;
   display: inline-flex;
-  font-size: 1.24rem;
+  font-size: 1.22rem;
   font-weight: 800;
-  height: 72px;
+  box-shadow: 0 10px 18px rgba(31, 44, 32, 0.08);
+  height: 78px;
   justify-content: center;
-  width: 72px;
+  width: 78px;
 }
 
 .scanner-key-digit {
@@ -420,6 +496,7 @@ select {
 .scanner-checkpoint-row.selected {
   background: var(--brand);
   border-color: rgba(15, 191, 8, 0.2);
+  box-shadow: 0 12px 20px rgba(19, 225, 11, 0.18);
 }
 
 .scanner-checkpoint-order {
@@ -496,32 +573,13 @@ select {
 }
 
 .runtime-footer {
-  color: var(--text-muted);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 0.74rem;
-  gap: 10px;
-  justify-content: center;
-  padding: 10px 4px 0;
+  display: none;
 }
 
 @media (max-width: 520px) {
-  .scanner-shell {
-    padding: 0;
-  }
-
-  .scanner-app {
-    border-radius: 0;
-    min-height: 100vh;
-  }
-
-  .scanner-app-header {
-    border-radius: 0;
-  }
-
   .scanner-key {
-    height: 68px;
-    width: 68px;
+    height: 74px;
+    width: 74px;
   }
 
   .scanner-app-actions {
@@ -533,5 +591,9 @@ select {
     font-size: 0.8rem;
     min-height: 36px;
     padding: 7px 10px;
+  }
+
+  .scanner-station-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
