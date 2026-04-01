@@ -23,7 +23,9 @@
     "start": "node apps/api/dist/server.js",
     "dev:api": "npm --workspace @arm/api run dev",
     "dev:scanner": "npm --workspace @arm/scanner run dev",
-    "dev:dashboard": "npm --workspace @arm/dashboard run dev"
+    "dev:dashboard": "npm --workspace @arm/dashboard run dev",
+    "scanner:android:apk": "npm run android:apk --workspace @arm/scanner",
+    "scanner:android:open": "npm run android:open --workspace @arm/scanner"
   },
   "devDependencies": {
     "playwright": "^1.58.2"

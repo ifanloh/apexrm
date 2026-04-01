@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -p ../../packages/contracts/tsconfig.json && tsc -p tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "cap:sync": "npm run build && npx cap sync",
+    "cap:sync": "npm run build && npx cap sync android",
     "cap:android": "npm run build && npx cap sync android",
     "cap:ios": "npm run build && npx cap sync ios",
     "android:apk": "npm run cap:android && cd android && gradlew.bat assembleDebug",
