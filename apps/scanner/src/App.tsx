@@ -180,6 +180,7 @@ export default function App() {
   const [isCameraBusy, setIsCameraBusy] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraHint, setCameraHint] = useState("Arahkan QR ke area kamera.");
+  const [cameraDismissed, setCameraDismissed] = useState(false);
   const syncLockRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
@@ -323,6 +324,20 @@ export default function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, [session]);
+
+  useEffect(() => {
+    if (screen !== "timing") {
+      setCameraDismissed(false);
+      setIsCameraOpen(false);
+      return;
+    }
+
+    if (canScan && !isCameraOpen && !cameraDismissed) {
+      setCameraError(null);
+      setCameraHint("Arahkan QR ke area kamera.");
+      setIsCameraOpen(true);
+    }
+  }, [cameraDismissed, canScan, isCameraOpen, screen]);
 
   useEffect(() => {
     if (!isCameraOpen || !videoRef.current) {
@@ -585,12 +600,14 @@ export default function App() {
   }
 
   function openCameraScanner() {
+    setCameraDismissed(false);
     setCameraError(null);
     setCameraHint("Arahkan QR ke area kamera.");
     setIsCameraOpen(true);
   }
 
   function closeCameraScanner() {
+    setCameraDismissed(true);
     setIsCameraOpen(false);
   }
 
@@ -753,14 +770,16 @@ export default function App() {
               </div>
             ) : null}
 
-            <button
-              className="scanner-scan-cta"
-              disabled={!canScan || isBusy}
-              onClick={openCameraScanner}
-              type="button"
-            >
-              {isCameraOpen ? "Camera active" : "Scan QR"}
-            </button>
+            {!isCameraOpen ? (
+              <button
+                className="scanner-scan-cta"
+                disabled={!canScan || isBusy}
+                onClick={openCameraScanner}
+                type="button"
+              >
+                Scan QR
+              </button>
+            ) : null}
 
             {isCameraOpen ? (
               <div className="scanner-camera-sheet">
@@ -972,7 +991,7 @@ export default function App() {
         <button
           className={`scanner-nav-button scanner-nav-button-primary ${screen === "timing" ? "active" : ""}`}
           onClick={() => {
-            setIsCameraOpen(false);
+            setCameraDismissed(false);
             setScreen("timing");
           }}
           type="button"

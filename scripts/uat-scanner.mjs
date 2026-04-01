@@ -103,24 +103,27 @@ async function runBrowserChecks() {
 
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 
+  async function waitForScannerWorkspace() {
+    await page.getByText("Input BIB Manual").waitFor({ timeout: 20000 });
+    await page.getByRole("button", { name: "Sync Queue" }).waitFor({ timeout: 20000 });
+    await page.getByRole("button", { name: "Checkpoints" }).waitFor({ timeout: 20000 });
+    await page.getByRole("button", { name: "Scanner" }).waitFor({ timeout: 20000 });
+    await page.getByRole("button", { name: "History" }).waitFor({ timeout: 20000 });
+    await page.getByRole("button", { name: "Logout" }).waitFor({ timeout: 20000 });
+  }
+
   try {
     await runStep("scanner browser login flow", async () => {
       await page.goto(scannerUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
       await page.getByLabel("Email").fill(scannerEmail);
       await page.getByLabel("Password").fill(scannerPassword);
       await page.getByRole("button", { name: "Login", exact: true }).click();
-      await page.getByText("Race Control Scanner").waitFor({ timeout: 15000 });
-      await page.getByText("Input BIB Manual").waitFor();
-      await page.getByRole("button", { name: "Sync Queue" }).waitFor();
+      await waitForScannerWorkspace();
       return "Scanner workspace opened after login";
     });
 
     await runStep("scanner browser workspace essentials", async () => {
-      await page.getByText("Race Control Scanner").waitFor();
-      await page.getByText("Input BIB Manual").waitFor();
-      await page.getByRole("button", { name: "Checkpoints" }).waitFor();
-      await page.getByRole("button", { name: "History" }).waitFor();
-      await page.getByRole("button", { name: "Logout" }).waitFor();
+      await waitForScannerWorkspace();
       return "Scanner essentials are visible";
     });
   } finally {
