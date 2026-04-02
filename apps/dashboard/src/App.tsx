@@ -1115,6 +1115,7 @@ export default function App() {
   const [favoritesPage, setFavoritesPage] = useState(1);
   const [favoritesRowsPerPage, setFavoritesRowsPerPage] = useState(10);
   const [selectedRaceSlug, setSelectedRaceSlug] = useState<string>(EDITION_HOME_VALUE);
+  const [selectedPublicEventId, setSelectedPublicEventId] = useState<string | null>(null);
   const [raceDetailView, setRaceDetailView] = useState<RaceDetailView>("race-page");
   const [organizerWorkspaceView, setOrganizerWorkspaceView] = useState<OrganizerWorkspaceView>("spectator");
   const [organizerWorkspace, setOrganizerWorkspace] = useState(() => loadOrganizerWorkspace());
@@ -1141,34 +1142,43 @@ export default function App() {
     () => organizerWorkspace.events.filter((event) => Boolean(event.archivedAt)),
     [organizerWorkspace.events]
   );
+  const publicVisibleEvents = useMemo(
+    () => organizerVisibleEvents.filter((event) => deriveOrganizerPublicEventStatus(event) !== "hidden"),
+    [organizerVisibleEvents]
+  );
   const organizerActiveEvent =
     organizerVisibleEvents.find((event) => event.id === organizerWorkspace.activeEventId) ?? organizerVisibleEvents[0] ?? null;
+  const spectatorEvent = publicVisibleEvents.find((event) => event.id === selectedPublicEventId) ?? null;
   const organizerSetup = organizerActiveEvent?.setup ?? createDefaultOrganizerSetup();
+  const spectatorSetup = spectatorEvent?.setup ?? createDefaultOrganizerSetup();
   const apiHost = getApiHost();
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
+  const isOrganizerHomeOpen = organizerSessionActive && organizerWorkspaceView === "home";
+  const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
+  const activeFestivalSetup = isOrganizerHomeOpen || isOrganizerConsoleOpen ? organizerSetup : spectatorSetup;
   const festivalData = useMemo(() => {
-    const races = organizerSetup.races.map((raceDraft) => ({ ...raceDraft }) as DemoRaceCard);
+    const races = activeFestivalSetup.races.map((raceDraft) => ({ ...raceDraft }) as DemoRaceCard);
 
     return {
       ...EMPTY_FESTIVAL,
-      brandName: organizerSetup.branding.brandName || EMPTY_FESTIVAL.brandName,
+      brandName: activeFestivalSetup.branding.brandName || EMPTY_FESTIVAL.brandName,
       brandStack: [
-        organizerSetup.branding.brandStackTop || EMPTY_FESTIVAL.brandStack[0],
-        organizerSetup.branding.brandStackBottom || EMPTY_FESTIVAL.brandStack[1]
+        activeFestivalSetup.branding.brandStackTop || EMPTY_FESTIVAL.brandStack[0],
+        activeFestivalSetup.branding.brandStackBottom || EMPTY_FESTIVAL.brandStack[1]
       ],
-      editionLabel: organizerSetup.branding.editionLabel || EMPTY_FESTIVAL.editionLabel,
-      dateRibbon: organizerSetup.branding.dateRibbon || EMPTY_FESTIVAL.dateRibbon,
-      locationRibbon: organizerSetup.branding.locationRibbon || EMPTY_FESTIVAL.locationRibbon,
-      homeTitle: organizerSetup.branding.homeTitle || EMPTY_FESTIVAL.homeTitle,
-      homeSubtitle: organizerSetup.branding.homeSubtitle || EMPTY_FESTIVAL.homeSubtitle,
-      bannerTagline: organizerSetup.branding.bannerTagline || EMPTY_FESTIVAL.bannerTagline,
+      editionLabel: activeFestivalSetup.branding.editionLabel || EMPTY_FESTIVAL.editionLabel,
+      dateRibbon: activeFestivalSetup.branding.dateRibbon || EMPTY_FESTIVAL.dateRibbon,
+      locationRibbon: activeFestivalSetup.branding.locationRibbon || EMPTY_FESTIVAL.locationRibbon,
+      homeTitle: activeFestivalSetup.branding.homeTitle || EMPTY_FESTIVAL.homeTitle,
+      homeSubtitle: activeFestivalSetup.branding.homeSubtitle || EMPTY_FESTIVAL.homeSubtitle,
+      bannerTagline: activeFestivalSetup.branding.bannerTagline || EMPTY_FESTIVAL.bannerTagline,
       races
     };
-  }, [organizerSetup]);
+  }, [activeFestivalSetup]);
   const spectatorRaces = useMemo(
-    () => festivalData.races.filter((race) => organizerSetup.races.find((draft) => draft.slug === race.slug)?.isPublished !== false),
-    [festivalData.races, organizerSetup.races]
+    () => festivalData.races.filter((race) => spectatorSetup.races.find((draft) => draft.slug === race.slug)?.isPublished !== false),
+    [festivalData.races, spectatorSetup.races]
   );
   const visibleRaces = spectatorRaces;
   const fallbackVisibleRace = visibleRaces[0] ?? festivalData.races[0] ?? EMPTY_RACE_CARD;
@@ -1179,7 +1189,7 @@ export default function App() {
     visibleRaces.find((race) => race.slug === selectedRaceSlug) ??
     (selectedRaceSlug === EDITION_HOME_VALUE ? featuredRace : festivalData.races.find((race) => race.slug === selectedRaceSlug)) ??
     featuredRace;
-  const selectedOrganizerRace = organizerSetup.races.find((race) => race.slug === selectedRaceCard.slug) ?? null;
+  const selectedOrganizerRace = activeFestivalSetup.races.find((race) => race.slug === selectedRaceCard.slug) ?? null;
   const activeRaceStateTone = getOrganizerRaceStateTone(selectedRaceCard.editionLabel);
   const isActiveRaceLive = activeRaceStateTone === "live";
   const isActiveRaceFinished = activeRaceStateTone === "finished";
@@ -1193,9 +1203,8 @@ export default function App() {
 
     return buildOrganizerCourseFromRaceDraft(selectedOrganizerRace);
   }, [selectedOrganizerRace, selectedRaceCard]);
-  const showEditionHome = isEditionHome && raceDetailView === "race-page";
-  const isOrganizerHomeOpen = organizerSessionActive && organizerWorkspaceView === "home";
-  const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
+  const showPlatformHome = !isOrganizerHomeOpen && !isOrganizerConsoleOpen && !spectatorEvent;
+  const showEditionHome = !showPlatformHome && isEditionHome && raceDetailView === "race-page";
   const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && !isOrganizerHomeOpen && raceDetailView === "race-page" && !isActiveRaceUpcoming;
   const raceMenuLabel =
     !isEditionHome && !isOrganizerHomeOpen && !isOrganizerConsoleOpen ? selectedRaceCard.title : "Home";
@@ -1208,11 +1217,15 @@ export default function App() {
     () => calculateParticipantImportImpact(organizerSelectedRace?.participants ?? [], organizerImportedParticipants),
     [organizerImportedParticipants, organizerSelectedRace]
   );
+  const spectatorSimulationSnapshots = useMemo(
+    () => new Map(spectatorSetup.races.map((race) => [race.slug, buildOrganizerRaceSimulationSnapshot(race)])),
+    [spectatorSetup.races]
+  );
   const organizerSimulationSnapshots = useMemo(
     () => new Map(organizerSetup.races.map((race) => [race.slug, buildOrganizerRaceSimulationSnapshot(race)])),
     [organizerSetup.races]
   );
-  const selectedRaceSimulationSnapshot = organizerSimulationSnapshots.get(selectedRaceCard.slug) ?? null;
+  const selectedRaceSimulationSnapshot = spectatorSimulationSnapshots.get(selectedRaceCard.slug) ?? null;
   const organizerSelectedRaceSimulationSnapshot = organizerSelectedRace
     ? organizerSimulationSnapshots.get(organizerSelectedRace.slug) ?? null
     : null;
@@ -1301,6 +1314,14 @@ export default function App() {
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
   }, [isOrganizerConsoleOpen, isOrganizerHomeOpen, selectedRaceSlug, visibleRaces]);
+
+  useEffect(() => {
+    if (selectedPublicEventId && !publicVisibleEvents.some((event) => event.id === selectedPublicEventId)) {
+      setSelectedPublicEventId(null);
+      setSelectedRaceSlug(EDITION_HOME_VALUE);
+      setRaceDetailView("race-page");
+    }
+  }, [publicVisibleEvents, selectedPublicEventId]);
 
   useEffect(() => {
     setIsTopbarMenuOpen(false);
@@ -2626,8 +2647,8 @@ export default function App() {
     : "0-0 of 0";
   const raceHomeCards = useMemo(() => {
     return visibleRaces.map((race) => {
-      const raceDraft = organizerSetup.races.find((item) => item.slug === race.slug) ?? null;
-      const raceSimulationSnapshot = organizerSimulationSnapshots.get(race.slug);
+      const raceDraft = spectatorSetup.races.find((item) => item.slug === race.slug) ?? null;
+      const raceSimulationSnapshot = spectatorSimulationSnapshots.get(race.slug);
       const hasSimulatedEntries = (raceSimulationSnapshot?.overallLeaderboard.topEntries.length ?? 0) > 0;
       const homeEntries = hasSimulatedEntries
         ? raceSimulationSnapshot?.overallLeaderboard.topEntries ?? []
@@ -2672,7 +2693,16 @@ export default function App() {
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
-  }, [dnfDnsCount, finisherCount, liveSourceRace?.slug, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, selectedRaceCard.slug, visibleRaces]);
+  }, [
+    dnfDnsCount,
+    finisherCount,
+    liveSourceRace?.slug,
+    overallLeaderboard.topEntries,
+    selectedRaceCard.slug,
+    spectatorSetup.races,
+    spectatorSimulationSnapshots,
+    visibleRaces
+  ]);
   const eventTitle = isEditionHome ? festivalData.brandName : selectedRaceCard.title;
   const liveStatusLabel =
     liveStatus === "live"
@@ -2717,6 +2747,44 @@ export default function App() {
       : organizerHomeFilter === "archived"
         ? organizerArchivedEvents
         : organizerWorkspace.events;
+  const publicEventCards = useMemo(
+    () =>
+      publicVisibleEvents.map((event) => {
+        const publishedRaces = event.setup.races.filter((race) => race.isPublished);
+        const liveCount = publishedRaces.filter((race) => isOrganizerRaceLiveState(race.editionLabel)).length;
+        const upcomingCount = publishedRaces.filter((race) => isOrganizerRaceUpcomingState(race.editionLabel)).length;
+        const finishedCount = publishedRaces.filter((race) => getOrganizerRaceStateTone(race.editionLabel) === "finished").length;
+        const publicStatus = deriveOrganizerPublicEventStatus(event);
+
+        return {
+          id: event.id,
+          title: event.title,
+          organizerName: event.setup.branding.organizerName || "Trailnesia Organizer",
+          editionLabel: event.setup.branding.editionLabel,
+          dateRibbon: event.setup.branding.dateRibbon,
+          locationRibbon: event.setup.branding.locationRibbon,
+          homeSubtitle: event.setup.branding.homeSubtitle,
+          bannerTagline: event.setup.branding.bannerTagline,
+          eventLogoDataUrl: event.setup.branding.eventLogoDataUrl,
+          heroBackgroundImageDataUrl: event.setup.branding.heroBackgroundImageDataUrl,
+          publishedRaceCount: publishedRaces.length,
+          liveCount,
+          upcomingCount,
+          finishedCount,
+          publicStatus,
+          primaryRaceSlug: publishedRaces.find((race) => isOrganizerRaceLiveState(race.editionLabel))?.slug ?? publishedRaces[0]?.slug ?? null
+        };
+      }),
+    [publicVisibleEvents]
+  );
+  const livePlatformEvents = publicEventCards.filter((event) => event.publicStatus === "live");
+  const upcomingPlatformEvents = publicEventCards.filter((event) => event.publicStatus === "upcoming");
+  const finishedPlatformEvents = publicEventCards.filter((event) => event.publicStatus === "finished");
+  const platformHomeSections = [
+    { title: "Live Now", items: livePlatformEvents, copy: "Events with at least one race category currently live." },
+    { title: "Upcoming", items: upcomingPlatformEvents, copy: "Events that have published race categories scheduled to start later." },
+    { title: "Recent Results", items: finishedPlatformEvents, copy: "Finished events with results available for spectators." }
+  ];
   const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0 && organizerWizardDraft.eventDateAt.trim().length > 0;
   const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
   const organizerWizardModeReady =
@@ -2754,7 +2822,7 @@ export default function App() {
     setLoginError(null);
     setLoginPassword("");
     setIsLoginModalOpen(false);
-    setOrganizerWorkspaceView("spectator");
+    openPlatformHome();
   }
 
   function updateOrganizerWorkspaceEvent(eventId: string, updater: (event: OrganizerEventRecord) => OrganizerEventRecord) {
@@ -2892,6 +2960,37 @@ export default function App() {
     setOrganizerWorkspaceView("home");
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
+  }
+
+  function openPlatformHome() {
+    setSelectedPublicEventId(null);
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    setOrganizerWorkspaceView("spectator");
+    jumpToSection("platform-home");
+  }
+
+  function openPublicEvent(eventId: string, slug?: string) {
+    const nextEvent = publicVisibleEvents.find((event) => event.id === eventId);
+
+    if (!nextEvent) {
+      return;
+    }
+
+    setSelectedPublicEventId(eventId);
+    setSelectedRaceSlug(slug ?? EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    setOrganizerWorkspaceView("spectator");
+    jumpToSection(slug ? "race-hub" : "edition-home");
+  }
+
+  function openActiveSpectatorPreview() {
+    if (organizerActiveEvent && deriveOrganizerPublicEventStatus(organizerActiveEvent) !== "hidden") {
+      openPublicEvent(organizerActiveEvent.id);
+      return;
+    }
+
+    openPlatformHome();
   }
 
   function openOrganizerWizard() {
@@ -3552,6 +3651,10 @@ export default function App() {
   }
 
   function openRaceView(slug: string, sectionId?: string) {
+    if (!spectatorEvent) {
+      return;
+    }
+
     setSelectedRaceSlug(slug);
     setRaceDetailView("race-page");
     setOrganizerWorkspaceView("spectator");
@@ -3593,6 +3696,10 @@ export default function App() {
   }
 
   function handleRaceSelection(nextValue: string) {
+    if (!spectatorEvent) {
+      return;
+    }
+
     setSelectedRaceSlug(nextValue);
     setRaceDetailView("race-page");
     setOrganizerWorkspaceView("spectator");
@@ -3605,8 +3712,18 @@ export default function App() {
   }
 
   function focusHome() {
+    if (showPlatformHome) {
+      jumpToSection("platform-home");
+      return;
+    }
+
     if (isEditionHome) {
-      jumpToSection("edition-home");
+      openPlatformHome();
+      return;
+    }
+
+    if (!spectatorEvent) {
+      openPlatformHome();
       return;
     }
 
@@ -3636,6 +3753,11 @@ export default function App() {
   }
 
   function focusRacePage() {
+    if (!spectatorEvent) {
+      openPlatformHome();
+      return;
+    }
+
     setRaceDetailView("race-page");
     jumpToSection("race-hub");
   }
@@ -3649,75 +3771,77 @@ export default function App() {
           <div className="topbar-race-lockup">
             <div
               aria-label="Event logo placeholder"
-              className={`event-logo-placeholder ${organizerSetup.branding.eventLogoDataUrl ? "has-uploaded-logo" : ""}`}
+              className={`event-logo-placeholder ${activeFestivalSetup.branding.eventLogoDataUrl ? "has-uploaded-logo" : ""}`}
               role="img"
             >
-              {organizerSetup.branding.eventLogoDataUrl ? (
-                <img alt="Event logo" src={organizerSetup.branding.eventLogoDataUrl} />
+              {activeFestivalSetup.branding.eventLogoDataUrl ? (
+                <img alt="Event logo" src={activeFestivalSetup.branding.eventLogoDataUrl} />
               ) : (
                 <span>Event Logo</span>
               )}
             </div>
           </div>
 
-          <div className="topbar-center">
-            <div className="topbar-edition-chip" aria-label={`Current edition ${festivalData.editionLabel}`}>
-              <span className="topbar-edition-chip-accent" aria-hidden="true" />
-              <span className="topbar-edition-chip-label">{festivalData.editionLabel}</span>
-            </div>
+          {!showPlatformHome && !isOrganizerHomeOpen && !isOrganizerConsoleOpen ? (
+            <div className="topbar-center">
+              <div className="topbar-edition-chip" aria-label={`Current edition ${festivalData.editionLabel}`}>
+                <span className="topbar-edition-chip-accent" aria-hidden="true" />
+                <span className="topbar-edition-chip-label">{festivalData.editionLabel}</span>
+              </div>
 
-            <div className="topbar-menu-shell" ref={topbarMenuRef}>
-              <button
-                aria-expanded={isTopbarMenuOpen}
-                aria-haspopup="menu"
-                className={`topbar-menu-button ${isTopbarMenuOpen ? "open" : ""}`}
-                onClick={() => setIsTopbarMenuOpen((current) => !current)}
-                type="button"
-              >
-                <span className="topbar-menu-accent" aria-hidden="true" />
-                <span className="topbar-menu-label">{raceMenuLabel}</span>
-                <span className="topbar-menu-chevron" aria-hidden="true">
-                  ^
-                </span>
-              </button>
+              <div className="topbar-menu-shell" ref={topbarMenuRef}>
+                <button
+                  aria-expanded={isTopbarMenuOpen}
+                  aria-haspopup="menu"
+                  className={`topbar-menu-button ${isTopbarMenuOpen ? "open" : ""}`}
+                  onClick={() => setIsTopbarMenuOpen((current) => !current)}
+                  type="button"
+                >
+                  <span className="topbar-menu-accent" aria-hidden="true" />
+                  <span className="topbar-menu-label">{raceMenuLabel}</span>
+                  <span className="topbar-menu-chevron" aria-hidden="true">
+                    ^
+                  </span>
+                </button>
 
-              {isTopbarMenuOpen ? (
-                <div className="topbar-menu-panel" role="menu">
-                  <button
-                    className={`topbar-menu-item ${isEditionHome ? "active" : ""}`}
-                    onClick={() => handleRaceSelection(EDITION_HOME_VALUE)}
-                    role="menuitem"
-                    type="button"
-                  >
-                    <span className="topbar-menu-item-accent home" aria-hidden="true" />
-                    <span className="topbar-menu-item-copy">
-                      <strong>Home</strong>
-                      <small>{festivalData.editionLabel}</small>
-                    </span>
-                  </button>
-                  {visibleRaces.map((race) => (
+                {isTopbarMenuOpen ? (
+                  <div className="topbar-menu-panel" role="menu">
                     <button
-                      className={`topbar-menu-item ${selectedRaceSlug === race.slug ? "active" : ""}`}
-                      key={`topbar-menu-${race.slug}`}
-                      onClick={() => handleRaceSelection(race.slug)}
+                      className={`topbar-menu-item ${isEditionHome ? "active" : ""}`}
+                      onClick={() => handleRaceSelection(EDITION_HOME_VALUE)}
                       role="menuitem"
                       type="button"
                     >
-                      <span
-                        className="topbar-menu-item-accent"
-                        aria-hidden="true"
-                        style={{ background: race.accent }}
-                      />
+                      <span className="topbar-menu-item-accent home" aria-hidden="true" />
                       <span className="topbar-menu-item-copy">
-                        <strong>{race.title}</strong>
-                        <small>{race.editionLabel}</small>
+                        <strong>Home</strong>
+                        <small>{festivalData.editionLabel}</small>
                       </span>
                     </button>
-                  ))}
-                </div>
-              ) : null}
+                    {visibleRaces.map((race) => (
+                      <button
+                        className={`topbar-menu-item ${selectedRaceSlug === race.slug ? "active" : ""}`}
+                        key={`topbar-menu-${race.slug}`}
+                        onClick={() => handleRaceSelection(race.slug)}
+                        role="menuitem"
+                        type="button"
+                      >
+                        <span
+                          className="topbar-menu-item-accent"
+                          aria-hidden="true"
+                          style={{ background: race.accent }}
+                        />
+                        <span className="topbar-menu-item-copy">
+                          <strong>{race.title}</strong>
+                          <small>{race.editionLabel}</small>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
 
         <div className="topbar-spacer" />
@@ -3726,11 +3850,14 @@ export default function App() {
           {organizerSessionActive ? (
             <button
               className={`topbar-login-link ${isOrganizerHomeOpen || isOrganizerConsoleOpen ? "topbar-login-link-active" : ""}`}
-              onClick={() =>
-                setOrganizerWorkspaceView((current) =>
-                  current === "spectator" ? "home" : current === "home" ? "spectator" : "home"
-                )
-              }
+              onClick={() => {
+                if (isOrganizerHomeOpen || isOrganizerConsoleOpen) {
+                  openActiveSpectatorPreview();
+                  return;
+                }
+
+                openOrganizerHome();
+              }}
               type="button"
             >
               {isOrganizerHomeOpen ? "Spectator View" : "Organizer Home"}
@@ -3770,14 +3897,19 @@ export default function App() {
             className="live-shell-edition-banner"
             dateRibbon={festivalData.dateRibbon}
             editionLabel={festivalData.editionLabel}
-            backgroundImageUrl={organizerSetup.branding.heroBackgroundImageDataUrl}
+            backgroundImageUrl={activeFestivalSetup.branding.heroBackgroundImageDataUrl}
             homeSubtitle={festivalData.homeSubtitle}
             locationRibbon={festivalData.locationRibbon}
           />
         </div>
       ) : null}
 
-      <div className={`live-shell-body ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"} ${showEditionHome ? "edition-home-body" : "race-detail-body"}`}>
+      <div
+        className={`live-shell-body ${showPlatformHome ? "platform-home-body" : showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"} ${
+          showEditionHome ? "edition-home-body" : "race-detail-body"
+        }`}
+      >
+        {!showPlatformHome ? (
         <aside className="dashboard-sidebar live-sidebar">
           <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
             <button className="live-sidebar-logo" onClick={focusHome} type="button" aria-label="Back to edition home">
@@ -3844,15 +3976,90 @@ export default function App() {
             </div>
           </div>
 
-          <button className="nav-link nav-link-icon nav-link-footer" onClick={() => jumpToSection("runtime-footer")} type="button">
-            <NavIcon name="contact" />
-            <span>Contact</span>
-          </button>
-        </nav>
+            <button className="nav-link nav-link-icon nav-link-footer" onClick={() => jumpToSection("runtime-footer")} type="button">
+              <NavIcon name="contact" />
+              <span>Contact</span>
+            </button>
+          </nav>
       </aside>
+        ) : null}
 
       <div className="dashboard-main dashboard-main-scroll live-main">
-        {isOrganizerHomeOpen ? (
+        {showPlatformHome ? (
+          <section className="platform-home-shell" id="platform-home">
+            <div className="platform-home-hero">
+              <div>
+                <span className="detail-label">Trailnesia platform</span>
+                <h2>Discover live trail events</h2>
+                <p>Browse events by status, then open an event hub to follow its race categories, rankings, and live updates.</p>
+              </div>
+            </div>
+
+            {!publicEventCards.length ? (
+              <article className="platform-home-empty">
+                <span className="detail-label">No public events yet</span>
+                <h3>Published events will appear here.</h3>
+                <p>Once an organizer publishes at least one race category, the event will show up on the platform home.</p>
+              </article>
+            ) : (
+              <div className="platform-home-sections">
+                {platformHomeSections.map(({ title, items, copy }) =>
+                  items.length ? (
+                    <section className="platform-home-section" key={title}>
+                      <div className="platform-home-section-head">
+                        <div>
+                          <span className="detail-label">Public events</span>
+                          <h3>{title}</h3>
+                        </div>
+                        <p>{copy}</p>
+                      </div>
+                      <div className="platform-event-grid" role="list" aria-label={title}>
+                        {items.map((event) => (
+                          <button
+                            className={`platform-event-card status-${event.publicStatus}`}
+                            key={event.id}
+                            onClick={() => openPublicEvent(event.id)}
+                            role="listitem"
+                            type="button"
+                          >
+                            <div className="platform-event-card-media">
+                              {event.heroBackgroundImageDataUrl ? <img alt="" src={event.heroBackgroundImageDataUrl} /> : null}
+                              <div className="platform-event-card-overlay" />
+                              <span className={`organizer-status-pill ${event.publicStatus}`}>{event.publicStatus === "live" ? "Live" : event.publicStatus === "upcoming" ? "Upcoming" : "Finished"}</span>
+                            </div>
+                            <div className="platform-event-card-body">
+                              <div className="platform-event-card-head">
+                                {event.eventLogoDataUrl ? (
+                                  <span className="platform-event-logo">
+                                    <img alt="" src={event.eventLogoDataUrl} />
+                                  </span>
+                                ) : null}
+                                <div>
+                                  <strong>{event.title}</strong>
+                                  <p>{event.organizerName}</p>
+                                </div>
+                              </div>
+                              <div className="platform-event-meta">
+                                <span>{event.locationRibbon}</span>
+                                <span>{event.dateRibbon}</span>
+                              </div>
+                              <div className="platform-event-stats">
+                                <span>{event.publishedRaceCount} races</span>
+                                {event.liveCount ? <span>{event.liveCount} live</span> : null}
+                                {!event.liveCount && event.upcomingCount ? <span>{event.upcomingCount} upcoming</span> : null}
+                                {!event.liveCount && !event.upcomingCount && event.finishedCount ? <span>{event.finishedCount} finished</span> : null}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null
+                )}
+              </div>
+            )}
+          </section>
+        ) : isOrganizerHomeOpen ? (
           <section className="panel organizer-home-shell">
             <div className="organizer-home-hero">
               <div className="organizer-home-copy">
@@ -3885,7 +4092,7 @@ export default function App() {
                     Create new event
                   </button>
                 ) : null}
-                <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWorkspaceView("spectator")} type="button">
+                <button className="toolbar-link organizer-secondary-action" onClick={openActiveSpectatorPreview} type="button">
                   Open spectator preview
                 </button>
               </div>
@@ -4314,7 +4521,7 @@ export default function App() {
               onAddCrewAssignment={addOrganizerCrewAssignment}
               onAddSimulatedScan={addOrganizerSimulatedScan}
               onApplyImport={applyOrganizerImport}
-              onBackToSpectator={() => setOrganizerWorkspaceView("spectator")}
+              onBackToSpectator={openActiveSpectatorPreview}
               onBrandingChange={updateOrganizerBranding}
               onCheckpointChange={updateOrganizerCheckpoint}
               onClearSimulatedScans={clearOrganizerSimulatedScans}
@@ -4351,7 +4558,7 @@ export default function App() {
               cards={raceHomeCards}
               dateRibbon={festivalData.dateRibbon}
               editionLabel={festivalData.editionLabel}
-              heroBackgroundImageUrl={organizerSetup.branding.heroBackgroundImageDataUrl}
+              heroBackgroundImageUrl={activeFestivalSetup.branding.heroBackgroundImageDataUrl}
               homeSubtitle={festivalData.homeSubtitle}
               homeTitle={festivalData.homeTitle}
               locationRibbon={festivalData.locationRibbon}
@@ -6257,7 +6464,7 @@ export default function App() {
       ) : null}
       </div>
 
-      {showSidebarRail ? (
+      {!showPlatformHome && showSidebarRail ? (
       <aside className="dashboard-rail live-ranking-rail">
         <div className="rail">
               <article className="panel rail-panel rail-ranking-panel" id="race-leaders-sidebar">
