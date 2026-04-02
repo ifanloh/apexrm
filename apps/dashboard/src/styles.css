@@ -6390,6 +6390,14 @@ body {
   width: 100%;
 }
 
+.organizer-event-badges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
 .organizer-event-actions {
   display: flex;
   flex-wrap: wrap;
@@ -7206,6 +7214,11 @@ body {
 .organizer-status-pill.live {
   background: rgba(255, 45, 45, 0.14);
   color: #d82626;
+}
+
+.organizer-status-pill.ready {
+  background: rgba(42, 133, 86, 0.12);
+  color: #1f6f49;
 }
 
 .organizer-status-pill.finished {

@@ -13,6 +13,8 @@ import type { CheckpointLeaderboard, DuplicateScan, NotificationEvent } from "@a
 
 type OrganizerConsoleProps = {
   profileLabel: string;
+  eventTitle: string;
+  eventPhaseLabel: string;
   branding: OrganizerBrandingDraft;
   races: OrganizerRaceDraft[];
   selectedRaceSlug: string;
@@ -68,6 +70,8 @@ type OrganizerSetupStepView = "branding" | "races" | "participants" | "crew" | "
 
 export function OrganizerConsole({
   profileLabel,
+  eventTitle,
+  eventPhaseLabel,
   branding,
   races,
   selectedRaceSlug,
@@ -542,7 +546,9 @@ export function OrganizerConsole({
           <p className="organizer-console-copy">
             Work through the event setup one section at a time so a brand-new organizer can publish without getting lost.
           </p>
-          <p className="organizer-console-meta">Signed in as {profileLabel}</p>
+          <p className="organizer-console-meta">
+            {eventTitle} · {eventPhaseLabel} · Signed in as {profileLabel}
+          </p>
           {currentStep ? (
             <div className="organizer-console-flow-meta">
               <span className="organizer-flow-pill">Step {currentStepIndex + 1} of {setupSteps.length}</span>

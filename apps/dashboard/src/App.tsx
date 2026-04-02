@@ -101,6 +101,8 @@ const TEAM_NAMES = [
 ] as const;
 const COUNTRY_PRIORITY_ORDER = ["ID", "MY", "SG", "TH", "AU", "JP", "KR", "PH", "VN", "CN", "US", "FR"] as const;
 
+type OrganizerEventPhase = "draft" | "ready" | "live";
+
 type CountryCode = (typeof COUNTRY_CODES)[number];
 
 const COUNTRY_META: Record<
@@ -717,6 +719,38 @@ function normalizeWomenLeaderboard(
   return sameTotal && sameEntries ? emptyOverallLeaderboard : womenBoard;
 }
 
+function isOrganizerRaceReadyForPublish(branding: OrganizerBrandingDraft, race: OrganizerRaceDraft) {
+  const acceptedCrew = race.crewAssignments.filter((crew) => crew.status === "accepted" || crew.status === "active");
+  const provisionedCrew = race.crewAssignments.filter((crew) => crew.deviceLabel.trim().length > 0);
+
+  return (
+    Boolean(branding.eventLogoDataUrl) &&
+    Boolean(branding.heroBackgroundImageDataUrl) &&
+    Boolean(race.gpxFileName) &&
+    race.courseDescription.trim().length >= 24 &&
+    race.courseHighlights.filter(Boolean).length >= 2 &&
+    race.checkpoints.length >= 3 &&
+    race.crewAssignments.length > 0 &&
+    acceptedCrew.length === race.crewAssignments.length &&
+    provisionedCrew.length === race.crewAssignments.length &&
+    race.participants.length > 0 &&
+    Boolean(race.startAt.trim()) &&
+    Boolean(race.scheduleLabel.trim())
+  );
+}
+
+function deriveOrganizerEventPhase(event: OrganizerEventRecord): OrganizerEventPhase {
+  if (event.setup.races.some((race) => race.isPublished)) {
+    return "live";
+  }
+
+  if (event.setup.races.length > 0 && event.setup.races.every((race) => isOrganizerRaceReadyForPublish(event.setup.branding, race))) {
+    return "ready";
+  }
+
+  return "draft";
+}
+
 function buildRunnerFallbackResults(
   entries: OverallLeaderboard["topEntries"],
   query: string,
@@ -985,6 +1019,10 @@ export default function App() {
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const organizerVisibleEvents = useMemo(
     () => organizerWorkspace.events.filter((event) => !event.archivedAt),
+    [organizerWorkspace.events]
+  );
+  const organizerArchivedEvents = useMemo(
+    () => organizerWorkspace.events.filter((event) => Boolean(event.archivedAt)),
     [organizerWorkspace.events]
   );
   const organizerActiveEvent =
@@ -2529,6 +2567,9 @@ export default function App() {
   const organizerEventCount = organizerVisibleEvents.length;
   const organizerActivePublishedCount = organizerSetup.races.filter((race) => race.isPublished).length;
   const organizerActiveDraftCount = organizerSetup.races.filter((race) => !race.isPublished).length;
+  const organizerActiveEventPhase = organizerActiveEvent ? deriveOrganizerEventPhase(organizerActiveEvent) : "draft";
+  const organizerActiveEventPhaseLabel =
+    organizerActiveEventPhase === "live" ? "Live" : organizerActiveEventPhase === "ready" ? "Ready" : "Draft";
   const organizerDraftStatusLabel = organizerDraftSavedAt
     ? `Draft saved ${new Date(organizerDraftSavedAt).toLocaleTimeString([], {
         hour: "2-digit",
@@ -2658,6 +2699,30 @@ export default function App() {
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
     setOrganizerWorkspaceView("home");
+  }
+
+  function restoreOrganizerEvent(eventId: string) {
+    setOrganizerWorkspace((current) => {
+      const nextEvents = current.events.map((event) =>
+        event.id === eventId
+          ? {
+              ...event,
+              archivedAt: null,
+              updatedAt: new Date().toISOString()
+            }
+          : event
+      );
+      const visibleEvents = nextEvents.filter((event) => !event.archivedAt);
+      const activeEventId =
+        current.activeEventId && visibleEvents.some((event) => event.id === current.activeEventId)
+          ? current.activeEventId
+          : visibleEvents.find((event) => event.id === eventId)?.id ?? visibleEvents[0]?.id ?? null;
+
+      return {
+        activeEventId,
+        events: nextEvents
+      };
+    });
   }
 
   function openOrganizerHome() {
@@ -3555,6 +3620,7 @@ export default function App() {
                   <span className="detail-label">Active event</span>
                   <h3>{organizerActiveEvent?.title ?? "No active event"}</h3>
                   <p>{organizerActivePublishedCount} published and {organizerActiveDraftCount} draft in the current workspace.</p>
+                  <span className={`organizer-status-pill ${organizerActiveEventPhase}`}>{organizerActiveEventPhaseLabel}</span>
                 </article>
                 <article className="organizer-home-card organizer-home-card-wide">
                   <span className="detail-label">Your events</span>
@@ -3563,6 +3629,8 @@ export default function App() {
                       const publishedCount = event.setup.races.filter((race) => race.isPublished).length;
                       const draftCount = event.setup.races.length - publishedCount;
                       const isActive = organizerActiveEvent?.id === event.id;
+                      const phase = deriveOrganizerEventPhase(event);
+                      const phaseLabel = phase === "live" ? "Live" : phase === "ready" ? "Ready" : "Draft";
 
                       return (
                         <div className="organizer-home-race-row organizer-event-row" key={event.id}>
@@ -3573,7 +3641,10 @@ export default function App() {
                                 {event.setup.races.length} categories · {publishedCount} published · {draftCount} draft
                               </p>
                             </div>
-                            <span className={`ranking-chip ${isActive ? "chip-finish" : "chip-live"}`}>{isActive ? "Active" : "Draft workspace"}</span>
+                            <div className="organizer-event-badges">
+                              <span className={`organizer-status-pill ${phase}`}>{phaseLabel}</span>
+                              <span className={`ranking-chip ${isActive ? "chip-finish" : "chip-live"}`}>{isActive ? "Active" : "Workspace"}</span>
+                            </div>
                           </div>
                           <div className="organizer-event-actions">
                             <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(event.id)} type="button">
@@ -3591,6 +3662,38 @@ export default function App() {
                     })}
                   </div>
                 </article>
+                {organizerArchivedEvents.length ? (
+                  <article className="organizer-home-card organizer-home-card-wide">
+                    <span className="detail-label">Archived events</span>
+                    <div className="organizer-home-race-list organizer-event-list">
+                      {organizerArchivedEvents.map((event) => (
+                        <div className="organizer-home-race-row organizer-event-row" key={event.id}>
+                          <div className="organizer-event-main">
+                            <div>
+                              <strong>{event.title}</strong>
+                              <p>
+                                Archived{" "}
+                                {event.archivedAt
+                                  ? new Date(event.archivedAt).toLocaleDateString([], {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric"
+                                    })
+                                  : "recently"}
+                              </p>
+                            </div>
+                            <span className="organizer-status-pill draft">Archived</span>
+                          </div>
+                          <div className="organizer-event-actions">
+                            <button className="toolbar-link organizer-secondary-action" onClick={() => restoreOrganizerEvent(event.id)} type="button">
+                              Restore
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
               </div>
             ) : (
               <>
@@ -3876,6 +3979,8 @@ export default function App() {
               opsUpdatedAt={lastUpdatedAt}
               onRaceChange={updateOrganizerRace}
               onSelectRace={setOrganizerSetupRaceSlug}
+              eventPhaseLabel={organizerActiveEventPhaseLabel}
+              eventTitle={organizerActiveEvent?.title ?? organizerSetup.branding.homeTitle ?? "Untitled event"}
               profileLabel={profile?.displayName ?? profile?.email ?? profile?.role ?? "Organizer"}
               races={organizerSetup.races}
               selectedRaceSlug={organizerSetupRaceSlug}
