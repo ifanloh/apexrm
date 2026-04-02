@@ -39,10 +39,17 @@ import {
   createDefaultOrganizerSetup,
   createDefaultOrganizerWorkspace,
   deriveOrganizerEventTitle,
+  formatOrganizerDateRibbon,
+  formatOrganizerScheduleLabel,
   getOrganizerCheckpointsForRace,
   getOrganizerRaceModeLabel,
   getOrganizerRaceModeSummary,
+  getOrganizerRaceStateTone,
+  isOrganizerRaceLiveState,
+  isOrganizerRaceUpcomingState,
   loadOrganizerWorkspace,
+  normalizeOrganizerDateTimeInputValue,
+  normalizeOrganizerRaceStateLabel,
   ORGANIZER_WORKSPACE_STORAGE_KEY,
   parseOrganizerGpxFile,
   parseParticipantImportFile,
@@ -55,6 +62,7 @@ import {
   type OrganizerParticipantDraft,
   type OrganizerRaceDraft,
   type OrganizerRaceMode,
+  type OrganizerRaceState,
   type OrganizerSetupDraft
 } from "./organizerSetup";
 import {
@@ -176,6 +184,7 @@ type OrganizerWizardDraft = {
   homeTitle: string;
   homeSubtitle: string;
   bannerTagline: string;
+  eventDateAt: string;
   dateRibbon: string;
   locationRibbon: string;
   firstRaceTitle: string;
@@ -184,7 +193,7 @@ type OrganizerWizardDraft = {
   firstRaceStartTown: string;
   firstRaceScheduleLabel: string;
   firstRaceStartAt: string;
-  firstRaceEditionLabel: "Live" | "Finished";
+  firstRaceEditionLabel: OrganizerRaceState;
   firstRaceMode: OrganizerRaceMode;
   firstRaceLoopTargetLaps: string;
   firstRaceLoopTimeLimitHours: string;
@@ -337,6 +346,8 @@ function slugifyOrganizerValue(value: string) {
 
 function buildOrganizerWizardDraft(): OrganizerWizardDraft {
   const branding = createDefaultOrganizerSetup().branding;
+  const eventDateAt = normalizeOrganizerDateTimeInputValue(branding.eventDateAt);
+  const firstRaceStartAt = normalizeOrganizerDateTimeInputValue("2026-07-05T05:00");
 
   return {
     organizerName: branding.organizerName,
@@ -345,15 +356,16 @@ function buildOrganizerWizardDraft(): OrganizerWizardDraft {
     homeTitle: "Trail Event 2026",
     homeSubtitle: "Describe the event, terrain, and why spectators should follow this edition live.",
     bannerTagline: "Organizer edition hub",
-    dateRibbon: "Set event date",
+    eventDateAt,
+    dateRibbon: formatOrganizerDateRibbon(eventDateAt),
     locationRibbon: "Set event location",
     firstRaceTitle: "Ultra 50K",
     firstRaceDistanceKm: "50",
     firstRaceAscentM: "2800",
     firstRaceStartTown: "Start Town",
-    firstRaceScheduleLabel: "Sun 01 Jan 05:00",
-    firstRaceStartAt: "2026-01-01T05:00:00+07:00",
-    firstRaceEditionLabel: "Live",
+    firstRaceScheduleLabel: formatOrganizerScheduleLabel(firstRaceStartAt),
+    firstRaceStartAt,
+    firstRaceEditionLabel: "Upcoming",
     firstRaceMode: "standard",
     firstRaceLoopTargetLaps: "6",
     firstRaceLoopTimeLimitHours: "12",
@@ -802,11 +814,14 @@ function isOrganizerRaceReadyForPublish(branding: OrganizerBrandingDraft, race: 
 }
 
 function deriveOrganizerEventPhase(event: OrganizerEventRecord): OrganizerEventPhase {
-  if (event.setup.races.some((race) => race.isPublished)) {
+  if (event.setup.races.some((race) => race.isPublished && isOrganizerRaceLiveState(race.editionLabel))) {
     return "live";
   }
 
-  if (event.setup.races.length > 0 && event.setup.races.every((race) => isOrganizerRaceReadyForPublish(event.setup.branding, race))) {
+  if (
+    event.setup.races.some((race) => race.isPublished) ||
+    (event.setup.races.length > 0 && event.setup.races.every((race) => isOrganizerRaceReadyForPublish(event.setup.branding, race)))
+  ) {
     return "ready";
   }
 
@@ -1135,12 +1150,18 @@ export default function App() {
   );
   const visibleRaces = spectatorRaces;
   const fallbackVisibleRace = visibleRaces[0] ?? festivalData.races[0] ?? EMPTY_RACE_CARD;
-  const featuredRace = visibleRaces.find((race) => race.editionLabel.toLowerCase() === "live") ?? fallbackVisibleRace;
+  const liveSourceRace = visibleRaces.find((race) => isOrganizerRaceLiveState(race.editionLabel)) ?? null;
+  const featuredRace =
+    liveSourceRace ?? visibleRaces.find((race) => isOrganizerRaceUpcomingState(race.editionLabel)) ?? fallbackVisibleRace;
   const selectedRaceCard =
     visibleRaces.find((race) => race.slug === selectedRaceSlug) ??
     (selectedRaceSlug === EDITION_HOME_VALUE ? featuredRace : festivalData.races.find((race) => race.slug === selectedRaceSlug)) ??
     featuredRace;
   const selectedOrganizerRace = organizerSetup.races.find((race) => race.slug === selectedRaceCard.slug) ?? null;
+  const activeRaceStateTone = getOrganizerRaceStateTone(selectedRaceCard.editionLabel);
+  const isActiveRaceLive = activeRaceStateTone === "live";
+  const isActiveRaceFinished = activeRaceStateTone === "finished";
+  const isActiveRaceUpcoming = activeRaceStateTone === "upcoming";
   const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
   const isFeaturedRace = selectedRaceCard.slug === featuredRace.slug;
   const activeCourse = useMemo(() => {
@@ -1153,7 +1174,7 @@ export default function App() {
   const showEditionHome = isEditionHome && raceDetailView === "race-page";
   const isOrganizerHomeOpen = organizerSessionActive && organizerWorkspaceView === "home";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
-  const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && !isOrganizerHomeOpen && raceDetailView === "race-page";
+  const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && !isOrganizerHomeOpen && raceDetailView === "race-page" && !isActiveRaceUpcoming;
   const organizerSelectedRace =
     organizerSetup.races.find((race) => race.slug === organizerSetupRaceSlug) ?? organizerSetup.races[0] ?? null;
   const organizerCheckpointDraft = organizerSelectedRace ? getOrganizerCheckpointsForRace(organizerSelectedRace) : [];
@@ -1513,7 +1534,7 @@ export default function App() {
     let isMounted = true;
 
     async function loadRunnerSearch() {
-      if (!isFeaturedRace && !isEditionHome) {
+      if (!liveSourceRace || (!isFeaturedRace && !isEditionHome)) {
         const previewItems = buildRunnerFallbackResults(previewOverallLeaderboard.topEntries, deferredRunnerQuery, runnerCheckpointFilter);
 
         if (isMounted) {
@@ -1573,6 +1594,7 @@ export default function App() {
     isEditionHome,
     isFeaturedRace,
     lastUpdatedAt,
+    liveSourceRace,
     organizerSessionActive,
     overallLeaderboard.topEntries,
     previewOverallLeaderboard.topEntries,
@@ -1586,19 +1608,19 @@ export default function App() {
   const activeOverallLeaderboard =
     selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length
       ? selectedRaceSimulationSnapshot.overallLeaderboard
-      : isFeaturedRace && overallLeaderboard.topEntries.length > 0
+      : selectedRaceCard.slug === liveSourceRace?.slug && overallLeaderboard.topEntries.length > 0
         ? overallLeaderboard
         : previewOverallLeaderboard;
   const activeWomenLeaderboard =
     selectedRaceSimulationSnapshot?.womenLeaderboard.topEntries.length
       ? selectedRaceSimulationSnapshot.womenLeaderboard
-      : isFeaturedRace && womenLeaderboard.topEntries.length > 0
+      : selectedRaceCard.slug === liveSourceRace?.slug && womenLeaderboard.topEntries.length > 0
         ? womenLeaderboard
         : previewWomenLeaderboard;
   const activeCheckpointLeaderboards =
     selectedRaceSimulationSnapshot?.checkpointLeaderboards.some((board) => board.totalOfficialScans > 0)
       ? selectedRaceSimulationSnapshot.checkpointLeaderboards
-      : isFeaturedRace && leaderboards.length > 0
+      : selectedRaceCard.slug === liveSourceRace?.slug && leaderboards.length > 0
         ? leaderboards
         : previewCheckpointLeaderboards;
   const activeNotifications =
@@ -1680,7 +1702,7 @@ export default function App() {
     let isMounted = true;
 
     async function loadRunnerDetail() {
-      if (!isFeaturedRace && !isEditionHome) {
+      if (!liveSourceRace || (!isFeaturedRace && !isEditionHome)) {
         const fallbackDetail = buildRunnerDetailFallback(previewOverallLeaderboard.topEntries, runnerBib);
 
         if (isMounted) {
@@ -1733,6 +1755,7 @@ export default function App() {
     isBootstrapping,
     isEditionHome,
     isFeaturedRace,
+    liveSourceRace,
     organizerSessionActive,
     overallLeaderboard.topEntries,
     previewOverallLeaderboard.topEntries,
@@ -1766,8 +1789,9 @@ export default function App() {
     return activeCheckpointLeaderboards.find((item) => item.checkpointId === "cp-start")?.totalOfficialScans ?? totalRankedRunners;
   }, [activeCheckpointLeaderboards, totalRankedRunners]);
   const dnfDnsCount = Math.max(starterCount - finisherCount, 0);
+  const usesSelectedRaceLiveSource = selectedRaceCard.slug === liveSourceRace?.slug;
   const activeStarterCount =
-    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || isFeaturedRace
+    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || usesSelectedRaceLiveSource
       ? starterCount
       : selectedRaceCard.finishers + selectedRaceCard.dnf;
 
@@ -1799,22 +1823,22 @@ export default function App() {
       return organizerSelectedRaceSimulationSnapshot.checkpointLeaderboards;
     }
 
-    if (organizerSelectedRace.slug === featuredRace.slug && leaderboards.length > 0) {
+    if (organizerSelectedRace.slug === liveSourceRace?.slug && leaderboards.length > 0) {
       return leaderboards;
     }
 
     return buildCheckpointLeaderboardsFallback(organizerSelectedRace as DemoRaceCard);
-  }, [featuredRace.slug, leaderboards, organizerSelectedRace, organizerSelectedRaceSimulationSnapshot]);
+  }, [leaderboards, liveSourceRace?.slug, organizerSelectedRace, organizerSelectedRaceSimulationSnapshot]);
   const organizerConsoleDuplicates =
     organizerSelectedRaceSimulationSnapshot?.duplicates.length
       ? organizerSelectedRaceSimulationSnapshot.duplicates
-      : organizerSelectedRace?.slug === featuredRace.slug
+      : organizerSelectedRace?.slug === liveSourceRace?.slug
         ? activeDuplicates
         : [];
   const organizerConsoleNotifications =
     organizerSelectedRaceSimulationSnapshot?.notifications.length
       ? organizerSelectedRaceSimulationSnapshot.notifications
-      : organizerSelectedRace?.slug === featuredRace.slug
+      : organizerSelectedRace?.slug === liveSourceRace?.slug
         ? activeNotifications
         : [];
   const selectedCheckpointMeta = defaultCheckpoints.find((item) => item.id === selectedBoard?.checkpointId) ?? null;
@@ -1835,10 +1859,9 @@ export default function App() {
   const totalDistanceKm = selectedRaceCard.distanceKm;
   const activeAscentM = selectedRaceCard.ascentM;
   const activeFinisherCount =
-    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || isFeaturedRace ? finisherCount : selectedRaceCard.finishers;
+    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || usesSelectedRaceLiveSource ? finisherCount : selectedRaceCard.finishers;
   const activeDnfCount =
-    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || isFeaturedRace ? dnfDnsCount : selectedRaceCard.dnf;
-  const isActiveRaceLive = selectedRaceCard.editionLabel.toLowerCase() === "live";
+    selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length || usesSelectedRaceLiveSource ? dnfDnsCount : selectedRaceCard.dnf;
   const statsGeneratedLabel = new Date().toLocaleString([], {
     weekday: "short",
     day: "2-digit",
@@ -1860,7 +1883,7 @@ export default function App() {
       const raceSimulationSnapshot = organizerSimulationSnapshots.get(race.slug);
       const simulatedEntries = raceSimulationSnapshot?.overallLeaderboard.topEntries ?? [];
       const useSimulatedEntries = simulatedEntries.length > 0;
-      const useLiveEntries = !useSimulatedEntries && race.slug === featuredRace.slug && overallLeaderboard.topEntries.length > 0;
+      const useLiveEntries = !useSimulatedEntries && race.slug === liveSourceRace?.slug && overallLeaderboard.topEntries.length > 0;
       const rankedRows: RunnerDirectoryEntry[] = ((useSimulatedEntries ? simulatedEntries : useLiveEntries ? overallLeaderboard.topEntries : null)
         ? (useSimulatedEntries ? simulatedEntries : overallLeaderboard.topEntries).map((entry) => ({
             rank: entry.rank,
@@ -1986,7 +2009,7 @@ export default function App() {
 
       return [...mergedRows, ...extraRows];
     });
-  }, [featuredRace.slug, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, visibleRaces]);
+  }, [liveSourceRace?.slug, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, visibleRaces]);
   const runnerDirectoryCountries = useMemo(
     () =>
       [...new Set(runnerDirectoryEntries.map((entry) => entry.countryCode))]
@@ -1997,7 +2020,7 @@ export default function App() {
     () => visibleRaces.find((race) => race.slug === rankingRaceFilter) ?? (isEditionHome ? featuredRace : selectedRaceCard),
     [featuredRace, isEditionHome, rankingRaceFilter, selectedRaceCard, visibleRaces]
   );
-  const rankingRaceIsLive = rankingSelectedRace.editionLabel.toLowerCase() === "live";
+  const rankingRaceIsLive = isOrganizerRaceLiveState(rankingSelectedRace.editionLabel);
   const rankingRaceEntries = useMemo(() => {
     return runnerDirectoryEntries
       .filter((entry) => entry.raceSlug === rankingSelectedRace.slug)
@@ -2554,7 +2577,7 @@ export default function App() {
       const hasSimulatedEntries = (raceSimulationSnapshot?.overallLeaderboard.topEntries.length ?? 0) > 0;
       const homeEntries = hasSimulatedEntries
         ? raceSimulationSnapshot?.overallLeaderboard.topEntries ?? []
-        : race.slug === featuredRace.slug && overallLeaderboard.topEntries.length
+        : race.slug === liveSourceRace?.slug && overallLeaderboard.topEntries.length
           ? overallLeaderboard.topEntries
           : null;
 
@@ -2563,7 +2586,7 @@ export default function App() {
           ...race,
           modeLabel: raceDraft ? getOrganizerRaceModeLabel(raceDraft.raceMode) : undefined,
           modeSummary: raceDraft ? getOrganizerRaceModeSummary(raceDraft) : undefined,
-          isLive: race.editionLabel.toLowerCase() === "live",
+          isLive: isOrganizerRaceLiveState(race.editionLabel),
           isSelected: race.slug === selectedRaceCard.slug
         };
       }
@@ -2591,11 +2614,11 @@ export default function App() {
             checkpointKmMarker: entry.checkpointKmMarker,
             checkpointOrder: entry.checkpointOrder
           })),
-        isLive: race.editionLabel.toLowerCase() === "live",
+        isLive: isOrganizerRaceLiveState(race.editionLabel),
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
-  }, [dnfDnsCount, featuredRace.slug, finisherCount, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, selectedRaceCard.slug, visibleRaces]);
+  }, [dnfDnsCount, finisherCount, liveSourceRace?.slug, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, selectedRaceCard.slug, visibleRaces]);
   const eventTitle = isEditionHome ? festivalData.brandName : selectedRaceCard.title;
   const liveStatusLabel =
     liveStatus === "live"
@@ -2640,7 +2663,7 @@ export default function App() {
       : organizerHomeFilter === "archived"
         ? organizerArchivedEvents
         : organizerWorkspace.events;
-  const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0;
+  const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0 && organizerWizardDraft.eventDateAt.trim().length > 0;
   const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
   const organizerWizardModeReady =
     organizerWizardDraft.firstRaceMode === "loop-fixed-laps"
@@ -2654,6 +2677,7 @@ export default function App() {
     organizerWizardDraft.firstRaceTitle.trim().length > 0 &&
     Number.parseFloat(organizerWizardDraft.firstRaceDistanceKm) > 0 &&
     Number.parseFloat(organizerWizardDraft.firstRaceAscentM) >= 0 &&
+    organizerWizardDraft.firstRaceStartAt.trim().length > 0 &&
     organizerWizardModeReady;
   const activeRaceStartAt = selectedRaceCard.startAt;
   const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
@@ -2829,10 +2853,28 @@ export default function App() {
   }
 
   function updateOrganizerWizardDraft(patch: Partial<OrganizerWizardDraft>) {
-    setOrganizerWizardDraft((current) => ({
-      ...current,
-      ...patch
-    }));
+    setOrganizerWizardDraft((current) => {
+      const next = {
+        ...current,
+        ...patch
+      };
+
+      if ("eventDateAt" in patch) {
+        next.eventDateAt = normalizeOrganizerDateTimeInputValue(patch.eventDateAt, current.eventDateAt);
+        next.dateRibbon = formatOrganizerDateRibbon(next.eventDateAt);
+      }
+
+      if ("firstRaceStartAt" in patch) {
+        next.firstRaceStartAt = normalizeOrganizerDateTimeInputValue(patch.firstRaceStartAt, current.firstRaceStartAt);
+        next.firstRaceScheduleLabel = formatOrganizerScheduleLabel(next.firstRaceStartAt);
+      }
+
+      if ("firstRaceEditionLabel" in patch) {
+        next.firstRaceEditionLabel = normalizeOrganizerRaceStateLabel(patch.firstRaceEditionLabel);
+      }
+
+      return next;
+    });
   }
 
   function openOrganizerConsole() {
@@ -2877,19 +2919,40 @@ export default function App() {
   }
 
   function updateOrganizerBranding(patch: Partial<OrganizerBrandingDraft>) {
+    const nextPatch = "eventDateAt" in patch
+      ? {
+          ...patch,
+          eventDateAt: normalizeOrganizerDateTimeInputValue(patch.eventDateAt),
+          dateRibbon: formatOrganizerDateRibbon(patch.eventDateAt)
+        }
+      : patch;
+
     updateActiveOrganizerSetup((current) => ({
       ...current,
       branding: {
         ...current.branding,
-        ...patch
+        ...nextPatch
       }
     }));
   }
 
   function updateOrganizerRace(slug: string, patch: Partial<OrganizerRaceDraft>) {
+    const nextPatch = {
+      ...patch
+    };
+
+    if ("startAt" in patch) {
+      nextPatch.startAt = normalizeOrganizerDateTimeInputValue(patch.startAt);
+      nextPatch.scheduleLabel = formatOrganizerScheduleLabel(nextPatch.startAt);
+    }
+
+    if ("editionLabel" in patch) {
+      nextPatch.editionLabel = normalizeOrganizerRaceStateLabel(patch.editionLabel);
+    }
+
     updateActiveOrganizerSetup((current) => ({
       ...current,
-      races: current.races.map((race) => (race.slug === slug ? { ...race, ...patch } : race))
+      races: current.races.map((race) => (race.slug === slug ? { ...race, ...nextPatch } : race))
     }));
   }
 
@@ -2939,10 +3002,10 @@ export default function App() {
       ...template,
       slug,
       title: organizerWizardDraft.firstRaceTitle.trim() || template.title,
-      editionLabel: organizerWizardDraft.firstRaceEditionLabel,
+      editionLabel: normalizeOrganizerRaceStateLabel(organizerWizardDraft.firstRaceEditionLabel),
       raceMode,
-      scheduleLabel: organizerWizardDraft.firstRaceScheduleLabel.trim() || template.scheduleLabel,
-      startAt: organizerWizardDraft.firstRaceStartAt || template.startAt,
+      scheduleLabel: formatOrganizerScheduleLabel(organizerWizardDraft.firstRaceStartAt) || template.scheduleLabel,
+      startAt: normalizeOrganizerDateTimeInputValue(organizerWizardDraft.firstRaceStartAt, template.startAt),
       startTown: organizerWizardDraft.firstRaceStartTown.trim() || template.startTown,
       distanceKm,
       ascentM,
@@ -2976,7 +3039,8 @@ export default function App() {
           organizerWizardDraft.homeSubtitle.trim() ||
           "Draft your first race category, import participants, and prepare scan crews before publishing spectator access.",
         bannerTagline: organizerWizardDraft.bannerTagline.trim() || "Organizer edition hub",
-        dateRibbon: organizerWizardDraft.dateRibbon.trim() || "Sat 05 Jul - Sun 06 Jul",
+        eventDateAt: normalizeOrganizerDateTimeInputValue(organizerWizardDraft.eventDateAt),
+        dateRibbon: formatOrganizerDateRibbon(organizerWizardDraft.eventDateAt),
         locationRibbon: organizerWizardDraft.locationRibbon.trim() || "East Java",
         eventLogoDataUrl: null,
         heroBackgroundImageDataUrl: null,
@@ -3875,10 +3939,11 @@ export default function App() {
                           />
                         </label>
                         <label className="organizer-field">
-                          <span>Date ribbon</span>
+                          <span>Event date & time</span>
                           <input
-                            onChange={(event) => updateOrganizerWizardDraft({ dateRibbon: event.target.value })}
-                            value={organizerWizardDraft.dateRibbon}
+                            onChange={(event) => updateOrganizerWizardDraft({ eventDateAt: event.target.value })}
+                            type="datetime-local"
+                            value={organizerWizardDraft.eventDateAt}
                           />
                         </label>
                         <div className="organizer-step-actions">
@@ -3963,10 +4028,11 @@ export default function App() {
                           />
                         </label>
                         <label className="organizer-field">
-                          <span>Schedule label</span>
+                          <span>Race start date & time</span>
                           <input
-                            onChange={(event) => updateOrganizerWizardDraft({ firstRaceScheduleLabel: event.target.value })}
-                            value={organizerWizardDraft.firstRaceScheduleLabel}
+                            onChange={(event) => updateOrganizerWizardDraft({ firstRaceStartAt: event.target.value })}
+                            type="datetime-local"
+                            value={organizerWizardDraft.firstRaceStartAt}
                           />
                         </label>
                         <label className="organizer-field">
@@ -3990,11 +4056,12 @@ export default function App() {
                           <select
                             onChange={(event) =>
                               updateOrganizerWizardDraft({
-                                firstRaceEditionLabel: event.target.value === "Finished" ? "Finished" : "Live"
+                                firstRaceEditionLabel: normalizeOrganizerRaceStateLabel(event.target.value)
                               })
                             }
                             value={organizerWizardDraft.firstRaceEditionLabel}
                           >
+                            <option value="Upcoming">Upcoming</option>
                             <option value="Live">Live</option>
                             <option value="Finished">Finished</option>
                           </select>
@@ -4044,6 +4111,7 @@ export default function App() {
                             <span className="detail-label">Event</span>
                             <h3>{organizerWizardDraft.homeTitle || organizerWizardDraft.brandName || "Untitled event"}</h3>
                             <p>{organizerWizardDraft.locationRibbon}</p>
+                            <p>{formatOrganizerDateRibbon(organizerWizardDraft.eventDateAt)}</p>
                           </article>
                           <article className="organizer-home-card">
                             <span className="detail-label">First category</span>
@@ -4052,6 +4120,7 @@ export default function App() {
                               {organizerWizardDraft.firstRaceDistanceKm} km · {organizerWizardDraft.firstRaceAscentM} m+
                             </p>
                             <p>{getWizardRaceModeSummary(organizerWizardDraft)}</p>
+                            <p>{organizerWizardDraft.firstRaceScheduleLabel}</p>
                           </article>
                         </div>
                         <div className="organizer-import-note">
@@ -5585,6 +5654,24 @@ export default function App() {
         )}
       </section>
 
+      <section className="panel menu-feature-panel race-upcoming-panel" hidden={raceDetailView !== "race-page" || !isActiveRaceUpcoming} id="race-upcoming">
+        <div className="panel-head compact">
+          <div>
+            <p className="section-label">Follow the race</p>
+            <h3>Race upcoming</h3>
+          </div>
+          <div className="panel-badge compact-badge">
+            <span>Status</span>
+            <strong>Upcoming</strong>
+            <span>{selectedRaceCard.scheduleLabel}</span>
+          </div>
+        </div>
+
+        <div className="empty-compact">
+          Live tracking and ranking will appear here after the race starts. For now, spectators can review the course, checkpoints, and event details.
+        </div>
+      </section>
+
       <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "race-page" || !isActiveRaceLive} id="race-leaders">
         <div className="panel-head compact">
           <div>
@@ -5673,7 +5760,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "race-page" || isActiveRaceLive} id="race-ranking-preview">
+      <section className="panel menu-feature-panel race-leaders-panel" hidden={raceDetailView !== "race-page" || !isActiveRaceFinished} id="race-ranking-preview">
         <div className="panel-head compact">
           <div>
             <p className="section-label">Follow the race</p>
@@ -5879,7 +5966,7 @@ export default function App() {
                     const canShowPodium = shouldShowLivePodium(
                       entry.rank ?? 0,
                       entry.checkpointId ?? "",
-                        (visibleRaces.find((race) => race.slug === entry.raceSlug)?.editionLabel.toLowerCase() ?? "finished") === "live"
+                        isOrganizerRaceLiveState(visibleRaces.find((race) => race.slug === entry.raceSlug)?.editionLabel)
                     );
 
                     return (

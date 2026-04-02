@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { DemoRaceCard, DemoRaceRankingPreview } from "./demoRaceFestival";
 import { EditionHeroBanner } from "./EditionHeroBanner";
+import { getOrganizerRaceStateTone, isOrganizerRaceFinishedState, isOrganizerRaceLiveState, isOrganizerRaceUpcomingState } from "./organizerSetup";
 import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
@@ -119,6 +120,18 @@ function getPreviewStatusLabel(entry: DemoRaceRankingPreview, isLiveCard: boolea
   return "In race";
 }
 
+function getRaceCardCtaLabel(editionLabel: string) {
+  if (isOrganizerRaceLiveState(editionLabel)) {
+    return "Open Race Live";
+  }
+
+  if (isOrganizerRaceFinishedState(editionLabel)) {
+    return "View Results";
+  }
+
+  return "View Course";
+}
+
 function PreviewPodium({ rank }: { rank: number }) {
   const icon = rank === 1 ? podium1stIcon : rank === 2 ? podium2ndIcon : rank === 3 ? podium3rdIcon : null;
 
@@ -174,7 +187,10 @@ export function RaceEditionHome({
           </article>
         ) : null}
         {cards.map((card) => {
-          const isLiveCard = card.editionLabel.toLowerCase() === "live";
+          const cardStateTone = getOrganizerRaceStateTone(card.editionLabel);
+          const isLiveCard = cardStateTone === "live";
+          const isFinishedCard = cardStateTone === "finished";
+          const isUpcomingCard = isOrganizerRaceUpcomingState(card.editionLabel);
           const sparkline = buildSparkline(card.profileSeed);
           const cardStyle = {
             "--race-accent": card.accent,
@@ -183,13 +199,17 @@ export function RaceEditionHome({
 
           return (
             <article
-              className={`race-card ${card.isSelected ? "selected" : ""} ${isLiveCard ? "race-card-live" : "race-card-finished"}`}
+              className={`race-card ${card.isSelected ? "selected" : ""} ${
+                isLiveCard ? "race-card-live" : isFinishedCard ? "race-card-finished" : "race-card-upcoming"
+              }`}
               key={card.slug}
               role="listitem"
               style={cardStyle}
             >
               <div className="race-card-topline">
-                <span className={`race-status-pill ${isLiveCard ? "live-card" : "finished-card"}`}>{isLiveCard ? "LIVE" : "FINISHED"}</span>
+                <span className={`race-status-pill ${isLiveCard ? "live-card" : isFinishedCard ? "finished-card" : "upcoming-card"}`}>
+                  {isLiveCard ? "LIVE" : isFinishedCard ? "FINISHED" : "UPCOMING"}
+                </span>
                 {card.modeLabel ? <span className="race-status-pill neutral-card">{card.modeLabel}</span> : null}
               </div>
 
@@ -234,14 +254,16 @@ export function RaceEditionHome({
 
               <div className="race-card-ranking">
                 <div className="race-card-ranking-head">
-                  <strong>{isLiveCard ? "Leading" : "Ranking"}</strong>
+                  <strong>{isLiveCard ? "Leading" : isFinishedCard ? "Ranking" : "Starting soon"}</strong>
                   <div className="race-card-segments">
                     <span className="active">Overall</span>
                     <span>Women</span>
                   </div>
                 </div>
 
-                {card.rankingPreview.length ? (
+                {isUpcomingCard ? (
+                  <div className="race-card-empty">Course info is ready. Live timing will appear after the race starts.</div>
+                ) : card.rankingPreview.length ? (
                   <div className="race-card-ranking-list">
                     {card.rankingPreview.slice(0, 3).map((entry, index) => (
                       <div className="race-card-ranking-row" key={`${card.slug}-${entry.rank}-${entry.bib}`}>
@@ -263,7 +285,7 @@ export function RaceEditionHome({
               </div>
 
               <button className="race-card-cta" onClick={() => onOpenRace(card.slug)} type="button">
-                {isLiveCard ? "Open Race Live" : "View Results"}
+                {getRaceCardCtaLabel(card.editionLabel)}
               </button>
             </article>
           );

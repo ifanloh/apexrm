@@ -3,9 +3,17 @@ import type { DemoCourseCheckpoint } from "./demoCourseVariants";
 import {
   createParticipantImportTemplateCsv,
   createParticipantImportTemplateWorkbook,
+  formatOrganizerDateRibbon,
+  formatOrganizerScheduleLabel,
   getOrganizerRaceDistanceSummary,
   getOrganizerRaceModeLabel,
   getOrganizerRaceModeSummary,
+  getOrganizerRaceStateTone,
+  isOrganizerRaceFinishedState,
+  isOrganizerRaceLiveState,
+  isOrganizerRaceUpcomingState,
+  normalizeOrganizerDateTimeInputValue,
+  normalizeOrganizerRaceStateLabel,
   type OrganizerBrandingDraft,
   type OrganizerCrewAssignmentDraft,
   type OrganizerParticipantImportMode,
@@ -349,8 +357,9 @@ export function OrganizerConsole({
     .filter((item) => !item.ready || !item.race.isPublished);
   const publishedRaceCount = races.filter((race) => race.isPublished).length;
   const draftRaceCount = races.length - publishedRaceCount;
-  const liveRaceCount = races.filter((race) => race.editionLabel.toLowerCase() === "live").length;
-  const finishedRaceCount = races.filter((race) => race.editionLabel.toLowerCase() === "finished").length;
+  const liveRaceCount = races.filter((race) => isOrganizerRaceLiveState(race.editionLabel)).length;
+  const upcomingRaceCount = races.filter((race) => isOrganizerRaceUpcomingState(race.editionLabel)).length;
+  const finishedRaceCount = races.filter((race) => isOrganizerRaceFinishedState(race.editionLabel)).length;
   const blockerCounts = blockedRaceReadiness
     .flatMap((item) => item.blockedChecks.map((check) => check.label))
     .reduce<Record<string, number>>((accumulator, label) => {
@@ -659,7 +668,7 @@ export function OrganizerConsole({
               <p className="organizer-launch-copy">
                 {primaryBlocker
                   ? `${primaryBlocker[1]} categories still need this item before they can be published.`
-                  : `${liveRaceCount} live categories and ${finishedRaceCount} finished categories are already aligned for spectator view.`}
+                      : `${liveRaceCount} live, ${upcomingRaceCount} upcoming, and ${finishedRaceCount} finished categories are aligned for spectator view.`}
               </p>
               <div className="organizer-launch-tags">
                 {topBlockers.length > 1 ? (
@@ -1030,8 +1039,17 @@ export function OrganizerConsole({
               <textarea rows={3} value={branding.homeSubtitle} onChange={(event) => onBrandingChange({ homeSubtitle: event.target.value })} />
             </label>
             <label className="organizer-field">
-              <span>Date ribbon</span>
-              <input value={branding.dateRibbon} onChange={(event) => onBrandingChange({ dateRibbon: event.target.value })} />
+              <span>Event date & time</span>
+              <input
+                onChange={(event) =>
+                  onBrandingChange({
+                    eventDateAt: normalizeOrganizerDateTimeInputValue(event.target.value, branding.eventDateAt),
+                    dateRibbon: formatOrganizerDateRibbon(event.target.value)
+                  })
+                }
+                type="datetime-local"
+                value={normalizeOrganizerDateTimeInputValue(branding.eventDateAt)}
+              />
             </label>
             <label className="organizer-field">
               <span>Location ribbon</span>
@@ -1202,7 +1220,7 @@ export function OrganizerConsole({
               </label>
               {selectedRace ? (
                 <div className="organizer-race-toolbar-actions">
-                  <span className={`organizer-status-pill ${selectedRace.editionLabel.toLowerCase() === "live" ? "live" : "finished"}`}>
+                  <span className={`organizer-status-pill ${getOrganizerRaceStateTone(selectedRace.editionLabel)}`}>
                     {selectedRace.editionLabel}
                   </span>
                   <span className="organizer-status-pill published">{getOrganizerRaceModeLabel(selectedRace.raceMode)}</span>
@@ -1264,7 +1282,11 @@ export function OrganizerConsole({
                     </label>
                     <label className="organizer-field">
                       <span>Status</span>
-                      <select value={selectedRace.editionLabel} onChange={(event) => onRaceChange(selectedRace.slug, { editionLabel: event.target.value })}>
+                      <select
+                        value={selectedRace.editionLabel}
+                        onChange={(event) => onRaceChange(selectedRace.slug, { editionLabel: normalizeOrganizerRaceStateLabel(event.target.value) })}
+                      >
+                        <option value="Upcoming">Upcoming</option>
                         <option value="Live">Live</option>
                         <option value="Finished">Finished</option>
                       </select>
@@ -1289,12 +1311,17 @@ export function OrganizerConsole({
                       </select>
                     </label>
                     <label className="organizer-field">
-                      <span>Schedule</span>
-                      <input value={selectedRace.scheduleLabel} onChange={(event) => onRaceChange(selectedRace.slug, { scheduleLabel: event.target.value })} />
-                    </label>
-                    <label className="organizer-field">
-                      <span>Start ISO time</span>
-                      <input value={selectedRace.startAt} onChange={(event) => onRaceChange(selectedRace.slug, { startAt: event.target.value })} />
+                      <span>Race start date & time</span>
+                      <input
+                        onChange={(event) =>
+                          onRaceChange(selectedRace.slug, {
+                            startAt: normalizeOrganizerDateTimeInputValue(event.target.value, selectedRace.startAt),
+                            scheduleLabel: formatOrganizerScheduleLabel(event.target.value)
+                          })
+                        }
+                        type="datetime-local"
+                        value={normalizeOrganizerDateTimeInputValue(selectedRace.startAt)}
+                      />
                     </label>
                     <label className="organizer-field">
                       <span>Start town</span>

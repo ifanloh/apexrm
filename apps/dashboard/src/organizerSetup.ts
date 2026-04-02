@@ -14,6 +14,7 @@ export type OrganizerBrandingDraft = {
   bannerTagline: string;
   homeTitle: string;
   homeSubtitle: string;
+  eventDateAt: string;
   dateRibbon: string;
   locationRibbon: string;
   eventLogoDataUrl: string | null;
@@ -23,6 +24,7 @@ export type OrganizerBrandingDraft = {
 };
 
 export type OrganizerRaceMode = "standard" | "loop-fixed-laps" | "loop-fixed-time" | "relay";
+export type OrganizerRaceState = "Upcoming" | "Live" | "Finished";
 
 export type OrganizerRaceDraft = {
   slug: string;
@@ -124,6 +126,121 @@ const PARTICIPANT_TEMPLATE_SAMPLE_ROWS = [
   ["", "", "", "", ""],
   ["", "", "", "", ""]
 ];
+const DEFAULT_ORGANIZER_EVENT_DATETIME = "2026-07-05T05:00";
+const DEFAULT_ORGANIZER_RACE_DATETIME = "2026-07-05T05:00";
+
+function padDateTimePart(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function toLocalDateTimeInputValue(date: Date) {
+  return `${date.getFullYear()}-${padDateTimePart(date.getMonth() + 1)}-${padDateTimePart(date.getDate())}T${padDateTimePart(date.getHours())}:${padDateTimePart(date.getMinutes())}`;
+}
+
+export function normalizeOrganizerDateTimeInputValue(value?: string | null, fallback = DEFAULT_ORGANIZER_RACE_DATETIME) {
+  const normalized = String(value ?? "").trim();
+
+  if (!normalized) {
+    return fallback;
+  }
+
+  const parsed = new Date(normalized);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return fallback;
+  }
+
+  return toLocalDateTimeInputValue(parsed);
+}
+
+export function formatOrganizerDateRibbon(value?: string | null) {
+  const normalized = String(value ?? "").trim();
+
+  if (!normalized) {
+    return "Set event date";
+  }
+
+  const parsed = new Date(normalized);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "Set event date";
+  }
+
+  return parsed.toLocaleString([], {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+export function formatOrganizerScheduleLabel(value?: string | null) {
+  const normalized = String(value ?? "").trim();
+
+  if (!normalized) {
+    return "Set start time";
+  }
+
+  const parsed = new Date(normalized);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "Set start time";
+  }
+
+  return parsed.toLocaleString([], {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+export function normalizeOrganizerRaceStateLabel(value?: string | null): OrganizerRaceState {
+  const normalized = String(value ?? "").trim().toLowerCase();
+
+  if (normalized === "finished") {
+    return "Finished";
+  }
+
+  if (normalized === "upcoming") {
+    return "Upcoming";
+  }
+
+  if (normalized === "live") {
+    return "Live";
+  }
+
+  return "Upcoming";
+}
+
+export function isOrganizerRaceLiveState(value?: string | null) {
+  return normalizeOrganizerRaceStateLabel(value) === "Live";
+}
+
+export function isOrganizerRaceFinishedState(value?: string | null) {
+  return normalizeOrganizerRaceStateLabel(value) === "Finished";
+}
+
+export function isOrganizerRaceUpcomingState(value?: string | null) {
+  return normalizeOrganizerRaceStateLabel(value) === "Upcoming";
+}
+
+export function getOrganizerRaceStateTone(value?: string | null) {
+  const normalized = normalizeOrganizerRaceStateLabel(value);
+
+  if (normalized === "Finished") {
+    return "finished";
+  }
+
+  if (normalized === "Upcoming") {
+    return "upcoming";
+  }
+
+  return "live";
+}
 
 export function createParticipantImportTemplateCsv() {
   return [PARTICIPANT_TEMPLATE_HEADERS.join(","), ...PARTICIPANT_TEMPLATE_SAMPLE_ROWS.map((row) => row.join(","))].join("\n");
@@ -256,10 +373,10 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
     slug: race.slug,
     title: race.title,
     isPublished: true,
-    editionLabel: race.editionLabel,
+    editionLabel: normalizeOrganizerRaceStateLabel(race.editionLabel),
     raceMode: "standard",
-    scheduleLabel: race.scheduleLabel,
-    startAt: race.startAt,
+    scheduleLabel: race.scheduleLabel || formatOrganizerScheduleLabel(race.startAt),
+    startAt: normalizeOrganizerDateTimeInputValue(race.startAt),
     startTown: race.startTown,
     courseDescription: race.courseDescription,
     courseHighlights: race.courseHighlights,
@@ -320,10 +437,10 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
     slug,
     title: `Custom Race ${index}`,
     isPublished: false,
-    editionLabel: "Live",
+    editionLabel: "Upcoming",
     raceMode: "standard",
-    scheduleLabel: "Sun 01 Jan 05:00",
-    startAt: "2026-01-01T05:00:00+07:00",
+    scheduleLabel: formatOrganizerScheduleLabel(DEFAULT_ORGANIZER_RACE_DATETIME),
+    startAt: DEFAULT_ORGANIZER_RACE_DATETIME,
     startTown: "Start Town",
     courseDescription: "Describe this course for spectators. Include terrain, challenge profile, and what makes this category unique.",
     courseHighlights: ["Signature climb", "Technical descent", "Scenic finish"],
@@ -351,6 +468,7 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
 }
 
 export function createEmptyOrganizerSetup(): OrganizerSetupDraft {
+  const eventDateAt = DEFAULT_ORGANIZER_EVENT_DATETIME;
   return {
     branding: {
       organizerName: "Trailnesia Organizer",
@@ -361,7 +479,8 @@ export function createEmptyOrganizerSetup(): OrganizerSetupDraft {
       bannerTagline: "Organizer edition hub",
       homeTitle: "Race Categories",
       homeSubtitle: "No published race categories yet. Add race categories and publish them when they are ready.",
-      dateRibbon: "Set event date",
+      eventDateAt,
+      dateRibbon: formatOrganizerDateRibbon(eventDateAt),
       locationRibbon: "Set event location",
       eventLogoDataUrl: null,
       heroBackgroundImageDataUrl: null,
@@ -391,12 +510,17 @@ function normalizeOrganizerSetupDraft(parsed?: Partial<OrganizerSetupDraft> | nu
   return {
     branding: {
       ...fallback.branding,
-      ...(parsed?.branding ?? {})
+      ...(parsed?.branding ?? {}),
+      eventDateAt: normalizeOrganizerDateTimeInputValue(parsed?.branding?.eventDateAt, parsed?.races?.[0]?.startAt ?? fallback.branding.eventDateAt),
+      dateRibbon: formatOrganizerDateRibbon(parsed?.branding?.eventDateAt ?? parsed?.races?.[0]?.startAt ?? fallback.branding.eventDateAt)
     },
     races: (parsed?.races ?? []).filter((race) => race.slug).map((race, index) => ({
       ...createOrganizerRaceTemplate(index + 1),
       ...race,
+      editionLabel: normalizeOrganizerRaceStateLabel(race.editionLabel),
       raceMode: normalizeRaceMode(race.raceMode),
+      startAt: normalizeOrganizerDateTimeInputValue(race.startAt, createOrganizerRaceTemplate(index + 1).startAt),
+      scheduleLabel: String(race.scheduleLabel ?? "").trim() || formatOrganizerScheduleLabel(race.startAt),
       loopTargetLaps: normalizePositiveWholeNumber(race.loopTargetLaps),
       loopTimeLimitHours: normalizePositiveWholeNumber(race.loopTimeLimitHours),
       relayLegCount: normalizePositiveWholeNumber(race.relayLegCount),

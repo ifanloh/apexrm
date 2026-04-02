@@ -6029,6 +6029,12 @@ body {
   color: #0c8754 !important;
 }
 
+.race-card-upcoming .race-status-pill.upcoming-card {
+  background: rgba(183, 120, 23, 0.14) !important;
+  border-color: rgba(183, 120, 23, 0.28) !important;
+  color: #98620f !important;
+}
+
 .race-status-pill.live {
   background: rgba(231, 62, 62, 0.16) !important;
   border-color: rgba(231, 62, 62, 0.34) !important;
@@ -6976,6 +6982,16 @@ body {
   font: inherit;
 }
 
+.organizer-field input[type="datetime-local"] {
+  appearance: none;
+  min-height: 52px;
+}
+
+.organizer-field input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.72;
+}
+
 .organizer-field textarea {
   resize: vertical;
   min-height: 104px;
@@ -7302,6 +7318,11 @@ body {
 .organizer-status-pill.finished {
   background: rgba(39, 197, 95, 0.14);
   color: #147a3b;
+}
+
+.organizer-status-pill.upcoming {
+  background: rgba(183, 120, 23, 0.14);
+  color: #98620f;
 }
 
 .organizer-status-pill.draft {

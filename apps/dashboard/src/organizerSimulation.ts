@@ -6,6 +6,7 @@ import type {
   OrganizerSetupDraft,
   OrganizerSimulatedScanDraft
 } from "./organizerSetup";
+import { isOrganizerRaceFinishedState } from "./organizerSetup";
 
 export type OrganizerRaceSimulationSnapshot = {
   overallLeaderboard: OverallLeaderboard;
@@ -72,7 +73,7 @@ export function buildOrganizerTrialScenario(race: OrganizerRaceDraft): Organizer
 
   const [p1, p2, p3, p4, p5] = race.participants.slice(0, 5);
   const scans: Array<OrganizerSimulatedScanDraft | null> = [];
-  const finishedScenario = race.editionLabel.toLowerCase() === "finished";
+  const finishedScenario = isOrganizerRaceFinishedState(race.editionLabel);
 
   if (p1) {
     scans.push(

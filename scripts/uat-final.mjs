@@ -111,7 +111,11 @@ async function runOrganizerBrowserChecks() {
     await page.getByLabel("Organizer name").fill("UAT Organizer");
     await page.getByLabel("Event brand").fill(`UAT ${organizerSeed}`);
     await page.getByLabel("Edition label").fill("Edition UAT");
-    await page.getByLabel("Date ribbon").fill("Nov 2026");
+    if (await page.getByLabel("Event date & time").count()) {
+      await page.getByLabel("Event date & time").fill("2026-11-01T05:00");
+    } else {
+      await page.getByLabel("Date ribbon").fill("Nov 2026");
+    }
     await page.getByRole("button", { name: "Continue to branding" }).click();
     await page.getByLabel("Home title").fill(`UAT ${organizerSeed} Home`);
     await page.getByLabel("Home subtitle").fill("UAT organizer draft created from the first-event wizard.");
@@ -122,7 +126,11 @@ async function runOrganizerBrowserChecks() {
     await page.getByLabel("Distance (km)").fill("50");
     await page.getByLabel("Ascent (m+)").fill("2000");
     await page.getByLabel("Start town").fill("Basecamp");
-    await page.getByLabel("Schedule label").fill("Sat 04:00");
+    if (await page.getByLabel("Race start date & time").count()) {
+      await page.getByLabel("Race start date & time").fill("2026-11-01T05:00");
+    } else {
+      await page.getByLabel("Schedule label").fill("Sat 04:00");
+    }
     await page.getByRole("button", { name: "Continue to review" }).click();
     await page.getByRole("button", { name: "Create event draft" }).click();
   }
