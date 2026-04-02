@@ -7972,41 +7972,163 @@ body {
 .live-main > .platform-home-shell {
   margin-left: auto;
   margin-right: auto;
-  max-width: 1160px;
+  max-width: 1260px;
   width: 100%;
 }
 
 .platform-home-shell {
   display: grid;
-  gap: 1.35rem;
-  padding: 20px 0 28px;
+  gap: 1.5rem;
+  padding: 22px 0 34px;
 }
 
-.platform-home-hero,
-.platform-home-empty {
+.platform-home-empty,
+.platform-discovery-panel,
+.platform-home-section {
   display: grid;
-  gap: 0.55rem;
-  padding: 1.15rem 1.2rem;
-  border-radius: 22px;
+  gap: 1rem;
+  padding: 1.2rem 1.25rem;
+  border-radius: 24px;
   border: 1px solid rgba(20, 22, 24, 0.08);
-  background: rgba(255, 253, 249, 0.94);
+  background: rgba(255, 253, 249, 0.96);
   box-shadow: 0 14px 28px rgba(44, 29, 12, 0.05);
 }
 
-.platform-home-hero h2,
+.platform-home-hero {
+  align-items: end;
+  background:
+    linear-gradient(125deg, rgba(9, 22, 22, 0.92), rgba(9, 22, 22, 0.58)),
+    radial-gradient(circle at left bottom, rgba(13, 167, 211, 0.2), transparent 40%),
+    linear-gradient(135deg, #0d2d2f, #12352c 56%, #1f4837);
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  border-radius: 28px;
+  box-shadow: 0 18px 34px rgba(21, 26, 23, 0.14);
+  gap: 0.9rem;
+  display: flex;
+  min-height: 380px;
+  overflow: hidden;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.platform-home-hero-image,
+.platform-home-hero-overlay {
+  inset: 0;
+  position: absolute;
+}
+
+.platform-home-hero-image {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.platform-home-hero-overlay {
+  background:
+    linear-gradient(90deg, rgba(7, 15, 16, 0.84) 0%, rgba(7, 15, 16, 0.52) 38%, rgba(7, 15, 16, 0.18) 100%),
+    linear-gradient(180deg, rgba(18, 169, 204, 0.16), transparent 62%);
+}
+
+.platform-home-hero-copy,
+.platform-home-highlight-card {
+  position: relative;
+  z-index: 1;
+}
+
+.platform-home-hero-copy {
+  display: grid;
+  gap: 1rem;
+  max-width: 580px;
+}
+
+.platform-home-hero-copy .detail-label {
+  color: rgba(255, 241, 209, 0.8);
+}
+
+.platform-home-hero-copy h2,
 .platform-home-empty h3,
 .platform-home-empty p {
   margin: 0;
 }
 
-.platform-home-sections {
-  display: grid;
-  gap: 1.2rem;
+.platform-home-hero-copy h2 {
+  color: #fff8ec;
+  font-size: clamp(2.4rem, 5vw, 4.1rem);
+  line-height: 0.94;
+  max-width: 10ch;
+  text-transform: uppercase;
 }
 
-.platform-home-section {
+.platform-home-hero-copy p {
+  color: rgba(255, 244, 223, 0.82);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 34rem;
+}
+
+.platform-home-search {
+  max-width: 420px;
+}
+
+.platform-home-search input {
+  width: 100%;
+  min-height: 54px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(247, 248, 244, 0.92);
+  color: #1f1d19;
+  font: inherit;
+  padding: 0 1rem;
+}
+
+.platform-home-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.platform-home-kpis span {
+  min-height: 32px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f7eed6;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.platform-home-highlight-card {
+  margin-left: auto;
+  width: min(100%, 310px);
+  padding: 1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 19, 16, 0.66);
+  backdrop-filter: blur(10px);
+  color: #fff7ea;
   display: grid;
-  gap: 0.9rem;
+  gap: 0.45rem;
+  align-self: end;
+}
+
+.platform-home-highlight-card strong,
+.platform-home-highlight-card p,
+.platform-home-highlight-card span {
+  margin: 0;
+}
+
+.platform-home-highlight-card strong {
+  font-size: 1.15rem;
+}
+
+.platform-home-highlight-card p,
+.platform-home-highlight-card span:last-child {
+  color: rgba(255, 242, 219, 0.8);
+  font-size: 0.86rem;
 }
 
 .platform-home-section-head {
@@ -8026,10 +8148,129 @@ body {
   max-width: 38rem;
 }
 
+.platform-discovery-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.9fr);
+}
+
+.platform-indonesia-map-card {
+  position: relative;
+  min-height: 340px;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  background:
+    radial-gradient(circle at top left, rgba(44, 169, 209, 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(236, 247, 255, 0.94), rgba(242, 251, 255, 0.96));
+}
+
+.platform-indonesia-map {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.platform-region-badge {
+  position: absolute;
+  min-width: 70px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 18px;
+  background: rgba(15, 20, 19, 0.92);
+  color: #fff8ec;
+  display: grid;
+  gap: 0.08rem;
+  justify-items: center;
+  box-shadow: 0 14px 24px rgba(18, 20, 18, 0.22);
+}
+
+.platform-region-badge strong {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.platform-region-badge span {
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.platform-region-badge.region-sumatra {
+  left: 11%;
+  top: 38%;
+}
+
+.platform-region-badge.region-java-bali {
+  left: 28%;
+  top: 67%;
+}
+
+.platform-region-badge.region-kalimantan {
+  left: 40%;
+  top: 24%;
+}
+
+.platform-region-badge.region-sulawesi {
+  left: 58%;
+  top: 30%;
+}
+
+.platform-region-badge.region-nusa-tenggara {
+  left: 56%;
+  top: 69%;
+}
+
+.platform-region-badge.region-papua-maluku {
+  left: 77%;
+  top: 31%;
+}
+
+.platform-discovery-stats {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.platform-discovery-stat-card {
+  min-height: 0;
+  padding: 1rem 1.05rem;
+  border-radius: 20px;
+  border: 1px solid rgba(20, 22, 24, 0.08);
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(250, 246, 238, 0.95));
+  display: grid;
+  gap: 0.35rem;
+}
+
+.platform-discovery-stat-card span,
+.platform-discovery-stat-card p {
+  margin: 0;
+}
+
+.platform-discovery-stat-card span {
+  color: rgba(31, 29, 25, 0.54);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.platform-discovery-stat-card strong {
+  color: #134a3d;
+  font-size: 2.15rem;
+  line-height: 1;
+}
+
+.platform-discovery-stat-card p {
+  color: rgba(31, 29, 25, 0.66);
+  line-height: 1.55;
+}
+
 .platform-event-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
 }
 
 .platform-event-card {
@@ -8047,9 +8288,9 @@ body {
 
 .platform-event-card-media {
   background:
-    linear-gradient(135deg, rgba(12, 107, 84, 0.82), rgba(24, 48, 33, 0.78)),
-    radial-gradient(circle at top right, rgba(214, 163, 65, 0.28), transparent 48%);
-  min-height: 136px;
+    linear-gradient(135deg, rgba(12, 107, 84, 0.84), rgba(24, 48, 33, 0.72)),
+    radial-gradient(circle at top right, rgba(214, 163, 65, 0.3), transparent 50%);
+  min-height: 168px;
   padding: 0.9rem;
   position: relative;
 }
@@ -8063,7 +8304,7 @@ body {
 }
 
 .platform-event-card-overlay {
-  background: linear-gradient(180deg, rgba(17, 22, 18, 0.12), rgba(17, 22, 18, 0.48));
+  background: linear-gradient(180deg, rgba(17, 22, 18, 0.14), rgba(17, 22, 18, 0.56));
   inset: 0;
   position: absolute;
 }
@@ -8138,10 +8379,62 @@ body {
   padding: 0 0.72rem;
 }
 
+@media (max-width: 980px) {
+  .platform-home-hero {
+    display: grid;
+    min-height: 0;
+  }
+
+  .platform-home-highlight-card {
+    margin-left: 0;
+    width: min(100%, 320px);
+  }
+
+  .platform-discovery-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 860px) {
   .platform-home-section-head {
     align-items: start;
     flex-direction: column;
+  }
+
+  .platform-home-hero-copy h2 {
+    max-width: none;
+  }
+
+  .platform-home-kpis {
+    gap: 0.45rem;
+  }
+
+  .platform-region-badge {
+    transform: scale(0.9);
+    transform-origin: top left;
+  }
+}
+
+@media (max-width: 640px) {
+  .platform-home-hero {
+    padding: 1.15rem;
+  }
+
+  .platform-home-search input {
+    min-height: 48px;
+  }
+
+  .platform-indonesia-map-card {
+    min-height: 280px;
+  }
+
+  .platform-region-badge {
+    min-width: 58px;
+    padding: 0.42rem 0.5rem;
+  }
+
+  .platform-region-badge span {
+    font-size: 0.58rem;
   }
 }
 

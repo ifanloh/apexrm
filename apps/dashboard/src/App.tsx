@@ -28,6 +28,7 @@ import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
 import trailnesiaLogo from "./assets/trailnesia.png";
+import indonesiaMapSvg from "./assets/indonesia-map.svg";
 import worldMapSvgRaw from "./assets/world-map-detailed.svg?raw";
 import { getDemoCourseForRace, type DemoCourse } from "./demoCourseVariants";
 import { type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
@@ -84,6 +85,43 @@ const OrganizerConsole = lazy(() =>
     default: module.OrganizerConsole
   }))
 );
+
+type PlatformRegionKey = "sumatra" | "java-bali" | "kalimantan" | "sulawesi" | "nusa-tenggara" | "papua-maluku";
+
+const PLATFORM_HOME_REGIONS: { key: PlatformRegionKey; label: string }[] = [
+  { key: "sumatra", label: "Sumatra" },
+  { key: "java-bali", label: "Java & Bali" },
+  { key: "kalimantan", label: "Kalimantan" },
+  { key: "sulawesi", label: "Sulawesi" },
+  { key: "nusa-tenggara", label: "Nusa Tenggara" },
+  { key: "papua-maluku", label: "Papua & Maluku" }
+];
+
+function getPlatformRegionKey(location: string): PlatformRegionKey {
+  const normalized = location.trim().toLowerCase();
+
+  if (/(aceh|medan|sumatra|sumatera|padang|pekanbaru|riau|jambi|palembang|lampung|batam|bengkulu)/.test(normalized)) {
+    return "sumatra";
+  }
+
+  if (/(jakarta|bogor|depok|bekasi|bandung|tasik|cirebon|semarang|solo|jogja|yogyakarta|surabaya|malang|kediri|banyuwangi|java|jawa|bali|denpasar|ubud)/.test(normalized)) {
+    return "java-bali";
+  }
+
+  if (/(kalimantan|pontianak|banjarmasin|samarinda|balikpapan|tarakan|palangkaraya)/.test(normalized)) {
+    return "kalimantan";
+  }
+
+  if (/(sulawesi|makassar|manado|palu|kendari|gorontalo|toraja|parepare)/.test(normalized)) {
+    return "sulawesi";
+  }
+
+  if (/(lombok|mataram|sumbawa|flores|labuan bajo|labuan bajo|ntb|ntt|kupang|sumba|ende|komodo)/.test(normalized)) {
+    return "nusa-tenggara";
+  }
+
+  return "papua-maluku";
+}
 
 const emptyOverallLeaderboard: OverallLeaderboard = {
   totalRankedRunners: 0,
@@ -1148,6 +1186,7 @@ export default function App() {
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
   const [isTopbarMenuOpen, setIsTopbarMenuOpen] = useState(false);
+  const [platformEventQuery, setPlatformEventQuery] = useState("");
   const topbarMenuRef = useRef<HTMLDivElement | null>(null);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
@@ -2794,14 +2833,56 @@ export default function App() {
       }),
     [publicVisibleEvents]
   );
-  const livePlatformEvents = publicEventCards.filter((event) => event.publicStatus === "live");
-  const upcomingPlatformEvents = publicEventCards.filter((event) => event.publicStatus === "upcoming");
-  const finishedPlatformEvents = publicEventCards.filter((event) => event.publicStatus === "finished");
-  const platformHomeSections = [
-    { title: "Live Now", items: livePlatformEvents, copy: "Events with at least one race category currently live." },
-    { title: "Upcoming", items: upcomingPlatformEvents, copy: "Events that have published race categories scheduled to start later." },
-    { title: "Recent Results", items: finishedPlatformEvents, copy: "Finished events with results available for spectators." }
-  ];
+  const filteredPublicEventCards = useMemo(() => {
+    const normalizedQuery = platformEventQuery.trim().toLowerCase();
+    const statusWeight: Record<OrganizerPublicEventStatus, number> = { hidden: 3, live: 0, upcoming: 1, finished: 2 };
+
+    return publicEventCards
+      .filter((event) => {
+        if (!normalizedQuery) {
+          return true;
+        }
+
+        return [
+          event.title,
+          event.organizerName,
+          event.locationRibbon,
+          event.dateRibbon,
+          event.bannerTagline,
+          event.homeSubtitle
+        ]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(normalizedQuery));
+      })
+      .sort((left, right) => {
+        const byStatus = statusWeight[left.publicStatus] - statusWeight[right.publicStatus];
+
+        if (byStatus !== 0) {
+          return byStatus;
+        }
+
+        return left.title.localeCompare(right.title);
+      });
+  }, [platformEventQuery, publicEventCards]);
+  const livePlatformEvents = filteredPublicEventCards.filter((event) => event.publicStatus === "live");
+  const upcomingPlatformEvents = filteredPublicEventCards.filter((event) => event.publicStatus === "upcoming");
+  const finishedPlatformEvents = filteredPublicEventCards.filter((event) => event.publicStatus === "finished");
+  const platformHeroEvent =
+    livePlatformEvents[0] ?? upcomingPlatformEvents[0] ?? finishedPlatformEvents[0] ?? filteredPublicEventCards[0] ?? null;
+  const platformPublishedRaceCount = filteredPublicEventCards.reduce((sum, event) => sum + event.publishedRaceCount, 0);
+  const platformRegionSummary = useMemo(() => {
+    const counts = new Map<PlatformRegionKey, number>();
+
+    filteredPublicEventCards.forEach((event) => {
+      const regionKey = getPlatformRegionKey(event.locationRibbon);
+      counts.set(regionKey, (counts.get(regionKey) ?? 0) + 1);
+    });
+
+    return PLATFORM_HOME_REGIONS.map((region) => ({
+      ...region,
+      count: counts.get(region.key) ?? 0
+    })).filter((region) => region.count > 0);
+  }, [filteredPublicEventCards]);
   const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0 && organizerWizardDraft.eventDateAt.trim().length > 0;
   const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
   const organizerWizardModeReady =
@@ -4028,11 +4109,44 @@ export default function App() {
         {showPlatformHome ? (
           <section className="platform-home-shell" id="platform-home">
             <div className="platform-home-hero">
-              <div>
+              {platformHeroEvent?.heroBackgroundImageDataUrl ? (
+                <img alt="" className="platform-home-hero-image" src={platformHeroEvent.heroBackgroundImageDataUrl} />
+              ) : null}
+              <div className="platform-home-hero-overlay" />
+              <div className="platform-home-hero-copy">
                 <span className="detail-label">Trailnesia platform</span>
-                <h2>Discover live trail events</h2>
-                <p>Browse events by status, then open an event hub to follow its race categories, rankings, and live updates.</p>
+                <h2>Find trail events across Indonesia</h2>
+                <p>Discover live, upcoming, and finished trail events from organizers across the platform, then open each event hub to follow its race categories.</p>
+                <div className="platform-home-search">
+                  <input
+                    aria-label="Search public events"
+                    onChange={(event) => setPlatformEventQuery(event.target.value)}
+                    placeholder="Search event, organizer, or location"
+                    type="search"
+                    value={platformEventQuery}
+                  />
+                </div>
+                <div className="platform-home-kpis">
+                  <span>{filteredPublicEventCards.length} public events</span>
+                  <span>{platformPublishedRaceCount} published races</span>
+                  <span>{livePlatformEvents.length} live now</span>
+                  <span>{upcomingPlatformEvents.length} upcoming</span>
+                </div>
               </div>
+              {platformHeroEvent ? (
+                <div className="platform-home-highlight-card">
+                  <span className={`organizer-status-pill ${platformHeroEvent.publicStatus}`}>
+                    {platformHeroEvent.publicStatus === "live"
+                      ? "Live now"
+                      : platformHeroEvent.publicStatus === "upcoming"
+                        ? "Upcoming"
+                        : "Finished"}
+                  </span>
+                  <strong>{platformHeroEvent.title}</strong>
+                  <p>{platformHeroEvent.locationRibbon}</p>
+                  <span>{platformHeroEvent.dateRibbon}</span>
+                </div>
+              ) : null}
             </div>
 
             {!publicEventCards.length ? (
@@ -4042,61 +4156,112 @@ export default function App() {
                 <p>Once an organizer publishes at least one race category, the event will show up on the platform home.</p>
               </article>
             ) : (
-              <div className="platform-home-sections">
-                {platformHomeSections.map(({ title, items, copy }) =>
-                  items.length ? (
-                    <section className="platform-home-section" key={title}>
-                      <div className="platform-home-section-head">
-                        <div>
-                          <span className="detail-label">Public events</span>
-                          <h3>{title}</h3>
+              <>
+                <section className="platform-discovery-panel">
+                  <div className="platform-home-section-head">
+                    <div>
+                      <span className="detail-label">Find events in Indonesia</span>
+                      <h3>Explore the platform by event hub</h3>
+                    </div>
+                    <p>Every card below is one event. Open it to see its edition hub, race categories, rankings, and live tracking tools.</p>
+                  </div>
+
+                  <div className="platform-discovery-grid">
+                    <div className="platform-indonesia-map-card">
+                      <img alt="Map of Indonesia" className="platform-indonesia-map" src={indonesiaMapSvg} />
+                      {platformRegionSummary.map((region) => (
+                        <div className={`platform-region-badge region-${region.key}`} key={region.key}>
+                          <strong>{region.count}</strong>
+                          <span>{region.label}</span>
                         </div>
-                        <p>{copy}</p>
-                      </div>
-                      <div className="platform-event-grid" role="list" aria-label={title}>
-                        {items.map((event) => (
-                          <button
-                            className={`platform-event-card status-${event.publicStatus}`}
-                            key={event.id}
-                            onClick={() => openPublicEvent(event.id)}
-                            role="listitem"
-                            type="button"
-                          >
-                            <div className="platform-event-card-media">
-                              {event.heroBackgroundImageDataUrl ? <img alt="" src={event.heroBackgroundImageDataUrl} /> : null}
-                              <div className="platform-event-card-overlay" />
-                              <span className={`organizer-status-pill ${event.publicStatus}`}>{event.publicStatus === "live" ? "Live" : event.publicStatus === "upcoming" ? "Upcoming" : "Finished"}</span>
+                      ))}
+                    </div>
+
+                    <div className="platform-discovery-stats">
+                      <article className="platform-discovery-stat-card">
+                        <span>Live events</span>
+                        <strong>{livePlatformEvents.length}</strong>
+                        <p>At least one published race is currently live.</p>
+                      </article>
+                      <article className="platform-discovery-stat-card">
+                        <span>Upcoming events</span>
+                        <strong>{upcomingPlatformEvents.length}</strong>
+                        <p>Published race categories scheduled to start later.</p>
+                      </article>
+                      <article className="platform-discovery-stat-card">
+                        <span>Finished events</span>
+                        <strong>{finishedPlatformEvents.length}</strong>
+                        <p>Results are already available to spectators.</p>
+                      </article>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="platform-home-section">
+                  <div className="platform-home-section-head">
+                    <div>
+                      <span className="detail-label">Registered events</span>
+                      <h3>Choose an event to open</h3>
+                    </div>
+                    <p>
+                      {platformEventQuery.trim()
+                        ? `${filteredPublicEventCards.length} event results for "${platformEventQuery.trim()}".`
+                        : "All published events across the platform, sorted by live status first."}
+                    </p>
+                  </div>
+
+                  {filteredPublicEventCards.length ? (
+                    <div className="platform-event-grid" role="list" aria-label="Public events">
+                      {filteredPublicEventCards.map((event) => (
+                        <button
+                          className={`platform-event-card status-${event.publicStatus}`}
+                          key={event.id}
+                          onClick={() => openPublicEvent(event.id)}
+                          role="listitem"
+                          type="button"
+                        >
+                          <div className="platform-event-card-media">
+                            {event.heroBackgroundImageDataUrl ? <img alt="" src={event.heroBackgroundImageDataUrl} /> : null}
+                            <div className="platform-event-card-overlay" />
+                            <span className={`organizer-status-pill ${event.publicStatus}`}>
+                              {event.publicStatus === "live" ? "Live" : event.publicStatus === "upcoming" ? "Upcoming" : "Finished"}
+                            </span>
+                          </div>
+                          <div className="platform-event-card-body">
+                            <div className="platform-event-card-head">
+                              {event.eventLogoDataUrl ? (
+                                <span className="platform-event-logo">
+                                  <img alt="" src={event.eventLogoDataUrl} />
+                                </span>
+                              ) : null}
+                              <div>
+                                <strong>{event.title}</strong>
+                                <p>{event.organizerName}</p>
+                              </div>
                             </div>
-                            <div className="platform-event-card-body">
-                              <div className="platform-event-card-head">
-                                {event.eventLogoDataUrl ? (
-                                  <span className="platform-event-logo">
-                                    <img alt="" src={event.eventLogoDataUrl} />
-                                  </span>
-                                ) : null}
-                                <div>
-                                  <strong>{event.title}</strong>
-                                  <p>{event.organizerName}</p>
-                                </div>
-                              </div>
-                              <div className="platform-event-meta">
-                                <span>{event.locationRibbon}</span>
-                                <span>{event.dateRibbon}</span>
-                              </div>
-                              <div className="platform-event-stats">
-                                <span>{event.publishedRaceCount} races</span>
-                                {event.liveCount ? <span>{event.liveCount} live</span> : null}
-                                {!event.liveCount && event.upcomingCount ? <span>{event.upcomingCount} upcoming</span> : null}
-                                {!event.liveCount && !event.upcomingCount && event.finishedCount ? <span>{event.finishedCount} finished</span> : null}
-                              </div>
+                            <div className="platform-event-meta">
+                              <span>{event.locationRibbon}</span>
+                              <span>{event.dateRibbon}</span>
                             </div>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  ) : null
-                )}
-              </div>
+                            <div className="platform-event-stats">
+                              <span>{event.publishedRaceCount} races</span>
+                              {event.liveCount ? <span>{event.liveCount} live</span> : null}
+                              {!event.liveCount && event.upcomingCount ? <span>{event.upcomingCount} upcoming</span> : null}
+                              {!event.liveCount && !event.upcomingCount && event.finishedCount ? <span>{event.finishedCount} finished</span> : null}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <article className="platform-home-empty">
+                      <span className="detail-label">No matching events</span>
+                      <h3>Try a broader search.</h3>
+                      <p>We could not find any published events that match your current search.</p>
+                    </article>
+                  )}
+                </section>
+              </>
             )}
           </section>
         ) : isOrganizerHomeOpen ? (
