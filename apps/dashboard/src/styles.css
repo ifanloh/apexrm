@@ -6377,6 +6377,26 @@ body {
   padding: 0.8rem 0.9rem;
 }
 
+.organizer-event-row {
+  align-items: start;
+  flex-direction: column;
+}
+
+.organizer-event-main {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.organizer-event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  width: 100%;
+}
+
 .organizer-empty-state {
   align-items: start;
   background: rgba(255, 251, 242, 0.98);

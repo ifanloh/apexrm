@@ -2,6 +2,7 @@ import { demoRaceFestival, type DemoRaceCard } from "./demoRaceFestival";
 import { getDemoCourseForRace, type DemoCourse, type DemoCourseCheckpoint } from "./demoCourseVariants";
 
 export const ORGANIZER_SETUP_STORAGE_KEY = "trailnesia:organizer-setup";
+export const ORGANIZER_WORKSPACE_STORAGE_KEY = "trailnesia:organizer-workspace";
 
 export type OrganizerBrandingDraft = {
   organizerName: string;
@@ -52,6 +53,20 @@ export type OrganizerRaceDraft = {
 export type OrganizerSetupDraft = {
   branding: OrganizerBrandingDraft;
   races: OrganizerRaceDraft[];
+};
+
+export type OrganizerEventRecord = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
+  setup: OrganizerSetupDraft;
+};
+
+export type OrganizerWorkspaceStore = {
+  activeEventId: string | null;
+  events: OrganizerEventRecord[];
 };
 
 export type OrganizerParticipantDraft = {
@@ -163,6 +178,22 @@ export function createOrganizerInviteCode(raceSlug: string, seed = Date.now()) {
   const serial = Math.abs(seed).toString(36).toUpperCase().slice(-5).padStart(5, "0");
 
   return `${slugToken || "CREW"}-${serial}`;
+}
+
+export function deriveOrganizerEventTitle(setup: OrganizerSetupDraft) {
+  return setup.branding.homeTitle.trim() || setup.branding.brandName.trim() || setup.races[0]?.title || "Untitled event";
+}
+
+export function createOrganizerEventRecord(setup: OrganizerSetupDraft, seed = Date.now()): OrganizerEventRecord {
+  const timestamp = new Date(seed).toISOString();
+  return {
+    id: `org-event-${seed.toString(36)}`,
+    title: deriveOrganizerEventTitle(setup),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    archivedAt: null,
+    setup
+  };
 }
 
 function normalizeOrganizerCrewAssignment(
@@ -326,74 +357,155 @@ export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
   return createEmptyOrganizerSetup();
 }
 
+function normalizeOrganizerSetupDraft(parsed?: Partial<OrganizerSetupDraft> | null): OrganizerSetupDraft {
+  const fallback = createDefaultOrganizerSetup();
+  const fallbackDemo = createDemoOrganizerSetup();
+
+  return {
+    branding: {
+      ...fallback.branding,
+      ...(parsed?.branding ?? {})
+    },
+    races: [
+      ...fallbackDemo.races.map((race) => {
+        const override = parsed?.races?.find((item) => item.slug === race.slug);
+        return {
+          ...race,
+          ...(override ?? {}),
+          waypoints: Array.isArray(override?.waypoints) && override.waypoints.length ? override.waypoints : race.waypoints,
+          profilePoints: Array.isArray(override?.profilePoints) && override.profilePoints.length ? override.profilePoints : race.profilePoints,
+          checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
+          participants: Array.isArray(override?.participants) ? override.participants : race.participants,
+          crewAssignments: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.crewAssignments)
+            ? (((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as Partial<OrganizerCrewAssignmentDraft>[]).map((crew, index) =>
+                normalizeOrganizerCrewAssignment(race.slug, crew, index)
+              )
+            : race.crewAssignments,
+          simulatedScans: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.simulatedScans)
+            ? (((override as Partial<OrganizerRaceDraft>).simulatedScans ?? []) as Partial<OrganizerSimulatedScanDraft>[]).map((scan, index) =>
+                normalizeOrganizerSimulatedScan(race.slug, scan, index)
+              )
+            : race.simulatedScans
+        };
+      }),
+      ...(parsed?.races ?? [])
+        .filter((race) => race.slug && !fallback.races.some((fallbackRace) => fallbackRace.slug === race.slug))
+        .map((race) => ({
+          ...createOrganizerRaceTemplate(fallback.races.length + 1),
+          ...race,
+          waypoints: Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : createOrganizerRaceTemplate(fallback.races.length + 1).waypoints,
+          profilePoints:
+            Array.isArray(race.profilePoints) && race.profilePoints.length
+              ? race.profilePoints
+              : createOrganizerRaceTemplate(fallback.races.length + 1).profilePoints,
+          checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(fallback.races.length + 1).checkpoints,
+          participants: Array.isArray(race.participants) ? race.participants : [],
+          crewAssignments: Array.isArray(race.crewAssignments)
+            ? race.crewAssignments.map((crew, index) =>
+                normalizeOrganizerCrewAssignment(String(race.slug || "CREW"), crew, index)
+              )
+            : [],
+          simulatedScans: Array.isArray(race.simulatedScans)
+            ? race.simulatedScans.map((scan, index) =>
+                normalizeOrganizerSimulatedScan(String(race.slug || "CREW"), scan, index)
+              )
+            : []
+        }))
+    ]
+  };
+}
+
+export function createDefaultOrganizerWorkspace(): OrganizerWorkspaceStore {
+  return {
+    activeEventId: null,
+    events: []
+  };
+}
+
 export function loadOrganizerSetup(): OrganizerSetupDraft {
   if (typeof window === "undefined") {
     return createDefaultOrganizerSetup();
   }
 
-  const fallback = createDefaultOrganizerSetup();
-  const fallbackDemo = createDemoOrganizerSetup();
-
   try {
     const raw = window.localStorage.getItem(ORGANIZER_SETUP_STORAGE_KEY);
 
     if (!raw) {
-      return fallback;
+      return createDefaultOrganizerSetup();
     }
 
     const parsed = JSON.parse(raw) as Partial<OrganizerSetupDraft> | null;
+    return normalizeOrganizerSetupDraft(parsed);
+  } catch {
+    return createDefaultOrganizerSetup();
+  }
+}
 
+export function loadOrganizerWorkspace(): OrganizerWorkspaceStore {
+  if (typeof window === "undefined") {
+    return createDefaultOrganizerWorkspace();
+  }
+
+  const fallback = createDefaultOrganizerWorkspace();
+
+  try {
+    const rawWorkspace = window.localStorage.getItem(ORGANIZER_WORKSPACE_STORAGE_KEY);
+
+    if (rawWorkspace) {
+      const parsed = JSON.parse(rawWorkspace) as Partial<OrganizerWorkspaceStore> | null;
+      const events = Array.isArray(parsed?.events)
+        ? parsed.events
+            .map((event, index) => {
+              if (!event?.setup) {
+                return null;
+              }
+
+              const normalizedSetup = normalizeOrganizerSetupDraft(event.setup);
+              const fallbackRecord = createOrganizerEventRecord(normalizedSetup, Date.now() + index);
+
+              return {
+                ...fallbackRecord,
+                ...event,
+                title: event.title?.trim() || deriveOrganizerEventTitle(normalizedSetup),
+                archivedAt: event.archivedAt ?? null,
+                setup: normalizedSetup
+              } satisfies OrganizerEventRecord;
+            })
+            .filter((event): event is OrganizerEventRecord => Boolean(event))
+        : [];
+
+      const visibleEvents = events.filter((event) => !event.archivedAt);
+      const activeEventId =
+        parsed?.activeEventId && visibleEvents.some((event) => event.id === parsed.activeEventId)
+          ? parsed.activeEventId
+          : visibleEvents[0]?.id ?? null;
+
+      return {
+        activeEventId,
+        events
+      };
+    }
+
+    const rawLegacy = window.localStorage.getItem(ORGANIZER_SETUP_STORAGE_KEY);
+    if (!rawLegacy) {
+      return fallback;
+    }
+
+    const migratedSetup = loadOrganizerSetup();
+    const hasMeaningfulLegacyState =
+      migratedSetup.races.length > 0 ||
+      migratedSetup.branding.eventLogoDataUrl !== null ||
+      migratedSetup.branding.heroBackgroundImageDataUrl !== null ||
+      migratedSetup.branding.brandName !== demoRaceFestival.brandName;
+
+    if (!hasMeaningfulLegacyState) {
+      return fallback;
+    }
+
+    const record = createOrganizerEventRecord(migratedSetup);
     return {
-      branding: {
-        ...fallback.branding,
-        ...(parsed?.branding ?? {})
-      },
-      races: [
-        ...fallbackDemo.races.map((race) => {
-          const override = parsed?.races?.find((item) => item.slug === race.slug);
-          return {
-            ...race,
-            ...(override ?? {}),
-            waypoints: Array.isArray(override?.waypoints) && override.waypoints.length ? override.waypoints : race.waypoints,
-            profilePoints: Array.isArray(override?.profilePoints) && override.profilePoints.length ? override.profilePoints : race.profilePoints,
-            checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
-            participants: Array.isArray(override?.participants) ? override.participants : race.participants,
-            crewAssignments: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.crewAssignments)
-              ? (((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as Partial<OrganizerCrewAssignmentDraft>[]).map((crew, index) =>
-                  normalizeOrganizerCrewAssignment(race.slug, crew, index)
-                )
-              : race.crewAssignments,
-            simulatedScans: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.simulatedScans)
-              ? (((override as Partial<OrganizerRaceDraft>).simulatedScans ?? []) as Partial<OrganizerSimulatedScanDraft>[]).map((scan, index) =>
-                  normalizeOrganizerSimulatedScan(race.slug, scan, index)
-                )
-              : race.simulatedScans
-          };
-        }),
-        ...(parsed?.races ?? [])
-          .filter((race) => race.slug && !fallback.races.some((fallbackRace) => fallbackRace.slug === race.slug))
-          .map((race) => ({
-            ...createOrganizerRaceTemplate(fallback.races.length + 1),
-            ...race,
-            waypoints: Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : createOrganizerRaceTemplate(fallback.races.length + 1).waypoints,
-            profilePoints:
-              Array.isArray(race.profilePoints) && race.profilePoints.length
-                ? race.profilePoints
-                : createOrganizerRaceTemplate(fallback.races.length + 1).profilePoints,
-            checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(fallback.races.length + 1).checkpoints,
-            participants: Array.isArray(race.participants) ? race.participants : [],
-            crewAssignments: Array.isArray(race.crewAssignments)
-              ? race.crewAssignments.map((crew, index) =>
-                  normalizeOrganizerCrewAssignment(String(race.slug || "CREW"), crew, index)
-                )
-              : [],
-            simulatedScans: Array.isArray(race.simulatedScans)
-              ? race.simulatedScans.map((scan, index) =>
-                  normalizeOrganizerSimulatedScan(String(race.slug || "CREW"), scan, index)
-                )
-              : []
-          }))
-      ]
+      activeEventId: record.id,
+      events: [record]
     };
   } catch {
     return fallback;

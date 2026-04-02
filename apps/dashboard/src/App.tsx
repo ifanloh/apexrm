@@ -33,22 +33,27 @@ import { demoRaceFestival, type DemoRaceCard, type DemoRaceRankingPreview } from
 import { RaceEditionHome } from "./RaceEditionHome";
 import {
   buildOrganizerCourseFromRaceDraft,
+  createOrganizerEventRecord,
   createOrganizerInviteCode,
   createDemoOrganizerSetup,
   createOrganizerRaceTemplate,
   createDefaultOrganizerSetup,
+  createDefaultOrganizerWorkspace,
+  deriveOrganizerEventTitle,
   getOrganizerCheckpointsForRace,
-  loadOrganizerSetup,
-  ORGANIZER_SETUP_STORAGE_KEY,
+  loadOrganizerWorkspace,
+  ORGANIZER_WORKSPACE_STORAGE_KEY,
   parseOrganizerGpxFile,
   parseParticipantImportFile,
   parseParticipantImportRows,
   parseParticipantImportText,
   type OrganizerBrandingDraft,
+  type OrganizerEventRecord,
   type OrganizerCrewAssignmentDraft,
   type OrganizerParticipantImportMode,
   type OrganizerParticipantDraft,
-  type OrganizerRaceDraft
+  type OrganizerRaceDraft,
+  type OrganizerSetupDraft
 } from "./organizerSetup";
 import {
   buildOrganizerRaceSimulationSnapshot,
@@ -965,7 +970,7 @@ export default function App() {
   const [selectedRaceSlug, setSelectedRaceSlug] = useState<string>(EDITION_HOME_VALUE);
   const [raceDetailView, setRaceDetailView] = useState<RaceDetailView>("race-page");
   const [organizerWorkspaceView, setOrganizerWorkspaceView] = useState<OrganizerWorkspaceView>("spectator");
-  const [organizerSetup, setOrganizerSetup] = useState(() => loadOrganizerSetup());
+  const [organizerWorkspace, setOrganizerWorkspace] = useState(() => loadOrganizerWorkspace());
   const [organizerImportText, setOrganizerImportText] = useState("");
   const [organizerImportFileName, setOrganizerImportFileName] = useState<string | null>(null);
   const [organizerImportMode, setOrganizerImportMode] = useState<OrganizerParticipantImportMode>("merge");
@@ -978,6 +983,13 @@ export default function App() {
   const [raceNavOpen, setRaceNavOpen] = useState(true);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
+  const organizerVisibleEvents = useMemo(
+    () => organizerWorkspace.events.filter((event) => !event.archivedAt),
+    [organizerWorkspace.events]
+  );
+  const organizerActiveEvent =
+    organizerVisibleEvents.find((event) => event.id === organizerWorkspace.activeEventId) ?? organizerVisibleEvents[0] ?? null;
+  const organizerSetup = organizerActiveEvent?.setup ?? createDefaultOrganizerSetup();
   const apiHost = getApiHost();
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
@@ -1099,9 +1111,9 @@ export default function App() {
       return;
     }
 
-    window.localStorage.setItem(ORGANIZER_SETUP_STORAGE_KEY, JSON.stringify(organizerSetup));
+    window.localStorage.setItem(ORGANIZER_WORKSPACE_STORAGE_KEY, JSON.stringify(organizerWorkspace));
     setOrganizerDraftSavedAt(new Date().toISOString());
-  }, [organizerSetup]);
+  }, [organizerWorkspace]);
 
   useEffect(() => {
     if (!organizerSessionActive) {
@@ -1125,7 +1137,7 @@ export default function App() {
 
     const seededSetup = seedOrganizerTrialSetup(organizerSetup);
     window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
-    setOrganizerSetup(seededSetup);
+    updateActiveOrganizerSetup(() => seededSetup);
     setOrganizerSetupRaceSlug(seededSetup.races[0]?.slug ?? "");
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
@@ -2505,9 +2517,18 @@ export default function App() {
         ? `Akun role ${profile.role} tetap berada di spectator view. Login dengan admin, panitia, atau observer untuk tools organizer.`
       : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
   const showAccessNotice = organizerSessionActive;
-  const organizerPublishedCount = organizerSetup.races.filter((race) => race.isPublished).length;
-  const organizerDraftCount = organizerSetup.races.length - organizerPublishedCount;
-  const organizerHasEvents = organizerSetup.races.length > 0;
+  const organizerPublishedCount = organizerVisibleEvents.reduce(
+    (count, event) => count + event.setup.races.filter((race) => race.isPublished).length,
+    0
+  );
+  const organizerDraftCount = organizerVisibleEvents.reduce(
+    (count, event) => count + event.setup.races.filter((race) => !race.isPublished).length,
+    0
+  );
+  const organizerHasEvents = organizerVisibleEvents.length > 0;
+  const organizerEventCount = organizerVisibleEvents.length;
+  const organizerActivePublishedCount = organizerSetup.races.filter((race) => race.isPublished).length;
+  const organizerActiveDraftCount = organizerSetup.races.filter((race) => !race.isPublished).length;
   const organizerDraftStatusLabel = organizerDraftSavedAt
     ? `Draft saved ${new Date(organizerDraftSavedAt).toLocaleTimeString([], {
         hour: "2-digit",
@@ -2544,6 +2565,101 @@ export default function App() {
     setOrganizerWorkspaceView("spectator");
   }
 
+  function updateOrganizerWorkspaceEvent(eventId: string, updater: (event: OrganizerEventRecord) => OrganizerEventRecord) {
+    setOrganizerWorkspace((current) => ({
+      ...current,
+      events: current.events.map((event) => (event.id === eventId ? updater(event) : event))
+    }));
+  }
+
+  function setOrganizerActiveEvent(eventId: string) {
+    setOrganizerWorkspace((current) => ({
+      ...current,
+      activeEventId: eventId
+    }));
+  }
+
+  function updateActiveOrganizerSetup(updater: (setup: OrganizerSetupDraft) => OrganizerSetupDraft) {
+    if (!organizerActiveEvent) {
+      return;
+    }
+
+    updateOrganizerWorkspaceEvent(organizerActiveEvent.id, (event) => {
+      const nextSetup = updater(event.setup);
+      return {
+        ...event,
+        title: deriveOrganizerEventTitle(nextSetup),
+        updatedAt: new Date().toISOString(),
+        setup: nextSetup
+      };
+    });
+  }
+
+  function createOrganizerWorkspaceEvent(setup: OrganizerSetupDraft, options?: { openConsole?: boolean }) {
+    const newEvent = createOrganizerEventRecord(setup);
+    setOrganizerWorkspace((current) => ({
+      activeEventId: newEvent.id,
+      events: [...current.events, newEvent]
+    }));
+    setOrganizerSetupRaceSlug(setup.races[0]?.slug ?? "");
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    clearOrganizerImportDraft();
+    setOrganizerWizardOpen(false);
+    setOrganizerWorkspaceView(options?.openConsole === false ? "home" : "console");
+  }
+
+  function duplicateOrganizerEvent(eventId: string) {
+    const sourceEvent = organizerWorkspace.events.find((event) => event.id === eventId);
+
+    if (!sourceEvent) {
+      return;
+    }
+
+    const duplicatedSetup: OrganizerSetupDraft = {
+      ...sourceEvent.setup,
+      branding: {
+        ...sourceEvent.setup.branding,
+        brandName: `${sourceEvent.setup.branding.brandName} Copy`,
+        homeTitle: `${sourceEvent.setup.branding.homeTitle} Copy`
+      },
+      races: sourceEvent.setup.races.map((race) => ({
+        ...race,
+        isPublished: false
+      }))
+    };
+
+    createOrganizerWorkspaceEvent(duplicatedSetup);
+  }
+
+  function archiveOrganizerEvent(eventId: string) {
+    setOrganizerWorkspace((current) => {
+      const nextEvents = current.events.map((event) =>
+        event.id === eventId
+          ? {
+              ...event,
+              archivedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            }
+          : event
+      );
+      const visibleEvents = nextEvents.filter((event) => !event.archivedAt);
+      const activeEventId =
+        current.activeEventId === eventId ? visibleEvents[0]?.id ?? null : current.activeEventId && visibleEvents.some((event) => event.id === current.activeEventId)
+          ? current.activeEventId
+          : visibleEvents[0]?.id ?? null;
+
+      return {
+        activeEventId,
+        events: nextEvents
+      };
+    });
+
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    setOrganizerWorkspaceView("home");
+  }
+
   function openOrganizerHome() {
     setOrganizerWorkspaceView("home");
     setSelectedRaceSlug(EDITION_HOME_VALUE);
@@ -2570,6 +2686,11 @@ export default function App() {
   }
 
   function openOrganizerConsole() {
+    if (!organizerActiveEvent) {
+      openOrganizerWizard();
+      return;
+    }
+
     if (!organizerSetup.races.length) {
       openOrganizerWizard();
       return;
@@ -2579,17 +2700,34 @@ export default function App() {
     setOrganizerWorkspaceView("console");
   }
 
-  function saveOrganizerDraftNow() {
-    if (typeof window === "undefined") {
+  function openOrganizerEvent(eventId: string) {
+    const nextEvent = organizerVisibleEvents.find((event) => event.id === eventId);
+
+    if (!nextEvent) {
       return;
     }
 
-    window.localStorage.setItem(ORGANIZER_SETUP_STORAGE_KEY, JSON.stringify(organizerSetup));
+    setOrganizerActiveEvent(eventId);
+    setOrganizerSetupRaceSlug(nextEvent.setup.races[0]?.slug ?? "");
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    setOrganizerWorkspaceView("console");
+  }
+
+  function saveOrganizerDraftNow() {
+    if (!organizerActiveEvent) {
+      return;
+    }
+
+    updateOrganizerWorkspaceEvent(organizerActiveEvent.id, (event) => ({
+      ...event,
+      updatedAt: new Date().toISOString()
+    }));
     setOrganizerDraftSavedAt(new Date().toISOString());
   }
 
   function updateOrganizerBranding(patch: Partial<OrganizerBrandingDraft>) {
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       branding: {
         ...current.branding,
@@ -2599,7 +2737,7 @@ export default function App() {
   }
 
   function updateOrganizerRace(slug: string, patch: Partial<OrganizerRaceDraft>) {
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) => (race.slug === slug ? { ...race, ...patch } : race))
     }));
@@ -2618,7 +2756,7 @@ export default function App() {
       nextRace = createOrganizerRaceTemplate(nextIndex);
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: [...current.races, nextRace]
     }));
@@ -2659,37 +2797,34 @@ export default function App() {
       checkpoints: course.checkpoints
     };
 
-    setOrganizerSetup((current) => ({
-      ...current,
+    const newSetup: OrganizerSetupDraft = {
       branding: {
-        ...current.branding,
-        organizerName: organizerWizardDraft.organizerName.trim() || current.branding.organizerName,
+        ...createDefaultOrganizerSetup().branding,
+        organizerName: organizerWizardDraft.organizerName.trim() || "Trailnesia Organizer",
         brandName,
         brandStackTop: brandParts[0]?.toUpperCase() || "EVENT",
         brandStackBottom: brandParts.slice(1).join(" ").toUpperCase() || "RACE",
-        editionLabel: organizerWizardDraft.editionLabel.trim() || current.branding.editionLabel,
+        editionLabel: organizerWizardDraft.editionLabel.trim() || "Edition 2026",
         homeTitle,
-        homeSubtitle: organizerWizardDraft.homeSubtitle.trim() || current.branding.homeSubtitle,
-        bannerTagline: organizerWizardDraft.bannerTagline.trim() || current.branding.bannerTagline,
-        dateRibbon: organizerWizardDraft.dateRibbon.trim() || current.branding.dateRibbon,
-        locationRibbon: organizerWizardDraft.locationRibbon.trim() || current.branding.locationRibbon
+        homeSubtitle:
+          organizerWizardDraft.homeSubtitle.trim() ||
+          "Draft your first race category, import participants, and prepare scan crews before publishing spectator access.",
+        bannerTagline: organizerWizardDraft.bannerTagline.trim() || "Organizer edition hub",
+        dateRibbon: organizerWizardDraft.dateRibbon.trim() || "Sat 05 Jul - Sun 06 Jul",
+        locationRibbon: organizerWizardDraft.locationRibbon.trim() || "East Java",
+        eventLogoDataUrl: null,
+        heroBackgroundImageDataUrl: null,
+        gpxFileName: null,
+        gpxFileSize: null
       },
       races: [firstRace]
-    }));
-    setOrganizerSetupRaceSlug(firstRace.slug);
-    setSelectedRaceSlug(EDITION_HOME_VALUE);
-    setRaceDetailView("race-page");
-    setOrganizerWorkspaceView("console");
+    };
+
+    createOrganizerWorkspaceEvent(newSetup);
     closeOrganizerWizard();
-    clearOrganizerImportDraft();
   }
 
   function handleCreateOrganizerFirstEvent() {
-    if (organizerSetup.races.length) {
-      openOrganizerConsole();
-      return;
-    }
-
     openOrganizerWizard();
   }
 
@@ -2701,7 +2836,7 @@ export default function App() {
     const remainingRaces = organizerSetup.races.filter((race) => race.slug !== slug);
     const fallbackSlug = remainingRaces[0]?.slug ?? EDITION_HOME_VALUE;
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.filter((race) => race.slug !== slug)
     }));
@@ -2729,7 +2864,7 @@ export default function App() {
           order: index
         }));
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
         race.slug !== organizerSelectedRace.slug
@@ -2756,7 +2891,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) => {
         if (race.slug !== organizerSelectedRace.slug) {
@@ -2796,7 +2931,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) => {
         if (race.slug !== organizerSelectedRace.slug) {
@@ -2822,7 +2957,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
         race.slug !== organizerSelectedRace.slug
@@ -2852,7 +2987,7 @@ export default function App() {
       inviteCode: createOrganizerInviteCode(organizerSelectedRace.slug)
     };
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
         race.slug !== organizerSelectedRace.slug
@@ -2870,7 +3005,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
         race.slug !== organizerSelectedRace.slug
@@ -2895,7 +3030,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
         race.slug !== organizerSelectedRace.slug
@@ -2913,7 +3048,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) => {
         if (race.slug !== organizerSelectedRace.slug) {
@@ -2930,7 +3065,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
         race.slug !== organizerSelectedRace.slug
@@ -2950,7 +3085,7 @@ export default function App() {
 
     const seededScans = buildOrganizerTrialScenario(organizerSelectedRace);
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
         race.slug !== organizerSelectedRace.slug
@@ -2964,11 +3099,21 @@ export default function App() {
   }
 
   function resetOrganizerDemoEvent() {
+    if (!organizerActiveEvent) {
+      loadOrganizerTrialWorkspace();
+      return;
+    }
+
     const freshSetup = seedOrganizerTrialSetup(createDemoOrganizerSetup());
     if (typeof window !== "undefined") {
       window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
     }
-    setOrganizerSetup(freshSetup);
+    updateOrganizerWorkspaceEvent(organizerActiveEvent.id, (event) => ({
+      ...event,
+      title: deriveOrganizerEventTitle(freshSetup),
+      updatedAt: new Date().toISOString(),
+      setup: freshSetup
+    }));
     setOrganizerSetupRaceSlug(freshSetup.races[0]?.slug ?? "");
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
@@ -2980,13 +3125,7 @@ export default function App() {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
     }
-    setOrganizerSetup(seededSetup);
-    setOrganizerSetupRaceSlug(seededSetup.races[0]?.slug ?? "");
-    setSelectedRaceSlug(EDITION_HOME_VALUE);
-    setRaceDetailView("race-page");
-    setOrganizerWizardOpen(false);
-    setOrganizerWorkspaceView("console");
-    clearOrganizerImportDraft();
+    createOrganizerWorkspaceEvent(seededSetup);
   }
 
   function applyOrganizerImport() {
@@ -2998,7 +3137,7 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetup((current) => ({
+    updateActiveOrganizerSetup((current) => ({
       ...current,
       races: current.races.map((race) =>
         race.slug !== organizerSelectedRace.slug
@@ -3384,9 +3523,14 @@ export default function App() {
               </div>
 
               <div className="organizer-home-actions">
+                {organizerActiveEvent ? (
+                  <button className="auth-trigger" onClick={() => openOrganizerEvent(organizerActiveEvent.id)} type="button">
+                    Open active event
+                  </button>
+                ) : null}
                 {organizerHasEvents ? (
-                  <button className="auth-trigger" onClick={openOrganizerConsole} type="button">
-                    Open event setup
+                  <button className="toolbar-link organizer-secondary-action" onClick={handleCreateOrganizerFirstEvent} type="button">
+                    Create new event
                   </button>
                 ) : null}
                 <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWorkspaceView("spectator")} type="button">
@@ -3398,29 +3542,53 @@ export default function App() {
             {organizerHasEvents ? (
               <div className="organizer-home-grid">
                 <article className="organizer-home-card">
-                  <span className="detail-label">Edition snapshot</span>
-                  <h3>{organizerSetup.branding.homeTitle || organizerSetup.branding.brandName}</h3>
-                  <p>Kelola kategori race, peserta, dan scan crew dari satu workspace setup yang sama.</p>
+                  <span className="detail-label">Events</span>
+                  <strong>{organizerEventCount}</strong>
+                  <p>{organizerVisibleEvents.length === 1 ? "1 active organizer event." : `${organizerVisibleEvents.length} active organizer events.`}</p>
                 </article>
                 <article className="organizer-home-card">
-                  <span className="detail-label">Categories</span>
-                  <strong>{organizerSetup.races.length}</strong>
-                  <p>{organizerPublishedCount} published and {organizerDraftCount} draft.</p>
+                  <span className="detail-label">Race categories</span>
+                  <strong>{organizerPublishedCount + organizerDraftCount}</strong>
+                  <p>{organizerPublishedCount} published and {organizerDraftCount} draft across all events.</p>
+                </article>
+                <article className="organizer-home-card">
+                  <span className="detail-label">Active event</span>
+                  <h3>{organizerActiveEvent?.title ?? "No active event"}</h3>
+                  <p>{organizerActivePublishedCount} published and {organizerActiveDraftCount} draft in the current workspace.</p>
                 </article>
                 <article className="organizer-home-card organizer-home-card-wide">
-                  <span className="detail-label">Current races</span>
-                  <div className="organizer-home-race-list">
-                    {organizerSetup.races.map((race) => (
-                      <div className="organizer-home-race-row" key={race.slug}>
-                        <div>
-                          <strong>{race.title}</strong>
-                          <p>{race.scheduleLabel}</p>
+                  <span className="detail-label">Your events</span>
+                  <div className="organizer-home-race-list organizer-event-list">
+                    {organizerVisibleEvents.map((event) => {
+                      const publishedCount = event.setup.races.filter((race) => race.isPublished).length;
+                      const draftCount = event.setup.races.length - publishedCount;
+                      const isActive = organizerActiveEvent?.id === event.id;
+
+                      return (
+                        <div className="organizer-home-race-row organizer-event-row" key={event.id}>
+                          <div className="organizer-event-main">
+                            <div>
+                              <strong>{event.title}</strong>
+                              <p>
+                                {event.setup.races.length} categories · {publishedCount} published · {draftCount} draft
+                              </p>
+                            </div>
+                            <span className={`ranking-chip ${isActive ? "chip-finish" : "chip-live"}`}>{isActive ? "Active" : "Draft workspace"}</span>
+                          </div>
+                          <div className="organizer-event-actions">
+                            <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(event.id)} type="button">
+                              Open
+                            </button>
+                            <button className="toolbar-link organizer-secondary-action" onClick={() => duplicateOrganizerEvent(event.id)} type="button">
+                              Duplicate
+                            </button>
+                            <button className="toolbar-link organizer-secondary-action" onClick={() => archiveOrganizerEvent(event.id)} type="button">
+                              Archive
+                            </button>
+                          </div>
                         </div>
-                        <span className={`ranking-chip ${race.isPublished ? "chip-finish" : "chip-live"}`}>
-                          {race.isPublished ? "Published" : "Draft"}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </article>
               </div>
