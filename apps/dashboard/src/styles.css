@@ -6389,6 +6389,79 @@ body {
   padding: 1.35rem;
 }
 
+.organizer-home-note {
+  color: #8d6940;
+  font-size: 0.9rem;
+}
+
+.organizer-wizard-shell {
+  background: rgba(255, 251, 242, 0.98);
+  border: 1px solid rgba(225, 183, 76, 0.22);
+  border-radius: 16px;
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+}
+
+.organizer-wizard-head {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.organizer-wizard-head h3,
+.organizer-wizard-head p {
+  margin: 0;
+}
+
+.organizer-wizard-head p {
+  color: #7f6734;
+  margin-top: 0.35rem;
+  max-width: 40rem;
+}
+
+.organizer-wizard-steps {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.organizer-wizard-step {
+  align-items: center;
+  background: #fffdf7;
+  border: 1px solid rgba(225, 183, 76, 0.18);
+  border-radius: 12px;
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.organizer-wizard-step span {
+  align-items: center;
+  background: rgba(191, 72, 39, 0.1);
+  border-radius: 999px;
+  color: #a34d1f;
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 800;
+  height: 28px;
+  justify-content: center;
+  min-width: 28px;
+}
+
+.organizer-wizard-step.active {
+  border-color: rgba(191, 72, 39, 0.28);
+  box-shadow: 0 12px 24px rgba(89, 24, 18, 0.08);
+}
+
+.organizer-wizard-grid,
+.organizer-wizard-review {
+  display: grid;
+  gap: 1rem;
+}
+
 .organizer-console-header {
   display: flex;
   align-items: flex-start;

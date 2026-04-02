@@ -120,6 +120,24 @@ type LiveStatus = "idle" | "live" | "polling" | "fallback";
 type RankingView = "overall" | "women" | "men";
 type RaceDetailView = "race-page" | "runner-search" | "runners-list" | "favorites" | "my-runners" | "ranking" | "leaders" | "statistics";
 type OrganizerWorkspaceView = "spectator" | "home" | "console";
+type OrganizerWizardStep = "basics" | "branding" | "race" | "review";
+type OrganizerWizardDraft = {
+  organizerName: string;
+  brandName: string;
+  editionLabel: string;
+  homeTitle: string;
+  homeSubtitle: string;
+  bannerTagline: string;
+  dateRibbon: string;
+  locationRibbon: string;
+  firstRaceTitle: string;
+  firstRaceDistanceKm: string;
+  firstRaceAscentM: string;
+  firstRaceStartTown: string;
+  firstRaceScheduleLabel: string;
+  firstRaceStartAt: string;
+  firstRaceEditionLabel: "Live" | "Finished";
+};
 type RunnerDirectoryState = "all" | "registered" | "in-race" | "finisher" | "dns" | "withdrawn";
 type RunnerDirectoryEntry = {
   raceSlug: string;
@@ -255,6 +273,36 @@ function getStableIndex(value: string, size: number) {
   }
 
   return hash % size;
+}
+
+function slugifyOrganizerValue(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+function buildOrganizerWizardDraft(): OrganizerWizardDraft {
+  const branding = createDefaultOrganizerSetup().branding;
+
+  return {
+    organizerName: branding.organizerName,
+    brandName: "Trail Event 2026",
+    editionLabel: "Edition 2026",
+    homeTitle: "Trail Event 2026",
+    homeSubtitle: "Describe the event, terrain, and why spectators should follow this edition live.",
+    bannerTagline: "Organizer edition hub",
+    dateRibbon: "Set event date",
+    locationRibbon: "Set event location",
+    firstRaceTitle: "Ultra 50K",
+    firstRaceDistanceKm: "50",
+    firstRaceAscentM: "2800",
+    firstRaceStartTown: "Start Town",
+    firstRaceScheduleLabel: "Sun 01 Jan 05:00",
+    firstRaceStartAt: "2026-01-01T05:00:00+07:00",
+    firstRaceEditionLabel: "Live"
+  };
 }
 
 function getNationalityCode(bib: string) {
@@ -923,6 +971,9 @@ export default function App() {
   const [organizerImportMode, setOrganizerImportMode] = useState<OrganizerParticipantImportMode>("merge");
   const [organizerSetupRaceSlug, setOrganizerSetupRaceSlug] = useState<string>(createDefaultOrganizerSetup().races[0]?.slug ?? "");
   const [organizerDraftSavedAt, setOrganizerDraftSavedAt] = useState<string | null>(() => new Date().toISOString());
+  const [organizerWizardOpen, setOrganizerWizardOpen] = useState(false);
+  const [organizerWizardStep, setOrganizerWizardStep] = useState<OrganizerWizardStep>("basics");
+  const [organizerWizardDraft, setOrganizerWizardDraft] = useState<OrganizerWizardDraft>(() => buildOrganizerWizardDraft());
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
@@ -1055,6 +1106,7 @@ export default function App() {
   useEffect(() => {
     if (!organizerSessionActive) {
       setOrganizerWorkspaceView("spectator");
+      setOrganizerWizardOpen(false);
       return;
     }
 
@@ -2462,6 +2514,12 @@ export default function App() {
         minute: "2-digit"
       })}`
     : "Draft ready";
+  const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0;
+  const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
+  const organizerWizardRaceReady =
+    organizerWizardDraft.firstRaceTitle.trim().length > 0 &&
+    Number.parseFloat(organizerWizardDraft.firstRaceDistanceKm) > 0 &&
+    Number.parseFloat(organizerWizardDraft.firstRaceAscentM) >= 0;
   const activeRaceStartAt = selectedRaceCard.startAt;
   const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
   const publicRunnerResults =
@@ -2492,9 +2550,28 @@ export default function App() {
     setRaceDetailView("race-page");
   }
 
+  function openOrganizerWizard() {
+    setOrganizerWizardDraft(buildOrganizerWizardDraft());
+    setOrganizerWizardStep("basics");
+    setOrganizerWizardOpen(true);
+    openOrganizerHome();
+  }
+
+  function closeOrganizerWizard() {
+    setOrganizerWizardOpen(false);
+    setOrganizerWizardStep("basics");
+  }
+
+  function updateOrganizerWizardDraft(patch: Partial<OrganizerWizardDraft>) {
+    setOrganizerWizardDraft((current) => ({
+      ...current,
+      ...patch
+    }));
+  }
+
   function openOrganizerConsole() {
     if (!organizerSetup.races.length) {
-      handleCreateOrganizerFirstEvent();
+      openOrganizerWizard();
       return;
     }
 
@@ -2550,22 +2627,70 @@ export default function App() {
     setRaceDetailView("race-page");
   }
 
-  function handleCreateOrganizerFirstEvent() {
-    if (organizerSetup.races.length) {
-      openOrganizerConsole();
-      return;
-    }
+  function finalizeOrganizerWizard() {
+    const brandName = organizerWizardDraft.brandName.trim() || "New Trail Event";
+    const homeTitle = organizerWizardDraft.homeTitle.trim() || brandName;
+    const brandParts = brandName.split(/\s+/).filter(Boolean);
+    const slug = slugifyOrganizerValue(organizerWizardDraft.firstRaceTitle) || "custom-race-1";
+    const distanceKm = Number.parseFloat(organizerWizardDraft.firstRaceDistanceKm) || 50;
+    const ascentM = Number.parseFloat(organizerWizardDraft.firstRaceAscentM) || 2800;
+    const template = createOrganizerRaceTemplate(1);
+    const course = getDemoCourseForRace({
+      slug,
+      title: organizerWizardDraft.firstRaceTitle || template.title,
+      distanceKm,
+      ascentM,
+      startTown: organizerWizardDraft.firstRaceStartTown || template.startTown
+    });
+    const firstRace: OrganizerRaceDraft = {
+      ...template,
+      slug,
+      title: organizerWizardDraft.firstRaceTitle.trim() || template.title,
+      editionLabel: organizerWizardDraft.firstRaceEditionLabel,
+      scheduleLabel: organizerWizardDraft.firstRaceScheduleLabel.trim() || template.scheduleLabel,
+      startAt: organizerWizardDraft.firstRaceStartAt || template.startAt,
+      startTown: organizerWizardDraft.firstRaceStartTown.trim() || template.startTown,
+      distanceKm,
+      ascentM,
+      courseDescription: `Describe ${organizerWizardDraft.firstRaceTitle.trim() || template.title} for spectators. Include terrain, challenge profile, and what makes this category unique.`,
+      descentM: course.descentM,
+      waypoints: course.waypoints,
+      profilePoints: course.profilePoints,
+      checkpoints: course.checkpoints
+    };
 
-    const firstRace = createOrganizerRaceTemplate(1);
     setOrganizerSetup((current) => ({
       ...current,
+      branding: {
+        ...current.branding,
+        organizerName: organizerWizardDraft.organizerName.trim() || current.branding.organizerName,
+        brandName,
+        brandStackTop: brandParts[0]?.toUpperCase() || "EVENT",
+        brandStackBottom: brandParts.slice(1).join(" ").toUpperCase() || "RACE",
+        editionLabel: organizerWizardDraft.editionLabel.trim() || current.branding.editionLabel,
+        homeTitle,
+        homeSubtitle: organizerWizardDraft.homeSubtitle.trim() || current.branding.homeSubtitle,
+        bannerTagline: organizerWizardDraft.bannerTagline.trim() || current.branding.bannerTagline,
+        dateRibbon: organizerWizardDraft.dateRibbon.trim() || current.branding.dateRibbon,
+        locationRibbon: organizerWizardDraft.locationRibbon.trim() || current.branding.locationRibbon
+      },
       races: [firstRace]
     }));
     setOrganizerSetupRaceSlug(firstRace.slug);
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
     setOrganizerWorkspaceView("console");
+    closeOrganizerWizard();
     clearOrganizerImportDraft();
+  }
+
+  function handleCreateOrganizerFirstEvent() {
+    if (organizerSetup.races.length) {
+      openOrganizerConsole();
+      return;
+    }
+
+    openOrganizerWizard();
   }
 
   function removeOrganizerRace(slug: string) {
@@ -2859,6 +2984,7 @@ export default function App() {
     setOrganizerSetupRaceSlug(seededSetup.races[0]?.slug ?? "");
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
+    setOrganizerWizardOpen(false);
     setOrganizerWorkspaceView("console");
     clearOrganizerImportDraft();
   }
@@ -3299,21 +3425,236 @@ export default function App() {
                 </article>
               </div>
             ) : (
-              <section className="organizer-empty-state">
-                <span className="detail-label">First-time organizer</span>
-                <h3>You have no events yet</h3>
-                <p>
-                  Buat event pertama untuk mulai isi branding, kategori race, participants, dan scan crew secara terstruktur.
-                </p>
-                <div className="organizer-home-actions">
-                  <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
-                    Create your first event
-                  </button>
-                  <button className="toolbar-link organizer-secondary-action" onClick={loadOrganizerTrialWorkspace} type="button">
-                    Load trial demo
-                  </button>
-                </div>
-              </section>
+              <>
+                {!organizerWizardOpen ? (
+                  <section className="organizer-empty-state">
+                    <span className="detail-label">First-time organizer</span>
+                    <h3>You have no events yet</h3>
+                    <p>
+                      Buat event pertama untuk mulai isi branding, kategori race, participants, dan scan crew secara terstruktur.
+                    </p>
+                    <div className="organizer-home-actions">
+                      <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
+                        Create your first event
+                      </button>
+                      <button className="toolbar-link organizer-secondary-action" onClick={loadOrganizerTrialWorkspace} type="button">
+                        Load trial demo
+                      </button>
+                    </div>
+                  </section>
+                ) : (
+                  <section className="organizer-wizard-shell">
+                    <div className="organizer-wizard-head">
+                      <div>
+                        <span className="detail-label">Create event wizard</span>
+                        <h3>Build your first event draft</h3>
+                        <p>Isi section satu per satu. Semua hasil wizard akan disimpan sebagai draft private.</p>
+                      </div>
+                      <div className="organizer-home-actions">
+                        <span className="organizer-flow-pill">Step {organizerWizardStep === "basics" ? 1 : organizerWizardStep === "branding" ? 2 : organizerWizardStep === "race" ? 3 : 4} of 4</span>
+                        <button className="toolbar-link organizer-secondary-action" onClick={closeOrganizerWizard} type="button">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="organizer-wizard-steps">
+                      {[
+                        ["basics", "Event basics"],
+                        ["branding", "Branding"],
+                        ["race", "First race"],
+                        ["review", "Review draft"]
+                      ].map(([stepId, label], index) => (
+                        <div
+                          className={`organizer-wizard-step ${organizerWizardStep === stepId ? "active" : ""}`}
+                          key={stepId}
+                        >
+                          <span>{index + 1}</span>
+                          <strong>{label}</strong>
+                        </div>
+                      ))}
+                    </div>
+
+                    {organizerWizardStep === "basics" ? (
+                      <div className="organizer-wizard-grid">
+                        <label className="organizer-field">
+                          <span>Organizer name</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ organizerName: event.target.value })}
+                            value={organizerWizardDraft.organizerName}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Event brand</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ brandName: event.target.value })}
+                            placeholder="Trailnesia Bromo Ultra"
+                            value={organizerWizardDraft.brandName}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Edition label</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ editionLabel: event.target.value })}
+                            value={organizerWizardDraft.editionLabel}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Date ribbon</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ dateRibbon: event.target.value })}
+                            value={organizerWizardDraft.dateRibbon}
+                          />
+                        </label>
+                        <div className="organizer-step-actions">
+                          <button className="auth-trigger" disabled={!organizerWizardBasicsReady} onClick={() => setOrganizerWizardStep("branding")} type="button">
+                            Continue to branding
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {organizerWizardStep === "branding" ? (
+                      <div className="organizer-wizard-grid">
+                        <label className="organizer-field organizer-field-wide">
+                          <span>Home title</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ homeTitle: event.target.value })}
+                            placeholder="Bromo Ultra Trail 2026"
+                            value={organizerWizardDraft.homeTitle}
+                          />
+                        </label>
+                        <label className="organizer-field organizer-field-wide">
+                          <span>Home subtitle</span>
+                          <textarea
+                            onChange={(event) => updateOrganizerWizardDraft({ homeSubtitle: event.target.value })}
+                            value={organizerWizardDraft.homeSubtitle}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Banner tagline</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ bannerTagline: event.target.value })}
+                            value={organizerWizardDraft.bannerTagline}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Location ribbon</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ locationRibbon: event.target.value })}
+                            value={organizerWizardDraft.locationRibbon}
+                          />
+                        </label>
+                        <div className="organizer-step-actions">
+                          <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWizardStep("basics")} type="button">
+                            Back to basics
+                          </button>
+                          <button className="auth-trigger" disabled={!organizerWizardBrandingReady} onClick={() => setOrganizerWizardStep("race")} type="button">
+                            Continue to first race
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {organizerWizardStep === "race" ? (
+                      <div className="organizer-wizard-grid">
+                        <label className="organizer-field organizer-field-wide">
+                          <span>Race title</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ firstRaceTitle: event.target.value })}
+                            placeholder="Ultra 50K"
+                            value={organizerWizardDraft.firstRaceTitle}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Distance (km)</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ firstRaceDistanceKm: event.target.value })}
+                            value={organizerWizardDraft.firstRaceDistanceKm}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Ascent (m+)</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ firstRaceAscentM: event.target.value })}
+                            value={organizerWizardDraft.firstRaceAscentM}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Start town</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ firstRaceStartTown: event.target.value })}
+                            value={organizerWizardDraft.firstRaceStartTown}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Schedule label</span>
+                          <input
+                            onChange={(event) => updateOrganizerWizardDraft({ firstRaceScheduleLabel: event.target.value })}
+                            value={organizerWizardDraft.firstRaceScheduleLabel}
+                          />
+                        </label>
+                        <label className="organizer-field">
+                          <span>Race state</span>
+                          <select
+                            onChange={(event) =>
+                              updateOrganizerWizardDraft({
+                                firstRaceEditionLabel: event.target.value === "Finished" ? "Finished" : "Live"
+                              })
+                            }
+                            value={organizerWizardDraft.firstRaceEditionLabel}
+                          >
+                            <option value="Live">Live</option>
+                            <option value="Finished">Finished</option>
+                          </select>
+                        </label>
+                        <div className="organizer-step-actions">
+                          <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWizardStep("branding")} type="button">
+                            Back to branding
+                          </button>
+                          <button className="auth-trigger" disabled={!organizerWizardRaceReady} onClick={() => setOrganizerWizardStep("review")} type="button">
+                            Continue to review
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {organizerWizardStep === "review" ? (
+                      <div className="organizer-wizard-review">
+                        <div className="organizer-home-grid">
+                          <article className="organizer-home-card">
+                            <span className="detail-label">Event</span>
+                            <h3>{organizerWizardDraft.homeTitle || organizerWizardDraft.brandName || "Untitled event"}</h3>
+                            <p>{organizerWizardDraft.locationRibbon}</p>
+                          </article>
+                          <article className="organizer-home-card">
+                            <span className="detail-label">First category</span>
+                            <h3>{organizerWizardDraft.firstRaceTitle}</h3>
+                            <p>
+                              {organizerWizardDraft.firstRaceDistanceKm} km · {organizerWizardDraft.firstRaceAscentM} m+
+                            </p>
+                          </article>
+                        </div>
+                        <div className="organizer-import-note">
+                          <strong>Draft only.</strong>
+                          <p>
+                            Wizard ini hanya membuat event draft pertama. Setelah masuk console, organizer masih bisa upload logo,
+                            GPX, participants, dan crew sebelum publish.
+                          </p>
+                        </div>
+                        <div className="organizer-step-actions">
+                          <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWizardStep("race")} type="button">
+                            Back to first race
+                          </button>
+                          <button className="auth-trigger" onClick={finalizeOrganizerWizard} type="button">
+                            Create event draft
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </section>
+                )}
+              </>
             )}
           </section>
         ) : isOrganizerConsoleOpen ? (

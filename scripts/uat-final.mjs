@@ -123,6 +123,13 @@ async function runOrganizerBrowserChecks() {
         const createFirstEventButton = page.getByRole("button", { name: "Create your first event" });
         if ((await createFirstEventButton.count()) > 0) {
           await createFirstEventButton.first().click();
+          const continueToBranding = page.getByRole("button", { name: "Continue to branding" });
+          if (await continueToBranding.count()) {
+            await continueToBranding.click();
+            await page.getByRole("button", { name: "Continue to first race" }).click();
+            await page.getByRole("button", { name: "Continue to review" }).click();
+            await page.getByRole("button", { name: "Create event draft" }).click();
+          }
         } else {
           await page.getByRole("button", { name: "Open event setup" }).click();
         }
