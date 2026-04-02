@@ -1,4 +1,4 @@
-import { Suspense, lazy, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import {
   authProfileSchema,
@@ -1110,6 +1110,8 @@ export default function App() {
   const [organizerWizardDraft, setOrganizerWizardDraft] = useState<OrganizerWizardDraft>(() => buildOrganizerWizardDraft());
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
+  const [isTopbarMenuOpen, setIsTopbarMenuOpen] = useState(false);
+  const topbarMenuRef = useRef<HTMLDivElement | null>(null);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
   const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
   const organizerVisibleEvents = useMemo(
@@ -1176,6 +1178,7 @@ export default function App() {
   const isOrganizerHomeOpen = organizerSessionActive && organizerWorkspaceView === "home";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
   const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && !isOrganizerHomeOpen && raceDetailView === "race-page" && !isActiveRaceUpcoming;
+  const topbarMenuLabel = !isEditionHome && !isOrganizerHomeOpen && !isOrganizerConsoleOpen ? selectedRaceCard.title : festivalData.editionLabel;
   const organizerSelectedRace =
     organizerSetup.races.find((race) => race.slug === organizerSetupRaceSlug) ?? organizerSetup.races[0] ?? null;
   const organizerCheckpointDraft = organizerSelectedRace ? getOrganizerCheckpointsForRace(organizerSelectedRace) : [];
@@ -1278,6 +1281,36 @@ export default function App() {
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
   }, [isOrganizerConsoleOpen, isOrganizerHomeOpen, selectedRaceSlug, visibleRaces]);
+
+  useEffect(() => {
+    setIsTopbarMenuOpen(false);
+  }, [selectedRaceSlug, organizerWorkspaceView]);
+
+  useEffect(() => {
+    if (!isTopbarMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!topbarMenuRef.current?.contains(event.target as Node)) {
+        setIsTopbarMenuOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsTopbarMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isTopbarMenuOpen]);
 
   useEffect(() => {
     if (!isLoginModalOpen) {
@@ -3608,12 +3641,57 @@ export default function App() {
           </div>
 
           <div className="topbar-center">
-            <label className="topbar-select topbar-select-shell">
-              <span className="sr-only">Edition selector</span>
-              <select onChange={() => handleRaceSelection(EDITION_HOME_VALUE)} value={EDITION_HOME_VALUE}>
-                <option value={EDITION_HOME_VALUE}>{festivalData.editionLabel}</option>
-              </select>
-            </label>
+            <div className="topbar-menu-shell" ref={topbarMenuRef}>
+              <button
+                aria-expanded={isTopbarMenuOpen}
+                aria-haspopup="menu"
+                className={`topbar-menu-button ${isTopbarMenuOpen ? "open" : ""}`}
+                onClick={() => setIsTopbarMenuOpen((current) => !current)}
+                type="button"
+              >
+                <span className="topbar-menu-accent" aria-hidden="true" />
+                <span className="topbar-menu-label">{topbarMenuLabel}</span>
+                <span className="topbar-menu-chevron" aria-hidden="true">
+                  ^
+                </span>
+              </button>
+
+              {isTopbarMenuOpen ? (
+                <div className="topbar-menu-panel" role="menu">
+                  <button
+                    className={`topbar-menu-item ${isEditionHome ? "active" : ""}`}
+                    onClick={() => handleRaceSelection(EDITION_HOME_VALUE)}
+                    role="menuitem"
+                    type="button"
+                  >
+                    <span className="topbar-menu-item-accent home" aria-hidden="true" />
+                    <span className="topbar-menu-item-copy">
+                      <strong>{festivalData.editionLabel}</strong>
+                      <small>Edition Home</small>
+                    </span>
+                  </button>
+                  {visibleRaces.map((race) => (
+                    <button
+                      className={`topbar-menu-item ${selectedRaceSlug === race.slug ? "active" : ""}`}
+                      key={`topbar-menu-${race.slug}`}
+                      onClick={() => handleRaceSelection(race.slug)}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <span
+                        className="topbar-menu-item-accent"
+                        aria-hidden="true"
+                        style={{ background: race.accent }}
+                      />
+                      <span className="topbar-menu-item-copy">
+                        <strong>{race.title}</strong>
+                        <small>{race.editionLabel}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
