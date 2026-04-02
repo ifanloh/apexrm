@@ -3614,12 +3614,18 @@ export default function App() {
                 <span className="detail-label">Organizer portal</span>
                 <h2>Organizer Home</h2>
                 <p>
-                  Mulai dari draft, isi event tahap demi tahap, lalu publish hanya saat kategori race dan operasional checkpoint
-                  sudah siap.
+                  Trailnesia mengirim email login lebih dulu. Setelah masuk, organizer cukup membuat event, menambah race categories,
+                  mengatur crew accounts, lalu menyimpan draft sampai siap publish.
                 </p>
                 <div className="organizer-home-actions">
                   <span className="organizer-flow-pill secondary">{organizerDraftStatusLabel}</span>
                   <span className="organizer-home-note">All setup changes stay private until you publish a race category.</span>
+                </div>
+                <div className="organizer-home-flow">
+                  <span className="organizer-flow-pill">1. Login via Trailnesia email</span>
+                  <span className="organizer-flow-pill">2. Create event & race categories</span>
+                  <span className="organizer-flow-pill">3. Set up crew accounts</span>
+                  <span className="organizer-flow-pill">4. Save draft & publish</span>
                 </div>
               </div>
 
@@ -3749,7 +3755,8 @@ export default function App() {
                     <span className="detail-label">First-time organizer</span>
                     <h3>You have no events yet</h3>
                     <p>
-                      Buat event pertama untuk mulai isi branding, kategori race, participants, dan scan crew secara terstruktur.
+                      Use the login credentials sent by Trailnesia, then create your first event, define race categories, set up crew accounts,
+                      and keep everything in draft until it is ready to publish.
                     </p>
                     <div className="organizer-home-actions">
                       <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">

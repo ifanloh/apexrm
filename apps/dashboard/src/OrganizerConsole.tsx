@@ -122,15 +122,15 @@ export function OrganizerConsole({
   const setupSteps: Array<{ view: OrganizerSetupStepView; title: string; shortLabel: string; description: string }> = [
     {
       view: "branding",
-      title: "Brand the event",
-      shortLabel: "Branding",
-      description: "Set event identity, logo, hero image, and edition copy."
+      title: "Set event identity",
+      shortLabel: "Event",
+      description: "Complete event basics, branding, and the organizer-facing edition identity."
     },
     {
       view: "races",
-      title: "Define race categories",
+      title: "Create race categories",
       shortLabel: "Races",
-      description: "Create each category, upload course assets, and organize checkpoints."
+      description: "Create each race category, upload course assets, and organize checkpoints."
     },
     {
       view: "participants",
@@ -140,13 +140,13 @@ export function OrganizerConsole({
     },
     {
       view: "crew",
-      title: "Assign crew & devices",
+      title: "Set up crew accounts",
       shortLabel: "Crew",
-      description: "Cover every checkpoint with scan crew and provision devices."
+      description: "Assign scan crew to checkpoints, activate their accounts, and provision devices."
     },
     {
       view: "overview",
-      title: "Review & publish",
+      title: "Save draft & publish",
       shortLabel: "Review",
       description: "Validate readiness, fix blockers, and publish categories."
     }
@@ -544,7 +544,7 @@ export function OrganizerConsole({
           <p className="section-label">Organizer Platform</p>
           <h2>Event Setup Console</h2>
           <p className="organizer-console-copy">
-            Work through the event setup one section at a time so a brand-new organizer can publish without getting lost.
+            Follow the setup flow one section at a time: event identity, race categories, crew accounts, then save draft and publish.
           </p>
           <p className="organizer-console-meta">
             {eventTitle} · {eventPhaseLabel} · Signed in as {profileLabel}
@@ -1396,7 +1396,7 @@ export function OrganizerConsole({
           <div className="panel-head compact">
             <div>
               <p className="organizer-step-label">Step 4 of 5</p>
-              <p className="section-label">Crew & Devices</p>
+              <p className="section-label">Crew & Accounts</p>
               <h3>Field operations setup</h3>
             </div>
             <button className="toolbar-link organizer-apply-button" onClick={onAddCrewAssignment} type="button">
@@ -1610,7 +1610,7 @@ export function OrganizerConsole({
                 Back to participants
               </button>
               <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
-                Continue to review & publish
+                Continue to save draft & publish
               </button>
             </div>
           </div>
@@ -1766,7 +1766,7 @@ export function OrganizerConsole({
               Back to races & checkpoints
             </button>
             <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
-              Continue to crew & devices
+              Continue to crew & accounts
             </button>
           </div>
         </article>

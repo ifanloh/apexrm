@@ -6426,6 +6426,12 @@ body {
   font-size: 0.9rem;
 }
 
+.organizer-home-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
 .organizer-wizard-shell {
   background: rgba(255, 251, 242, 0.98);
   border: 1px solid rgba(225, 183, 76, 0.22);
