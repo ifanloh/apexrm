@@ -18,6 +18,7 @@ type OrganizerConsoleProps = {
   selectedRaceSlug: string;
   checkpoints: DemoCourseCheckpoint[];
   crewAssignments: OrganizerCrewAssignmentDraft[];
+  draftSavedAt: string | null;
   leaderboards: CheckpointLeaderboard[];
   duplicates: DuplicateScan[];
   notifications: NotificationEvent[];
@@ -35,6 +36,7 @@ type OrganizerConsoleProps = {
   importPreview: ParticipantImportPreview;
   importText: string;
   onBackToSpectator: () => void;
+  onSaveDraft: () => void;
   onBrandingChange: (patch: Partial<OrganizerBrandingDraft>) => void;
   onRaceChange: (slug: string, patch: Partial<OrganizerRaceDraft>) => void;
   onAddRace: () => void;
@@ -71,6 +73,7 @@ export function OrganizerConsole({
   selectedRaceSlug,
   checkpoints,
   crewAssignments,
+  draftSavedAt,
   leaderboards,
   duplicates,
   notifications,
@@ -82,6 +85,7 @@ export function OrganizerConsole({
   importPreview,
   importText,
   onBackToSpectator,
+  onSaveDraft,
   onBrandingChange,
   onRaceChange,
   onAddRace,
@@ -143,6 +147,9 @@ export function OrganizerConsole({
       description: "Validate readiness, fix blockers, and publish categories."
     }
   ];
+  const draftSavedLabel = draftSavedAt
+    ? `Draft saved ${new Date(draftSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+    : "Draft ready";
   const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
   const importModeCopy: Record<OrganizerParticipantImportMode, { label: string; description: string; applyLabel: string }> = {
     merge: {
@@ -539,18 +546,23 @@ export function OrganizerConsole({
           {currentStep ? (
             <div className="organizer-console-flow-meta">
               <span className="organizer-flow-pill">Step {currentStepIndex + 1} of {setupSteps.length}</span>
+              <span className="organizer-flow-pill secondary">{draftSavedLabel}</span>
               <strong>{currentStep.title}</strong>
               <span>{currentStep.description}</span>
             </div>
           ) : (
             <div className="organizer-console-flow-meta">
               <span className="organizer-flow-pill secondary">Operations</span>
+              <span className="organizer-flow-pill secondary">{draftSavedLabel}</span>
               <strong>Race day operations</strong>
               <span>Use this after setup to monitor live activity and exceptions.</span>
             </div>
           )}
         </div>
         <div className="organizer-console-actions">
+          <button className="toolbar-link organizer-secondary-action" onClick={onSaveDraft} type="button">
+            Save draft
+          </button>
           <button className="toolbar-link organizer-console-back" onClick={onBackToSpectator} type="button">
             Back to spectator
           </button>
@@ -580,6 +592,14 @@ export function OrganizerConsole({
             <span className={`organizer-readiness-pill ${blockedRaceReadiness.length === 0 && publishedRaceCount > 0 ? "ready" : "draft"}`}>
               {launchSummaryLabel}
             </span>
+          </div>
+
+          <div className="organizer-import-note">
+            <strong>Draft mode stays private.</strong>
+            <p>
+              All changes in branding, races, participants, and crew are saved as draft. Spectators only see categories that
+              you publish explicitly.
+            </p>
           </div>
 
           <div className="organizer-launch-summary">

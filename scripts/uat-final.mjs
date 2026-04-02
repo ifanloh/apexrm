@@ -120,9 +120,9 @@ async function runOrganizerBrowserChecks() {
       await page.getByText(/Organizer Home|Event Setup Console/).waitFor({ timeout: 15000 });
 
       if (await homeTitle.isVisible().catch(() => false)) {
-      const createFirstEventButton = page.getByRole("button", { name: "Create your first event" });
-        if (await createFirstEventButton.count()) {
-          await createFirstEventButton.click();
+        const createFirstEventButton = page.getByRole("button", { name: "Create your first event" });
+        if ((await createFirstEventButton.count()) > 0) {
+          await createFirstEventButton.first().click();
         } else {
           await page.getByRole("button", { name: "Open event setup" }).click();
         }

@@ -922,6 +922,7 @@ export default function App() {
   const [organizerImportFileName, setOrganizerImportFileName] = useState<string | null>(null);
   const [organizerImportMode, setOrganizerImportMode] = useState<OrganizerParticipantImportMode>("merge");
   const [organizerSetupRaceSlug, setOrganizerSetupRaceSlug] = useState<string>(createDefaultOrganizerSetup().races[0]?.slug ?? "");
+  const [organizerDraftSavedAt, setOrganizerDraftSavedAt] = useState<string | null>(() => new Date().toISOString());
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
@@ -1048,6 +1049,7 @@ export default function App() {
     }
 
     window.localStorage.setItem(ORGANIZER_SETUP_STORAGE_KEY, JSON.stringify(organizerSetup));
+    setOrganizerDraftSavedAt(new Date().toISOString());
   }, [organizerSetup]);
 
   useEffect(() => {
@@ -2454,6 +2456,12 @@ export default function App() {
   const organizerPublishedCount = organizerSetup.races.filter((race) => race.isPublished).length;
   const organizerDraftCount = organizerSetup.races.length - organizerPublishedCount;
   const organizerHasEvents = organizerSetup.races.length > 0;
+  const organizerDraftStatusLabel = organizerDraftSavedAt
+    ? `Draft saved ${new Date(organizerDraftSavedAt).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+      })}`
+    : "Draft ready";
   const activeRaceStartAt = selectedRaceCard.startAt;
   const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
   const publicRunnerResults =
@@ -2492,6 +2500,15 @@ export default function App() {
 
     setOrganizerSetupRaceSlug((current) => current || organizerSetup.races[0]?.slug || "");
     setOrganizerWorkspaceView("console");
+  }
+
+  function saveOrganizerDraftNow() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(ORGANIZER_SETUP_STORAGE_KEY, JSON.stringify(organizerSetup));
+    setOrganizerDraftSavedAt(new Date().toISOString());
   }
 
   function updateOrganizerBranding(patch: Partial<OrganizerBrandingDraft>) {
@@ -3234,6 +3251,10 @@ export default function App() {
                   Mulai dari draft, isi event tahap demi tahap, lalu publish hanya saat kategori race dan operasional checkpoint
                   sudah siap.
                 </p>
+                <div className="organizer-home-actions">
+                  <span className="organizer-flow-pill secondary">{organizerDraftStatusLabel}</span>
+                  <span className="organizer-home-note">All setup changes stay private until you publish a race category.</span>
+                </div>
               </div>
 
               <div className="organizer-home-actions">
@@ -3241,11 +3262,7 @@ export default function App() {
                   <button className="auth-trigger" onClick={openOrganizerConsole} type="button">
                     Open event setup
                   </button>
-                ) : (
-                  <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
-                    Create your first event
-                  </button>
-                )}
+                ) : null}
                 <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWorkspaceView("spectator")} type="button">
                   Open spectator preview
                 </button>
@@ -3313,6 +3330,7 @@ export default function App() {
               branding={organizerSetup.branding}
               checkpoints={organizerCheckpointDraft}
               crewAssignments={organizerSelectedRace?.crewAssignments ?? []}
+              draftSavedAt={organizerDraftSavedAt}
               duplicates={organizerConsoleDuplicates}
               importFileName={organizerImportFileName}
               importImpact={organizerImportImpact}
@@ -3331,6 +3349,7 @@ export default function App() {
               onBrandingChange={updateOrganizerBranding}
               onCheckpointChange={updateOrganizerCheckpoint}
               onClearSimulatedScans={clearOrganizerSimulatedScans}
+              onSaveDraft={saveOrganizerDraftNow}
               onCrewAssignmentChange={updateOrganizerCrewAssignment}
               onEventLogoChange={handleOrganizerEventLogoChange}
               onHeroBackgroundChange={handleOrganizerHeroBackgroundChange}
