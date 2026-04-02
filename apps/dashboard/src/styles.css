@@ -7801,22 +7801,22 @@ body {
 
 .live-topbar .topbar-select,
 .live-trail-shell.race-detail-mode .live-topbar .topbar-select {
-  flex: 0 0 196px !important;
-  max-width: 196px !important;
-  min-width: 196px !important;
-  width: 196px !important;
+  flex: 0 0 172px !important;
+  max-width: 172px !important;
+  min-width: 172px !important;
+  width: 172px !important;
 }
 
 .live-topbar .topbar-select-shell,
 .live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell {
-  max-width: 196px !important;
-  min-width: 196px !important;
-  width: 196px !important;
+  max-width: 172px !important;
+  min-width: 172px !important;
+  width: 172px !important;
 }
 
 .live-topbar .topbar-select-shell select,
 .live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell select {
-  min-width: 196px !important;
-  width: 196px !important;
+  min-width: 172px !important;
+  width: 172px !important;
 }
 
