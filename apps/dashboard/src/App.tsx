@@ -1178,7 +1178,8 @@ export default function App() {
   const isOrganizerHomeOpen = organizerSessionActive && organizerWorkspaceView === "home";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
   const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && !isOrganizerHomeOpen && raceDetailView === "race-page" && !isActiveRaceUpcoming;
-  const topbarMenuLabel = !isEditionHome && !isOrganizerHomeOpen && !isOrganizerConsoleOpen ? selectedRaceCard.title : festivalData.editionLabel;
+  const raceMenuLabel =
+    !isEditionHome && !isOrganizerHomeOpen && !isOrganizerConsoleOpen ? selectedRaceCard.title : "Edition Home";
   const organizerSelectedRace =
     organizerSetup.races.find((race) => race.slug === organizerSetupRaceSlug) ?? organizerSetup.races[0] ?? null;
   const organizerCheckpointDraft = organizerSelectedRace ? getOrganizerCheckpointsForRace(organizerSelectedRace) : [];
@@ -3641,6 +3642,11 @@ export default function App() {
           </div>
 
           <div className="topbar-center">
+            <div className="topbar-edition-chip" aria-label={`Current edition ${festivalData.editionLabel}`}>
+              <span className="topbar-edition-chip-accent" aria-hidden="true" />
+              <span className="topbar-edition-chip-label">{festivalData.editionLabel}</span>
+            </div>
+
             <div className="topbar-menu-shell" ref={topbarMenuRef}>
               <button
                 aria-expanded={isTopbarMenuOpen}
@@ -3650,7 +3656,7 @@ export default function App() {
                 type="button"
               >
                 <span className="topbar-menu-accent" aria-hidden="true" />
-                <span className="topbar-menu-label">{topbarMenuLabel}</span>
+                <span className="topbar-menu-label">{raceMenuLabel}</span>
                 <span className="topbar-menu-chevron" aria-hidden="true">
                   ^
                 </span>
@@ -3666,8 +3672,8 @@ export default function App() {
                   >
                     <span className="topbar-menu-item-accent home" aria-hidden="true" />
                     <span className="topbar-menu-item-copy">
-                      <strong>{festivalData.editionLabel}</strong>
-                      <small>Edition Home</small>
+                      <strong>Edition Home</strong>
+                      <small>{festivalData.editionLabel}</small>
                     </span>
                   </button>
                   {visibleRaces.map((race) => (

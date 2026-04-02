@@ -7737,6 +7737,9 @@ body {
 .topbar-center,
 .live-trail-shell.race-detail-mode .topbar-center {
   flex: 0 0 auto;
+  align-items: center;
+  display: flex;
+  gap: 10px;
   max-width: none;
   min-width: 0;
   overflow: visible;
@@ -7803,16 +7806,45 @@ body {
   position: relative;
 }
 
+.topbar-edition-chip {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(22, 22, 22, 0.12);
+  border-radius: 12px;
+  color: #1f1d19;
+  display: inline-flex;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.topbar-edition-chip-accent {
+  background: var(--gold);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 18px;
+  width: 3px;
+}
+
+.topbar-edition-chip-label {
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
 .topbar-menu-button {
   align-items: center;
   background: #ffffff;
   border: 2px solid #161616;
-  border-radius: 16px;
+  border-radius: 14px;
   color: #1e1b17;
   display: inline-flex;
   gap: 10px;
-  min-height: 44px;
-  min-width: 212px;
+  min-height: 40px;
+  min-width: 220px;
   padding: 0 14px 0 12px;
 }
 
@@ -7851,7 +7883,7 @@ body {
 .topbar-menu-panel {
   background: rgba(255, 253, 249, 0.98);
   border: 1px solid rgba(20, 22, 24, 0.12);
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: 0 16px 36px rgba(20, 22, 24, 0.14);
   display: grid;
   gap: 2px;
@@ -7864,6 +7896,12 @@ body {
   position: absolute;
   top: 100%;
   z-index: 80;
+}
+
+@media (max-width: 860px) {
+  .topbar-center {
+    flex-wrap: wrap;
+  }
 }
 
 .topbar-menu-item {
