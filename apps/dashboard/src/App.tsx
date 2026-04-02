@@ -151,6 +151,7 @@ const TEAM_NAMES = [
 const COUNTRY_PRIORITY_ORDER = ["ID", "MY", "SG", "TH", "AU", "JP", "KR", "PH", "VN", "CN", "US", "FR"] as const;
 
 type OrganizerEventPhase = "draft" | "ready" | "live";
+type OrganizerPublicEventStatus = "hidden" | "upcoming" | "live" | "finished";
 type OrganizerHomeFilter = "active" | "archived" | "all";
 
 type CountryCode = (typeof COUNTRY_CODES)[number];
@@ -827,6 +828,24 @@ function deriveOrganizerEventPhase(event: OrganizerEventRecord): OrganizerEventP
   }
 
   return "draft";
+}
+
+function deriveOrganizerPublicEventStatus(event: OrganizerEventRecord): OrganizerPublicEventStatus {
+  const publishedRaces = event.setup.races.filter((race) => race.isPublished);
+
+  if (!publishedRaces.length) {
+    return "hidden";
+  }
+
+  if (publishedRaces.some((race) => isOrganizerRaceLiveState(race.editionLabel))) {
+    return "live";
+  }
+
+  if (publishedRaces.some((race) => isOrganizerRaceUpcomingState(race.editionLabel))) {
+    return "upcoming";
+  }
+
+  return "finished";
 }
 
 function buildDuplicatedOrganizerEventTitle(sourceTitle: string, existingTitles: string[]) {
@@ -3922,6 +3941,15 @@ export default function App() {
                       const isActive = organizerActiveEvent?.id === event.id;
                       const phase = deriveOrganizerEventPhase(event);
                       const phaseLabel = phase === "live" ? "Live" : phase === "ready" ? "Ready" : "Draft";
+                      const publicStatus = deriveOrganizerPublicEventStatus(event);
+                      const publicStatusLabel =
+                        publicStatus === "live"
+                          ? "Public Live"
+                          : publicStatus === "upcoming"
+                            ? "Public Upcoming"
+                            : publicStatus === "finished"
+                              ? "Public Finished"
+                              : "Private";
                       const isArchived = Boolean(event.archivedAt);
 
                       return (
@@ -3935,6 +3963,9 @@ export default function App() {
                             </div>
                             <div className="organizer-event-badges">
                               <span className={`organizer-status-pill ${isArchived ? "draft" : phase}`}>{isArchived ? "Archived" : phaseLabel}</span>
+                              {!isArchived && publicStatus !== "hidden" ? (
+                                <span className={`organizer-status-pill ${publicStatus}`}>{publicStatusLabel}</span>
+                              ) : null}
                               {!isArchived ? (
                                 <span className={`ranking-chip ${isActive ? "chip-finish" : "chip-live"}`}>{isActive ? "Active" : "Workspace"}</span>
                               ) : null}
