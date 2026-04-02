@@ -5295,6 +5295,43 @@ body {
   font-weight: 700;
 }
 
+.course-hover-line {
+  stroke: rgba(8, 108, 74, 0.28);
+  stroke-dasharray: 5 5;
+  stroke-width: 1.5;
+}
+
+.course-hover-point {
+  fill: #fffdf9;
+  stroke: #0b6b57;
+  stroke-width: 3;
+}
+
+.course-hover-tooltip {
+  fill: rgba(255, 253, 249, 0.96);
+  filter: drop-shadow(0 8px 16px rgba(20, 22, 24, 0.12));
+  stroke: rgba(20, 22, 24, 0.1);
+}
+
+.course-hover-tooltip-label,
+.course-hover-tooltip-value {
+  fill: #24211d;
+  font-family: "Red Hat Display", sans-serif;
+}
+
+.course-hover-tooltip-label {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.course-hover-tooltip-value {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .course-profile-footer {
   align-items: center;
   display: grid;

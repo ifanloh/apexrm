@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CourseInlineMap } from "./CourseInlineMap";
 import type { DemoCourse } from "./demoCourseVariants";
 
@@ -59,9 +60,37 @@ function getChartGeometry(course: DemoCourse) {
   };
 }
 
+function getNearestProfilePoint(course: DemoCourse, kmMarker: number) {
+  return course.profilePoints.reduce((closest, point) => {
+    const distance = Math.abs(point.km - kmMarker);
+    const currentDistance = Math.abs(closest.km - kmMarker);
+    return distance < currentDistance ? point : closest;
+  }, course.profilePoints[0]);
+}
+
 export function CourseProfilePanel({ course, courseStops, selectedCheckpointId, onSelectCheckpoint, dnfCount }: Props) {
   const chart = getChartGeometry(course);
   const selectedStop = courseStops.find((stop) => stop.id === selectedCheckpointId) ?? courseStops[0];
+  const [hoveredKm, setHoveredKm] = useState<number | null>(null);
+  const hoveredPoint = hoveredKm === null ? null : getNearestProfilePoint(course, hoveredKm);
+  const hoveredPointX = hoveredPoint ? chart.toX(hoveredPoint.km) : null;
+  const hoveredPointY = hoveredPoint ? chart.toY(hoveredPoint.ele) : null;
+  const tooltipWidth = 152;
+  const tooltipHeight = 62;
+  const hoveredTooltipX =
+    hoveredPointX === null
+      ? chartPadding.left
+      : clamp(hoveredPointX - tooltipWidth / 2, chartPadding.left + 4, chartWidth - chartPadding.right - tooltipWidth - 4);
+  const hoveredTooltipY =
+    hoveredPointY === null ? chartPadding.top + 8 : clamp(hoveredPointY - tooltipHeight - 16, chartPadding.top + 8, chartHeight - chartPadding.bottom - tooltipHeight - 12);
+
+  function handleChartHover(clientX: number, bounds: DOMRect) {
+    const relativeRatio = clamp((clientX - bounds.left) / bounds.width, 0, 1);
+    const svgX = relativeRatio * chartWidth;
+    const drawableWidth = chartWidth - chartPadding.left - chartPadding.right;
+    const relativeKm = ((svgX - chartPadding.left) / drawableWidth) * course.distanceKm;
+    setHoveredKm(clamp(relativeKm, 0, course.distanceKm));
+  }
 
   return (
     <>
@@ -88,6 +117,8 @@ export function CourseProfilePanel({ course, courseStops, selectedCheckpointId, 
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               role="img"
               aria-label={`${course.title} elevation profile`}
+              onMouseLeave={() => setHoveredKm(null)}
+              onMouseMove={(event) => handleChartHover(event.clientX, event.currentTarget.getBoundingClientRect())}
             >
               <defs>
                 <linearGradient id="courseElevationFill" x1="0" x2="0" y1="0" y2="1">
@@ -120,12 +151,36 @@ export function CourseProfilePanel({ course, courseStops, selectedCheckpointId, 
               <path className="course-area" d={chart.areaPath} />
               <path className="course-line" d={chart.linePath} />
 
+              {hoveredPoint && hoveredPointX !== null && hoveredPointY !== null ? (
+                <g className="course-hover-overlay" pointerEvents="none">
+                  <line
+                    className="course-hover-line"
+                    x1={hoveredPointX}
+                    x2={hoveredPointX}
+                    y1={chartPadding.top}
+                    y2={chartHeight - chartPadding.bottom}
+                  />
+                  <circle className="course-hover-point" cx={hoveredPointX} cy={hoveredPointY} r={6} />
+                  <g transform={`translate(${hoveredTooltipX}, ${hoveredTooltipY})`}>
+                    <rect className="course-hover-tooltip" height={tooltipHeight} rx="14" width={tooltipWidth} x="0" y="0" />
+                    <text className="course-hover-tooltip-label" x="14" y="20">
+                      From start
+                    </text>
+                    <text className="course-hover-tooltip-value" x="14" y="38">
+                      {hoveredPoint.km.toFixed(1)} km
+                    </text>
+                    <text className="course-hover-tooltip-label" x="92" y="20">
+                      Elevation
+                    </text>
+                    <text className="course-hover-tooltip-value" x="92" y="38">
+                      {Math.round(hoveredPoint.ele)} m
+                    </text>
+                  </g>
+                </g>
+              ) : null}
+
               {courseStops.map((stop) => {
-                const markerPoint = course.profilePoints.reduce((closest, point) => {
-                  const distance = Math.abs(point.km - stop.kmMarker);
-                  const currentDistance = Math.abs(closest.km - stop.kmMarker);
-                  return distance < currentDistance ? point : closest;
-                }, course.profilePoints[0]);
+                const markerPoint = getNearestProfilePoint(course, stop.kmMarker);
 
                 const x = chart.toX(stop.kmMarker);
                 const y = chart.toY(markerPoint.ele);
