@@ -3593,7 +3593,11 @@ export default function App() {
     >
       <header className="topbar topbar-hub live-topbar">
         <div className="topbar-race-lockup">
-          <div aria-label="Event logo placeholder" className="event-logo-placeholder" role="img">
+          <div
+            aria-label="Event logo placeholder"
+            className={`event-logo-placeholder ${organizerSetup.branding.eventLogoDataUrl ? "has-uploaded-logo" : ""}`}
+            role="img"
+          >
             {organizerSetup.branding.eventLogoDataUrl ? (
               <img alt="Event logo" src={organizerSetup.branding.eventLogoDataUrl} />
             ) : (

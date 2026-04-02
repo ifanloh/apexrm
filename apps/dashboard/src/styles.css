@@ -6330,9 +6330,10 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 92px;
-  height: 56px;
-  border-radius: 18px;
+  width: 168px;
+  min-width: 168px;
+  height: 64px;
+  border-radius: 16px;
   border: 1px dashed rgba(225, 183, 76, 0.6);
   background: rgba(255, 248, 233, 0.9);
   color: var(--brand-red, #ff1515);
@@ -6343,12 +6344,19 @@ body {
   overflow: hidden;
 }
 
+.event-logo-placeholder.has-uploaded-logo {
+  justify-content: flex-start;
+  background: transparent;
+  border-color: transparent;
+}
+
 .event-logo-placeholder img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  object-position: left center;
   display: block;
-  padding: 0.25rem;
+  padding: 0;
 }
 
 .organizer-console-shell {
@@ -8031,8 +8039,8 @@ body {
 }
 
 .topbar-race-lockup {
-  flex: 0 0 136px;
-  max-width: 136px;
+  flex: 0 0 176px;
+  max-width: 176px;
 }
 
 .topbar-center {
