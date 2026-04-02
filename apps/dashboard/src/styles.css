@@ -6620,6 +6620,14 @@ body {
   font-weight: 700;
 }
 
+.organizer-field-help {
+  margin: -0.1rem 0 0;
+  color: #8d6a2a;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .organizer-field span {
   color: #8d6a2a;
 }
@@ -6884,6 +6892,13 @@ body {
   margin: 0.25rem 0 0;
   color: #8d6a2a;
   font-size: 0.88rem;
+}
+
+.organizer-readiness-note {
+  margin: 0;
+  color: #8d6a2a;
+  font-size: 0.8rem;
+  line-height: 1.45;
 }
 
 .organizer-readiness-pill {

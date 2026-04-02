@@ -796,9 +796,6 @@ function normalizeWomenLeaderboard(
 }
 
 function isOrganizerRaceReadyForPublish(branding: OrganizerBrandingDraft, race: OrganizerRaceDraft) {
-  const acceptedCrew = race.crewAssignments.filter((crew) => crew.status === "accepted" || crew.status === "active");
-  const provisionedCrew = race.crewAssignments.filter((crew) => crew.deviceLabel.trim().length > 0);
-
   return (
     Boolean(branding.eventLogoDataUrl) &&
     Boolean(branding.heroBackgroundImageDataUrl) &&
@@ -806,13 +803,33 @@ function isOrganizerRaceReadyForPublish(branding: OrganizerBrandingDraft, race: 
     race.courseDescription.trim().length >= 24 &&
     race.courseHighlights.filter(Boolean).length >= 2 &&
     race.checkpoints.length >= 3 &&
-    race.crewAssignments.length > 0 &&
-    acceptedCrew.length === race.crewAssignments.length &&
-    provisionedCrew.length === race.crewAssignments.length &&
     race.participants.length > 0 &&
     Boolean(race.startAt.trim()) &&
     Boolean(race.scheduleLabel.trim())
   );
+}
+
+function isOrganizerRaceReadyForLive(branding: OrganizerBrandingDraft, race: OrganizerRaceDraft) {
+  const acceptedCrew = race.crewAssignments.filter((crew) => crew.status === "accepted" || crew.status === "active");
+  const provisionedCrew = race.crewAssignments.filter((crew) => crew.deviceLabel.trim().length > 0);
+
+  return (
+    isOrganizerRaceReadyForPublish(branding, race) &&
+    race.crewAssignments.length > 0 &&
+    acceptedCrew.length === race.crewAssignments.length &&
+    provisionedCrew.length === race.crewAssignments.length
+  );
+}
+
+function normalizeOrganizerRaceGoLiveState(branding: OrganizerBrandingDraft, race: OrganizerRaceDraft) {
+  if (isOrganizerRaceLiveState(race.editionLabel) && !isOrganizerRaceReadyForLive(branding, race)) {
+    return {
+      ...race,
+      editionLabel: "Upcoming" as OrganizerRaceState
+    };
+  }
+
+  return race;
 }
 
 function deriveOrganizerEventPhase(event: OrganizerEventRecord): OrganizerEventPhase {
@@ -2846,22 +2863,30 @@ export default function App() {
 
     updateOrganizerWorkspaceEvent(organizerActiveEvent.id, (event) => {
       const nextSetup = updater(event.setup);
+      const normalizedSetup: OrganizerSetupDraft = {
+        ...nextSetup,
+        races: nextSetup.races.map((race) => normalizeOrganizerRaceGoLiveState(nextSetup.branding, race))
+      };
       return {
         ...event,
-        title: deriveOrganizerEventTitle(nextSetup),
+        title: deriveOrganizerEventTitle(normalizedSetup),
         updatedAt: new Date().toISOString(),
-        setup: nextSetup
+        setup: normalizedSetup
       };
     });
   }
 
   function createOrganizerWorkspaceEvent(setup: OrganizerSetupDraft, options?: { openConsole?: boolean }) {
-    const newEvent = createOrganizerEventRecord(setup);
+    const normalizedSetup: OrganizerSetupDraft = {
+      ...setup,
+      races: setup.races.map((race) => normalizeOrganizerRaceGoLiveState(setup.branding, race))
+    };
+    const newEvent = createOrganizerEventRecord(normalizedSetup);
     setOrganizerWorkspace((current) => ({
       activeEventId: newEvent.id,
       events: [...current.events, newEvent]
     }));
-    setOrganizerSetupRaceSlug(setup.races[0]?.slug ?? "");
+    setOrganizerSetupRaceSlug(normalizedSetup.races[0]?.slug ?? "");
     setSelectedRaceSlug(EDITION_HOME_VALUE);
     setRaceDetailView("race-page");
     clearOrganizerImportDraft();
@@ -3105,7 +3130,22 @@ export default function App() {
 
     updateActiveOrganizerSetup((current) => ({
       ...current,
-      races: current.races.map((race) => (race.slug === slug ? { ...race, ...nextPatch } : race))
+      races: current.races.map((race) => {
+        if (race.slug !== slug) {
+          return race;
+        }
+
+        const nextRace = {
+          ...race,
+          ...nextPatch
+        };
+
+        if (isOrganizerRaceLiveState(nextRace.editionLabel) && !isOrganizerRaceReadyForLive(current.branding, nextRace)) {
+          nextRace.editionLabel = "Upcoming";
+        }
+
+        return nextRace;
+      })
     }));
   }
 

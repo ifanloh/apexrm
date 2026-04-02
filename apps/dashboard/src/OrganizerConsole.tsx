@@ -281,7 +281,7 @@ export function OrganizerConsole({
     const fieldCrew = race.crewAssignments;
     const acceptedFieldCrew = fieldCrew.filter((crew) => crew.status === "accepted" || crew.status === "active");
     const provisionedFieldCrew = fieldCrew.filter((crew) => crew.deviceLabel.trim().length > 0);
-    const checks = [
+    const publishChecks = [
       {
         label: "Event logo uploaded",
         pass: Boolean(branding.eventLogoDataUrl)
@@ -318,6 +318,17 @@ export function OrganizerConsole({
         pass: race.checkpoints.length >= 3
       },
       {
+        label: "Participants imported",
+        pass: race.participants.length > 0
+      },
+      {
+        label: "Start schedule set",
+        pass: Boolean(race.startAt.trim()) && Boolean(race.scheduleLabel.trim())
+      }
+    ];
+    const liveChecks = [
+      ...publishChecks,
+      {
         label: "Crew assigned",
         pass: race.crewAssignments.length > 0
       },
@@ -328,33 +339,29 @@ export function OrganizerConsole({
       {
         label: "Devices provisioned",
         pass: fieldCrew.length > 0 && provisionedFieldCrew.length === fieldCrew.length
-      },
-      {
-        label: "Participants imported",
-        pass: race.participants.length > 0
-      },
-      {
-        label: "Start schedule set",
-        pass: Boolean(race.startAt.trim()) && Boolean(race.scheduleLabel.trim())
       }
     ];
 
-    const passCount = checks.filter((check) => check.pass).length;
+    const publishPassCount = publishChecks.filter((check) => check.pass).length;
+    const livePassCount = liveChecks.filter((check) => check.pass).length;
 
     return {
       race,
-      checks,
-      passCount,
-      ready: passCount === checks.length
+      publishChecks,
+      liveChecks,
+      publishPassCount,
+      livePassCount,
+      publishReady: publishPassCount === publishChecks.length,
+      liveReady: livePassCount === liveChecks.length
     };
   });
-  const readyRaceCount = raceReadiness.filter((item) => item.ready).length;
+  const liveReadyRaceCount = raceReadiness.filter((item) => item.liveReady).length;
   const blockedRaceReadiness = raceReadiness
     .map((item) => ({
       ...item,
-      blockedChecks: item.checks.filter((check) => !check.pass)
+      blockedChecks: (item.race.isPublished ? item.liveChecks : item.publishChecks).filter((check) => !check.pass)
     }))
-    .filter((item) => !item.ready || !item.race.isPublished);
+    .filter((item) => !item.publishReady || (item.race.isPublished && !item.liveReady));
   const publishedRaceCount = races.filter((race) => race.isPublished).length;
   const draftRaceCount = races.length - publishedRaceCount;
   const liveRaceCount = races.filter((race) => isOrganizerRaceLiveState(race.editionLabel)).length;
@@ -371,11 +378,11 @@ export function OrganizerConsole({
     .slice(0, 5);
   const selectedRaceReadiness = raceReadiness.find((item) => item.race.slug === selectedRaceSlug) ?? null;
   const launchSummaryLabel =
-    blockedRaceReadiness.length === 0 && publishedRaceCount > 0
-      ? "Edition ready for publish"
-      : publishedRaceCount === 0
+    publishedRaceCount === 0
         ? "No race category published yet"
-        : "Edition still needs setup";
+        : blockedRaceReadiness.length === 0
+          ? "Edition ready to go live"
+          : "Edition can stay upcoming while live blockers are cleared";
   const primaryBlocker = topBlockers[0] ?? null;
   const currentStepIndex = setupSteps.findIndex((step) => step.view === activeView);
   const currentStep = currentStepIndex >= 0 ? setupSteps[currentStepIndex] : null;
@@ -627,7 +634,7 @@ export function OrganizerConsole({
             <strong>Draft mode stays private.</strong>
             <p>
               All changes in branding, races, participants, and crew are saved as draft. Spectators only see categories that
-              you publish explicitly.
+              you publish explicitly, and every published category stays Upcoming until the full go-live checks are green.
             </p>
           </div>
 
@@ -638,15 +645,17 @@ export function OrganizerConsole({
               <span>{draftRaceCount} still draft</span>
             </div>
             <div className="panel-badge compact-badge">
-              <span>Ready categories</span>
-              <strong>{readyRaceCount}</strong>
+              <span>Live-ready categories</span>
+              <strong>{liveReadyRaceCount}</strong>
               <span>of {races.length}</span>
             </div>
             <div className="panel-badge compact-badge">
               <span>Current focus</span>
               <strong>{selectedRace?.title ?? "No race selected"}</strong>
               <span>
-                {selectedRaceReadiness ? `${selectedRaceReadiness.passCount}/${selectedRaceReadiness.checks.length} checks complete` : "select a race"}
+                {selectedRaceReadiness
+                  ? `${selectedRaceReadiness.livePassCount}/${selectedRaceReadiness.liveChecks.length} go-live checks complete`
+                  : "select a race"}
               </span>
             </div>
           </div>
@@ -664,10 +673,10 @@ export function OrganizerConsole({
           <div className="organizer-launch-detail organizer-launch-detail-condensed">
             <div className="organizer-launch-card">
               <p className="section-label">Current launch signal</p>
-              <h3>{primaryBlocker ? primaryBlocker[0] : "All publish checks are green"}</h3>
+              <h3>{primaryBlocker ? primaryBlocker[0] : "All go-live checks are green"}</h3>
               <p className="organizer-launch-copy">
                 {primaryBlocker
-                  ? `${primaryBlocker[1]} categories still need this item before they can be published.`
+                  ? `${primaryBlocker[1]} categories still need this item before they can move from Upcoming to Live.`
                       : `${liveRaceCount} live, ${upcomingRaceCount} upcoming, and ${finishedRaceCount} finished categories are aligned for spectator view.`}
               </p>
               <div className="organizer-launch-tags">
@@ -678,7 +687,7 @@ export function OrganizerConsole({
                     </span>
                   ))
                 ) : (
-                  <span className="organizer-validation-tag success">All publish checks are green</span>
+                  <span className="organizer-validation-tag success">All go-live checks are green</span>
                 )}
               </div>
             </div>
@@ -1103,32 +1112,42 @@ export function OrganizerConsole({
           <div className="panel-head compact">
             <div>
               <p className="section-label">Readiness</p>
-              <h3>Category publish readiness</h3>
+              <h3>Category go-live readiness</h3>
             </div>
             <div className="panel-badge compact-badge">
-              <span>Ready races</span>
-              <strong>{readyRaceCount}</strong>
+              <span>Live-ready races</span>
+              <strong>{liveReadyRaceCount}</strong>
               <span>of {races.length}</span>
             </div>
           </div>
 
           <div className="organizer-readiness-grid">
-            {raceReadiness.map(({ race, checks, passCount, ready }) => (
-              <article className={`organizer-readiness-card ${ready ? "ready" : "draft"}`} key={`readiness-${race.slug}`}>
+            {raceReadiness.map(({ race, publishReady, liveChecks, livePassCount, liveReady }) => (
+              <article className={`organizer-readiness-card ${liveReady ? "ready" : "draft"}`} key={`readiness-${race.slug}`}>
                 <div className="organizer-readiness-head">
                   <div>
                     <strong>{race.title}</strong>
                     <p>
-                      {passCount}/{checks.length} setup checks complete
+                      {livePassCount}/{liveChecks.length} go-live checks complete
                     </p>
                   </div>
                   <div className="organizer-readiness-actions">
-                    <span className={`organizer-readiness-pill ${race.isPublished ? "published" : ready ? "ready" : "draft"}`}>
-                      {race.isPublished ? "Published" : ready ? "Ready" : "Needs setup"}
+                    <span
+                      className={`organizer-readiness-pill ${
+                        race.isPublished ? (liveReady ? "ready" : "published") : publishReady ? "ready" : "draft"
+                      }`}
+                    >
+                      {race.isPublished
+                        ? liveReady
+                          ? "Live-ready"
+                          : "Published Upcoming"
+                        : publishReady
+                          ? "Ready to publish"
+                          : "Needs setup"}
                     </span>
                     <button
                       className={`toolbar-link organizer-publish-button ${race.isPublished ? "secondary" : ""}`}
-                      disabled={!race.isPublished && !ready}
+                      disabled={!race.isPublished && !publishReady}
                       onClick={() => onToggleRacePublish(race.slug, !race.isPublished)}
                       type="button"
                     >
@@ -1138,13 +1157,20 @@ export function OrganizerConsole({
                 </div>
 
                 <div className="organizer-readiness-list">
-                  {checks.map((check) => (
+                  {liveChecks.map((check) => (
                     <div className={`organizer-readiness-item ${check.pass ? "pass" : "pending"}`} key={`${race.slug}-${check.label}`}>
                       <span className="organizer-readiness-dot" aria-hidden="true" />
                       <span>{check.label}</span>
                     </div>
                   ))}
                 </div>
+                {!liveReady ? (
+                  <p className="organizer-readiness-note">
+                    {publishReady
+                      ? "This category can be published now and will stay Upcoming until every go-live check is green."
+                      : "Finish the public setup first, then publish it as Upcoming while ops readiness is completed."}
+                  </p>
+                ) : null}
               </article>
             ))}
           </div>
@@ -1153,8 +1179,8 @@ export function OrganizerConsole({
         <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "overview"}>
           <div className="panel-head compact">
             <div>
-              <p className="section-label">Publish Validation</p>
-              <h3>Blocked categories</h3>
+              <p className="section-label">Go-live Validation</p>
+              <h3>Categories that still block Live</h3>
             </div>
             <div className="panel-badge compact-badge">
               <span>Need attention</span>
@@ -1164,12 +1190,18 @@ export function OrganizerConsole({
           </div>
 
           <div className="organizer-validation-list">
-            {blockedRaceReadiness.map(({ race, blockedChecks, ready }) => (
+            {blockedRaceReadiness.map(({ race, blockedChecks, publishReady, liveReady }) => (
               <article className="organizer-validation-row" key={`validation-${race.slug}`}>
                 <div>
                   <strong>{race.title}</strong>
                   <p>
-                    {race.isPublished ? "Published with open blockers" : ready ? "Ready to publish" : "Draft with pending setup"}
+                    {race.isPublished
+                      ? liveReady
+                        ? "Published and ready for live"
+                        : "Published as Upcoming until live blockers are cleared"
+                      : publishReady
+                        ? "Ready to publish now as Upcoming"
+                        : "Draft with pending publish setup"}
                   </p>
                 </div>
                 <div className="organizer-validation-meta">
@@ -1181,7 +1213,7 @@ export function OrganizerConsole({
                         </span>
                       ))
                     ) : (
-                      <span className="organizer-validation-tag success">Ready for publish</span>
+                      <span className="organizer-validation-tag success">Live-ready</span>
                     )}
                   </div>
                   <button className="toolbar-link organizer-secondary-action" onClick={() => handleInspectRace(race.slug)} type="button">
@@ -1190,7 +1222,7 @@ export function OrganizerConsole({
                 </div>
               </article>
             ))}
-            {!blockedRaceReadiness.length ? <div className="empty-compact">All race categories are ready and published.</div> : null}
+            {!blockedRaceReadiness.length ? <div className="empty-compact">All published race categories are live-ready.</div> : null}
           </div>
         </article>
 
@@ -1229,6 +1261,7 @@ export function OrganizerConsole({
                   </span>
                   <button
                     className="toolbar-link organizer-secondary-action"
+                    disabled={!selectedRace.isPublished && !selectedRaceReadiness?.publishReady}
                     onClick={() => onToggleRacePublish(selectedRace.slug, !selectedRace.isPublished)}
                     type="button"
                   >
@@ -1245,11 +1278,19 @@ export function OrganizerConsole({
               <>
                 <div className="organizer-race-summary">
                   <div className="panel-badge compact-badge">
-                    <span>Readiness</span>
+                    <span>Go-live readiness</span>
                     <strong>
-                      {selectedRaceReadiness ? `${selectedRaceReadiness.passCount}/${selectedRaceReadiness.checks.length}` : "0/0"}
+                      {selectedRaceReadiness ? `${selectedRaceReadiness.livePassCount}/${selectedRaceReadiness.liveChecks.length}` : "0/0"}
                     </strong>
-                    <span>{selectedRaceReadiness?.ready ? "ready to publish" : "checks pending"}</span>
+                    <span>
+                      {selectedRaceReadiness
+                        ? selectedRaceReadiness.liveReady
+                          ? "ready for live"
+                          : selectedRaceReadiness.publishReady
+                            ? "publishable as upcoming"
+                            : "publish checks pending"
+                        : "select a race"}
+                    </span>
                   </div>
                   <div className="panel-badge compact-badge">
                     <span>Race mode</span>
@@ -1287,10 +1328,17 @@ export function OrganizerConsole({
                         onChange={(event) => onRaceChange(selectedRace.slug, { editionLabel: normalizeOrganizerRaceStateLabel(event.target.value) })}
                       >
                         <option value="Upcoming">Upcoming</option>
-                        <option value="Live">Live</option>
+                        <option disabled={!selectedRaceReadiness?.liveReady} value="Live">
+                          Live
+                        </option>
                         <option value="Finished">Finished</option>
                       </select>
                     </label>
+                    {!selectedRaceReadiness?.liveReady ? (
+                      <p className="organizer-field-help">
+                        Live unlocks only after every go-live check is green. You can still publish this category as Upcoming.
+                      </p>
+                    ) : null}
                     <label className="organizer-field">
                       <span>Race mode</span>
                       <select
