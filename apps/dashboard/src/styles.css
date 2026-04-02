@@ -7811,10 +7811,12 @@ body {
 .live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell {
   border-width: 2px !important;
   border-radius: 14px !important;
+  box-sizing: border-box !important;
   max-width: 148px !important;
   min-height: 44px !important;
   min-width: 148px !important;
-  padding-right: 8px !important;
+  overflow: hidden !important;
+  padding-right: 0 !important;
   position: relative !important;
   width: 148px !important;
 }
@@ -7839,15 +7841,27 @@ body {
   appearance: none !important;
   background: transparent !important;
   border: 0 !important;
-  border-radius: 12px !important;
+  border-radius: 0 !important;
   box-shadow: none !important;
+  box-sizing: border-box !important;
   cursor: pointer;
   display: block;
   font-size: 0.82rem !important;
   min-height: 38px !important;
-  min-width: 148px !important;
+  min-width: 0 !important;
+  outline: none !important;
   padding-left: 10px !important;
   padding-right: 28px !important;
-  width: 148px !important;
+  width: 100% !important;
+}
+
+.live-topbar .topbar-select-shell select:focus,
+.live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell select:focus {
+  outline: none !important;
+}
+
+.live-topbar .topbar-select-shell:focus-within,
+.live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell:focus-within {
+  box-shadow: 0 0 0 1px rgba(12, 107, 84, 0.18) !important;
 }
 
