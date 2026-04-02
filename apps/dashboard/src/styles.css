@@ -7814,17 +7814,40 @@ body {
   max-width: 148px !important;
   min-height: 44px !important;
   min-width: 148px !important;
+  padding-right: 8px !important;
+  position: relative !important;
   width: 148px !important;
+}
+
+.live-topbar .topbar-select-shell::after,
+.live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell::after {
+  color: #1c1c1c;
+  content: "v";
+  font-size: 0.78rem;
+  font-weight: 700;
+  pointer-events: none;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .live-topbar .topbar-select-shell select,
 .live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell select {
+  -moz-appearance: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: transparent !important;
+  border: 0 !important;
   border-radius: 12px !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  display: block;
   font-size: 0.82rem !important;
   min-height: 38px !important;
   min-width: 148px !important;
   padding-left: 10px !important;
-  padding-right: 22px !important;
+  padding-right: 28px !important;
   width: 148px !important;
 }
 
