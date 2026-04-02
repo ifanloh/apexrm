@@ -7810,6 +7810,7 @@ body {
 .live-topbar .topbar-select-shell,
 .live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell {
   border-width: 2px !important;
+  border-radius: 14px !important;
   max-width: 148px !important;
   min-height: 44px !important;
   min-width: 148px !important;
@@ -7818,6 +7819,7 @@ body {
 
 .live-topbar .topbar-select-shell select,
 .live-trail-shell.race-detail-mode .live-topbar .topbar-select-shell select {
+  border-radius: 12px !important;
   font-size: 0.82rem !important;
   min-height: 38px !important;
   min-width: 148px !important;
