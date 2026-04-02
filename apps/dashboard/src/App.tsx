@@ -102,6 +102,7 @@ const TEAM_NAMES = [
 const COUNTRY_PRIORITY_ORDER = ["ID", "MY", "SG", "TH", "AU", "JP", "KR", "PH", "VN", "CN", "US", "FR"] as const;
 
 type OrganizerEventPhase = "draft" | "ready" | "live";
+type OrganizerHomeFilter = "active" | "archived" | "all";
 
 type CountryCode = (typeof COUNTRY_CODES)[number];
 
@@ -751,6 +752,22 @@ function deriveOrganizerEventPhase(event: OrganizerEventRecord): OrganizerEventP
   return "draft";
 }
 
+function buildDuplicatedOrganizerEventTitle(sourceTitle: string, existingTitles: string[]) {
+  const trimmed = sourceTitle.trim() || "Untitled event";
+  const copyBase = trimmed.replace(/\sCopy(?:\s\d+)?$/i, "").trim();
+  const normalizedExisting = new Set(existingTitles.map((title) => title.trim().toLowerCase()));
+
+  let candidate = `${copyBase} Copy`;
+  let index = 2;
+
+  while (normalizedExisting.has(candidate.toLowerCase())) {
+    candidate = `${copyBase} Copy ${index}`;
+    index += 1;
+  }
+
+  return candidate;
+}
+
 function buildRunnerFallbackResults(
   entries: OverallLeaderboard["topEntries"],
   query: string,
@@ -1005,6 +1022,7 @@ export default function App() {
   const [raceDetailView, setRaceDetailView] = useState<RaceDetailView>("race-page");
   const [organizerWorkspaceView, setOrganizerWorkspaceView] = useState<OrganizerWorkspaceView>("spectator");
   const [organizerWorkspace, setOrganizerWorkspace] = useState(() => loadOrganizerWorkspace());
+  const [organizerHomeFilter, setOrganizerHomeFilter] = useState<OrganizerHomeFilter>("active");
   const [organizerImportText, setOrganizerImportText] = useState("");
   const [organizerImportFileName, setOrganizerImportFileName] = useState<string | null>(null);
   const [organizerImportMode, setOrganizerImportMode] = useState<OrganizerParticipantImportMode>("merge");
@@ -2576,6 +2594,12 @@ export default function App() {
         minute: "2-digit"
       })}`
     : "Draft ready";
+  const organizerHomeEvents =
+    organizerHomeFilter === "active"
+      ? organizerVisibleEvents
+      : organizerHomeFilter === "archived"
+        ? organizerArchivedEvents
+        : organizerWorkspace.events;
   const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0;
   const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
   const organizerWizardRaceReady =
@@ -2657,16 +2681,28 @@ export default function App() {
       return;
     }
 
+    const nextTitle = buildDuplicatedOrganizerEventTitle(
+      sourceEvent.title,
+      organizerWorkspace.events.map((event) => event.title)
+    );
+
     const duplicatedSetup: OrganizerSetupDraft = {
       ...sourceEvent.setup,
       branding: {
         ...sourceEvent.setup.branding,
-        brandName: `${sourceEvent.setup.branding.brandName} Copy`,
-        homeTitle: `${sourceEvent.setup.branding.homeTitle} Copy`
+        brandName: nextTitle,
+        homeTitle: nextTitle,
+        editionLabel: sourceEvent.setup.branding.editionLabel
       },
       races: sourceEvent.setup.races.map((race) => ({
         ...race,
-        isPublished: false
+        isPublished: false,
+        finishers: 0,
+        dnf: 0,
+        rankingPreview: [],
+        participants: [],
+        crewAssignments: [],
+        simulatedScans: []
       }))
     };
 
@@ -3624,13 +3660,37 @@ export default function App() {
                 </article>
                 <article className="organizer-home-card organizer-home-card-wide">
                   <span className="detail-label">Your events</span>
+                  <div className="organizer-home-actions organizer-home-filters">
+                    <button
+                      className={`organizer-flow-pill ${organizerHomeFilter === "active" ? "" : "secondary"}`}
+                      onClick={() => setOrganizerHomeFilter("active")}
+                      type="button"
+                    >
+                      Active
+                    </button>
+                    <button
+                      className={`organizer-flow-pill ${organizerHomeFilter === "all" ? "" : "secondary"}`}
+                      onClick={() => setOrganizerHomeFilter("all")}
+                      type="button"
+                    >
+                      All
+                    </button>
+                    <button
+                      className={`organizer-flow-pill ${organizerHomeFilter === "archived" ? "" : "secondary"}`}
+                      onClick={() => setOrganizerHomeFilter("archived")}
+                      type="button"
+                    >
+                      Archived
+                    </button>
+                  </div>
                   <div className="organizer-home-race-list organizer-event-list">
-                    {organizerVisibleEvents.map((event) => {
+                    {organizerHomeEvents.map((event) => {
                       const publishedCount = event.setup.races.filter((race) => race.isPublished).length;
                       const draftCount = event.setup.races.length - publishedCount;
                       const isActive = organizerActiveEvent?.id === event.id;
                       const phase = deriveOrganizerEventPhase(event);
                       const phaseLabel = phase === "live" ? "Live" : phase === "ready" ? "Ready" : "Draft";
+                      const isArchived = Boolean(event.archivedAt);
 
                       return (
                         <div className="organizer-home-race-row organizer-event-row" key={event.id}>
@@ -3642,58 +3702,45 @@ export default function App() {
                               </p>
                             </div>
                             <div className="organizer-event-badges">
-                              <span className={`organizer-status-pill ${phase}`}>{phaseLabel}</span>
-                              <span className={`ranking-chip ${isActive ? "chip-finish" : "chip-live"}`}>{isActive ? "Active" : "Workspace"}</span>
+                              <span className={`organizer-status-pill ${isArchived ? "draft" : phase}`}>{isArchived ? "Archived" : phaseLabel}</span>
+                              {!isArchived ? (
+                                <span className={`ranking-chip ${isActive ? "chip-finish" : "chip-live"}`}>{isActive ? "Active" : "Workspace"}</span>
+                              ) : null}
                             </div>
                           </div>
                           <div className="organizer-event-actions">
-                            <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(event.id)} type="button">
-                              Open
-                            </button>
-                            <button className="toolbar-link organizer-secondary-action" onClick={() => duplicateOrganizerEvent(event.id)} type="button">
-                              Duplicate
-                            </button>
-                            <button className="toolbar-link organizer-secondary-action" onClick={() => archiveOrganizerEvent(event.id)} type="button">
-                              Archive
-                            </button>
+                            {isArchived ? (
+                              <button className="toolbar-link organizer-secondary-action" onClick={() => restoreOrganizerEvent(event.id)} type="button">
+                                Restore
+                              </button>
+                            ) : (
+                              <>
+                                <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(event.id)} type="button">
+                                  Open
+                                </button>
+                                <button className="toolbar-link organizer-secondary-action" onClick={() => duplicateOrganizerEvent(event.id)} type="button">
+                                  Duplicate
+                                </button>
+                                <button className="toolbar-link organizer-secondary-action" onClick={() => archiveOrganizerEvent(event.id)} type="button">
+                                  Archive
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       );
                     })}
+                    {!organizerHomeEvents.length ? (
+                      <div className="empty-compact">
+                        {organizerHomeFilter === "archived"
+                          ? "No archived events yet."
+                          : organizerHomeFilter === "all"
+                            ? "No organizer events available."
+                            : "No active events available."}
+                      </div>
+                    ) : null}
                   </div>
                 </article>
-                {organizerArchivedEvents.length ? (
-                  <article className="organizer-home-card organizer-home-card-wide">
-                    <span className="detail-label">Archived events</span>
-                    <div className="organizer-home-race-list organizer-event-list">
-                      {organizerArchivedEvents.map((event) => (
-                        <div className="organizer-home-race-row organizer-event-row" key={event.id}>
-                          <div className="organizer-event-main">
-                            <div>
-                              <strong>{event.title}</strong>
-                              <p>
-                                Archived{" "}
-                                {event.archivedAt
-                                  ? new Date(event.archivedAt).toLocaleDateString([], {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric"
-                                    })
-                                  : "recently"}
-                              </p>
-                            </div>
-                            <span className="organizer-status-pill draft">Archived</span>
-                          </div>
-                          <div className="organizer-event-actions">
-                            <button className="toolbar-link organizer-secondary-action" onClick={() => restoreOrganizerEvent(event.id)} type="button">
-                              Restore
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                ) : null}
               </div>
             ) : (
               <>

@@ -6336,6 +6336,10 @@ body {
   gap: 0.75rem;
 }
 
+.organizer-home-filters {
+  margin-bottom: 0.2rem;
+}
+
 .organizer-home-grid {
   display: grid;
   gap: 1rem;
