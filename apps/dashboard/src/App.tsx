@@ -3592,28 +3592,32 @@ export default function App() {
       className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
     >
       <header className="topbar topbar-hub live-topbar">
-        <div className="topbar-race-lockup">
-          <div
-            aria-label="Event logo placeholder"
-            className={`event-logo-placeholder ${organizerSetup.branding.eventLogoDataUrl ? "has-uploaded-logo" : ""}`}
-            role="img"
-          >
-            {organizerSetup.branding.eventLogoDataUrl ? (
-              <img alt="Event logo" src={organizerSetup.branding.eventLogoDataUrl} />
-            ) : (
-              <span>Event Logo</span>
-            )}
+        <div className="topbar-left-cluster">
+          <div className="topbar-race-lockup">
+            <div
+              aria-label="Event logo placeholder"
+              className={`event-logo-placeholder ${organizerSetup.branding.eventLogoDataUrl ? "has-uploaded-logo" : ""}`}
+              role="img"
+            >
+              {organizerSetup.branding.eventLogoDataUrl ? (
+                <img alt="Event logo" src={organizerSetup.branding.eventLogoDataUrl} />
+              ) : (
+                <span>Event Logo</span>
+              )}
+            </div>
+          </div>
+
+          <div className="topbar-center">
+            <label className="topbar-select topbar-select-shell">
+              <span className="sr-only">Edition selector</span>
+              <select onChange={() => handleRaceSelection(EDITION_HOME_VALUE)} value={EDITION_HOME_VALUE}>
+                <option value={EDITION_HOME_VALUE}>{festivalData.editionLabel}</option>
+              </select>
+            </label>
           </div>
         </div>
 
-        <div className="topbar-center">
-          <label className="topbar-select topbar-select-shell">
-            <span className="sr-only">Edition selector</span>
-            <select onChange={() => handleRaceSelection(EDITION_HOME_VALUE)} value={EDITION_HOME_VALUE}>
-              <option value={EDITION_HOME_VALUE}>{festivalData.editionLabel}</option>
-            </select>
-          </label>
-        </div>
+        <div className="topbar-spacer" />
 
         <div className="topbar-actions live-topbar-actions">
           {organizerSessionActive ? (

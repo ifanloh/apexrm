@@ -8085,7 +8085,7 @@ body {
 }
 
 .live-topbar {
-  justify-content: space-between;
+  justify-content: flex-start;
   margin: 0;
   padding: 10px 22px 12px;
   position: sticky;
@@ -8094,14 +8094,27 @@ body {
   z-index: 40;
 }
 
+.topbar-left-cluster {
+  align-items: center;
+  display: flex;
+  flex: 0 1 auto;
+  gap: 16px;
+  min-width: 0;
+}
+
 .topbar-race-lockup {
   flex: 0 0 176px;
   max-width: 176px;
 }
 
 .topbar-center {
+  flex: 0 0 auto;
+  justify-content: flex-start;
+}
+
+.topbar-spacer {
   flex: 1 1 auto;
-  justify-content: center;
+  min-width: 20px;
 }
 
 .live-topbar-actions {
