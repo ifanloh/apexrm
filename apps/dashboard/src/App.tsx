@@ -22,6 +22,7 @@ import {
   fetchRunnerSearch
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
+import { EditionHeroBanner } from "./EditionHeroBanner";
 import runnerIcon from "./assets/runner.svg";
 import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
@@ -3587,9 +3588,85 @@ export default function App() {
   }
 
   return (
-      <main
-        className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
-      >
+    <main
+      className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
+    >
+      <header className="topbar topbar-hub live-topbar">
+        <div className="topbar-race-lockup">
+          <div aria-label="Event logo placeholder" className="event-logo-placeholder" role="img">
+            {organizerSetup.branding.eventLogoDataUrl ? (
+              <img alt="Event logo" src={organizerSetup.branding.eventLogoDataUrl} />
+            ) : (
+              <span>Event Logo</span>
+            )}
+          </div>
+        </div>
+
+        <div className="topbar-center">
+          <label className="topbar-select topbar-select-shell">
+            <span className="sr-only">Edition selector</span>
+            <select onChange={() => handleRaceSelection(EDITION_HOME_VALUE)} value={EDITION_HOME_VALUE}>
+              <option value={EDITION_HOME_VALUE}>{festivalData.editionLabel}</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="topbar-actions live-topbar-actions">
+          {organizerSessionActive ? (
+            <button
+              className={`topbar-login-link ${isOrganizerHomeOpen || isOrganizerConsoleOpen ? "topbar-login-link-active" : ""}`}
+              onClick={() =>
+                setOrganizerWorkspaceView((current) =>
+                  current === "spectator" ? "home" : current === "home" ? "spectator" : "home"
+                )
+              }
+              type="button"
+            >
+              {isOrganizerHomeOpen ? "Spectator View" : "Organizer Home"}
+            </button>
+          ) : null}
+
+          {organizerSessionActive ? (
+            <button className="topbar-login-link topbar-login-link-active" onClick={handleLogout} type="button">
+              Logout
+            </button>
+          ) : (
+            <button
+              className="topbar-login-link"
+              onClick={() => {
+                setLoginError(null);
+                setIsLoginModalOpen(true);
+              }}
+              type="button"
+            >
+              Login
+            </button>
+          )}
+
+          <button className="topbar-locale-pill" type="button">
+            EN <span aria-hidden="true">v</span>
+          </button>
+        </div>
+      </header>
+
+      {showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
+
+      {showEditionHome ? (
+        <div className="live-shell-banner">
+          <EditionHeroBanner
+            bannerTagline={festivalData.bannerTagline}
+            brandStack={festivalData.brandStack}
+            className="live-shell-edition-banner"
+            dateRibbon={festivalData.dateRibbon}
+            editionLabel={festivalData.editionLabel}
+            backgroundImageUrl={organizerSetup.branding.heroBackgroundImageDataUrl}
+            homeSubtitle={festivalData.homeSubtitle}
+            locationRibbon={festivalData.locationRibbon}
+          />
+        </div>
+      ) : null}
+
+      <div className={`live-shell-body ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"} ${showEditionHome ? "edition-home-body" : "race-detail-body"}`}>
         <aside className="dashboard-sidebar live-sidebar">
           <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
             <button className="live-sidebar-logo" onClick={focusHome} type="button" aria-label="Back to edition home">
@@ -3664,66 +3741,6 @@ export default function App() {
       </aside>
 
       <div className="dashboard-main dashboard-main-scroll live-main">
-        <header className="topbar topbar-hub live-topbar">
-          <div className="topbar-race-lockup">
-            <div aria-label="Event logo placeholder" className="event-logo-placeholder" role="img">
-              {organizerSetup.branding.eventLogoDataUrl ? (
-                <img alt="Event logo" src={organizerSetup.branding.eventLogoDataUrl} />
-              ) : (
-                <span>Event Logo</span>
-              )}
-            </div>
-          </div>
-
-          <div className="topbar-center">
-            <label className="topbar-select topbar-select-shell">
-              <span className="sr-only">Edition selector</span>
-              <select onChange={() => handleRaceSelection(EDITION_HOME_VALUE)} value={EDITION_HOME_VALUE}>
-                <option value={EDITION_HOME_VALUE}>{festivalData.editionLabel}</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="topbar-actions live-topbar-actions">
-            {organizerSessionActive ? (
-              <button
-                className={`topbar-login-link ${isOrganizerHomeOpen || isOrganizerConsoleOpen ? "topbar-login-link-active" : ""}`}
-                onClick={() =>
-                  setOrganizerWorkspaceView((current) =>
-                    current === "spectator" ? "home" : current === "home" ? "spectator" : "home"
-                  )
-                }
-                type="button"
-              >
-                {isOrganizerHomeOpen ? "Spectator View" : "Organizer Home"}
-              </button>
-            ) : null}
-
-            {organizerSessionActive ? (
-              <button className="topbar-login-link topbar-login-link-active" onClick={handleLogout} type="button">
-                Logout
-              </button>
-            ) : (
-              <button
-                className="topbar-login-link"
-                onClick={() => {
-                  setLoginError(null);
-                  setIsLoginModalOpen(true);
-                }}
-                type="button"
-              >
-                Login
-              </button>
-            )}
-
-            <button className="topbar-locale-pill" type="button">
-              EN <span aria-hidden="true">v</span>
-            </button>
-          </div>
-        </header>
-
-        {showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
-
         {isOrganizerHomeOpen ? (
           <section className="panel organizer-home-shell">
             <div className="organizer-home-hero">
@@ -4216,6 +4233,8 @@ export default function App() {
               homeTitle={festivalData.homeTitle}
               locationRibbon={festivalData.locationRibbon}
               onOpenRace={(slug) => openRaceView(slug, "race-hub")}
+              showHeroBanner={false}
+              showHomeHeader={false}
             />
           </>
         ) : !isEditionHome ? (
@@ -6285,6 +6304,7 @@ export default function App() {
         </div>
       </aside>
       ) : null}
+      </div>
     </main>
   );
 }

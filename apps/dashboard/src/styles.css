@@ -7959,3 +7959,117 @@ body {
   }
 }
 
+.live-trail-shell,
+.live-trail-shell.edition-home-mode,
+.live-trail-shell.race-detail-mode,
+.live-trail-shell.no-sidebar-rail,
+.live-trail-shell.race-detail-mode.no-sidebar-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  max-width: none;
+}
+
+.live-shell-banner {
+  min-height: 0;
+}
+
+.live-shell-edition-banner {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 246px;
+  padding: 26px 28px 28px;
+}
+
+.live-shell-body {
+  display: grid;
+  gap: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.live-shell-body.with-sidebar-rail {
+  grid-template-columns: 142px minmax(0, 1fr) 228px;
+}
+
+.live-shell-body.no-sidebar-rail {
+  grid-template-columns: 142px minmax(0, 1fr);
+}
+
+.live-shell-body .dashboard-sidebar.live-sidebar,
+.live-shell-body .dashboard-rail.live-ranking-rail,
+.live-shell-body .dashboard-main.dashboard-main-scroll {
+  height: 100%;
+}
+
+.live-shell-body .dashboard-sidebar.live-sidebar,
+.live-shell-body .dashboard-rail.live-ranking-rail {
+  top: 0;
+}
+
+.live-shell-body .dashboard-sidebar.live-sidebar {
+  padding-top: 18px;
+}
+
+.live-shell-body .dashboard-rail.live-ranking-rail {
+  padding-top: 18px;
+}
+
+.live-shell-body .sidebar-nav.live-sidebar-nav {
+  min-height: 100%;
+}
+
+.live-topbar {
+  justify-content: space-between;
+  margin: 0;
+  padding: 10px 22px 12px;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 40;
+}
+
+.topbar-race-lockup {
+  flex: 0 0 136px;
+  max-width: 136px;
+}
+
+.topbar-center {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.live-topbar-actions {
+  margin-left: auto;
+}
+
+.live-trail-shell > .notice-banner {
+  margin: 0 auto;
+  width: min(1160px, calc(100% - 44px));
+}
+
+.dashboard-main.dashboard-main-scroll {
+  padding: 18px 24px 36px;
+}
+
+.live-main > .edition-home-shell.cards-only {
+  gap: 0;
+  max-width: none;
+}
+
+.live-main > .edition-home-shell.cards-only .race-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .live-shell-body.with-sidebar-rail,
+  .live-shell-body.no-sidebar-rail {
+    grid-template-columns: 132px minmax(0, 1fr);
+  }
+
+  .live-shell-body.with-sidebar-rail .dashboard-rail.live-ranking-rail {
+    display: none;
+  }
+}
+

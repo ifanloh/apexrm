@@ -25,6 +25,8 @@ type Props = {
   heroBackgroundImageUrl?: string | null;
   cards: RaceHomeCard[];
   onOpenRace: (slug: string) => void;
+  showHeroBanner?: boolean;
+  showHomeHeader?: boolean;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -156,27 +158,33 @@ export function RaceEditionHome({
   homeSubtitle,
   heroBackgroundImageUrl,
   cards,
-  onOpenRace
+  onOpenRace,
+  showHeroBanner = true,
+  showHomeHeader = true
 }: Props) {
   return (
-    <section className="edition-home-shell" id="edition-home">
-      <EditionHeroBanner
-        bannerTagline={bannerTagline}
-        brandStack={brandStack}
-        dateRibbon={dateRibbon}
-        editionLabel={editionLabel}
-        backgroundImageUrl={heroBackgroundImageUrl}
-        homeSubtitle={homeSubtitle}
-        locationRibbon={locationRibbon}
-      />
+    <section className={`edition-home-shell ${!showHeroBanner && !showHomeHeader ? "cards-only" : ""}`.trim()} id="edition-home">
+      {showHeroBanner ? (
+        <EditionHeroBanner
+          bannerTagline={bannerTagline}
+          brandStack={brandStack}
+          dateRibbon={dateRibbon}
+          editionLabel={editionLabel}
+          backgroundImageUrl={heroBackgroundImageUrl}
+          homeSubtitle={homeSubtitle}
+          locationRibbon={locationRibbon}
+        />
+      ) : null}
 
-      <div className="edition-home-header">
-        <div>
-          <p className="section-label">Race Edition</p>
-          <h3>{homeTitle}</h3>
+      {showHomeHeader ? (
+        <div className="edition-home-header">
+          <div>
+            <p className="section-label">Race Edition</p>
+            <h3>{homeTitle}</h3>
+          </div>
+          <p>{homeSubtitle}</p>
         </div>
-        <p>{homeSubtitle}</p>
-      </div>
+      ) : null}
 
       <div className="race-card-grid" role="list" aria-label="Race categories">
         {!cards.length ? (
