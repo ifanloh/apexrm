@@ -17,6 +17,7 @@
     "qc:scanner": "node scripts/qc-scanner.mjs",
     "qc:spectator": "node scripts/qc-spectator-phase-a.mjs",
     "uat:final": "node scripts/uat-final.mjs",
+    "uat:organizer:deep": "node scripts/uat-organizer-deep.mjs",
     "uat:scanner": "node scripts/uat-scanner.mjs",
     "seed:demo": "node scripts/seed-demo-race.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",

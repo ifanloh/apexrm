@@ -2572,7 +2572,7 @@ export default function App() {
       : profile
         ? `Akun role ${profile.role} tetap berada di spectator view. Login dengan admin, panitia, atau observer untuk tools organizer.`
       : "Spectator dapat mengikuti race tanpa login. Organizer cukup login dari tombol header untuk membuka tools operasional.";
-  const showAccessNotice = organizerSessionActive;
+  const showAccessNotice = organizerSessionActive && organizerWorkspaceView === "spectator";
   const organizerPublishedCount = organizerVisibleEvents.reduce(
     (count, event) => count + event.setup.races.filter((race) => race.isPublished).length,
     0

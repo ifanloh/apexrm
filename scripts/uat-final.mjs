@@ -104,6 +104,28 @@ async function runOrganizerBrowserChecks() {
   }
 
   const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+  const organizerSeed = Date.now();
+
+  async function completeFirstEventWizard() {
+    await page.getByRole("button", { name: "Create your first event" }).click();
+    await page.getByLabel("Organizer name").fill("UAT Organizer");
+    await page.getByLabel("Event brand").fill(`UAT ${organizerSeed}`);
+    await page.getByLabel("Edition label").fill("Edition UAT");
+    await page.getByLabel("Date ribbon").fill("Nov 2026");
+    await page.getByRole("button", { name: "Continue to branding" }).click();
+    await page.getByLabel("Home title").fill(`UAT ${organizerSeed} Home`);
+    await page.getByLabel("Home subtitle").fill("UAT organizer draft created from the first-event wizard.");
+    await page.getByLabel("Banner tagline").fill("UAT Trailnesia");
+    await page.getByLabel("Location ribbon").fill("QA Valley");
+    await page.getByRole("button", { name: "Continue to first race" }).click();
+    await page.getByLabel("Race title").fill("UAT 50K");
+    await page.getByLabel("Distance (km)").fill("50");
+    await page.getByLabel("Ascent (m+)").fill("2000");
+    await page.getByLabel("Start town").fill("Basecamp");
+    await page.getByLabel("Schedule label").fill("Sat 04:00");
+    await page.getByRole("button", { name: "Continue to review" }).click();
+    await page.getByRole("button", { name: "Create event draft" }).click();
+  }
 
   try {
     await runStep("organizer browser login flow", async () => {
@@ -122,22 +144,22 @@ async function runOrganizerBrowserChecks() {
       if (await homeTitle.isVisible().catch(() => false)) {
         const createFirstEventButton = page.getByRole("button", { name: "Create your first event" });
         if ((await createFirstEventButton.count()) > 0) {
-          await createFirstEventButton.first().click();
-          const continueToBranding = page.getByRole("button", { name: "Continue to branding" });
-          if (await continueToBranding.count()) {
-            await continueToBranding.click();
-            await page.getByRole("button", { name: "Continue to first race" }).click();
-            await page.getByRole("button", { name: "Continue to review" }).click();
-            await page.getByRole("button", { name: "Create event draft" }).click();
-          }
+          await completeFirstEventWizard();
         } else {
-          await page.getByRole("button", { name: "Open event setup" }).click();
+          const openEventSetupButton = page.getByRole("button", { name: "Open event setup" });
+          const openEventButton = page.getByRole("button", { name: "Open" });
+
+          if (await openEventSetupButton.count()) {
+            await openEventSetupButton.click();
+          } else if (await openEventButton.count()) {
+            await openEventButton.first().click();
+          }
         }
         await consoleTitle.waitFor({ timeout: 15000 });
       }
 
       const setupNav = page.locator(".organizer-console-nav").first();
-      await setupNav.getByRole("button", { name: /Branding/ }).waitFor();
+      await setupNav.getByRole("button", { name: /Event/ }).waitFor();
       await setupNav.getByRole("button", { name: /Races/ }).waitFor();
       await setupNav.getByRole("button", { name: /Participants/ }).waitFor();
       await setupNav.getByRole("button", { name: /Crew/ }).waitFor();
