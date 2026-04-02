@@ -1179,7 +1179,7 @@ export default function App() {
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
   const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && !isOrganizerHomeOpen && raceDetailView === "race-page" && !isActiveRaceUpcoming;
   const raceMenuLabel =
-    !isEditionHome && !isOrganizerHomeOpen && !isOrganizerConsoleOpen ? selectedRaceCard.title : "Edition Home";
+    !isEditionHome && !isOrganizerHomeOpen && !isOrganizerConsoleOpen ? selectedRaceCard.title : "Home";
   const organizerSelectedRace =
     organizerSetup.races.find((race) => race.slug === organizerSetupRaceSlug) ?? organizerSetup.races[0] ?? null;
   const organizerCheckpointDraft = organizerSelectedRace ? getOrganizerCheckpointsForRace(organizerSelectedRace) : [];
@@ -3672,7 +3672,7 @@ export default function App() {
                   >
                     <span className="topbar-menu-item-accent home" aria-hidden="true" />
                     <span className="topbar-menu-item-copy">
-                      <strong>Edition Home</strong>
+                      <strong>Home</strong>
                       <small>{festivalData.editionLabel}</small>
                     </span>
                   </button>
