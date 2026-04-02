@@ -925,12 +925,14 @@ a {
 }
 
 .edition-banner-copy h2 {
+  color: #fff8ec;
   display: grid;
   font-family: "Red Hat Display", sans-serif;
   font-size: clamp(2.6rem, 4vw, 4.4rem);
   letter-spacing: -0.05em;
   line-height: 0.88;
   margin: 0;
+  text-shadow: 0 8px 18px rgba(10, 16, 13, 0.32);
   text-transform: uppercase;
 }
 
@@ -938,6 +940,23 @@ a {
   color: var(--ink-soft);
   margin: 0;
   max-width: 54ch;
+}
+
+.edition-banner-panel.has-custom-image .edition-banner-copy strong {
+  color: #ffd788;
+  text-shadow: 0 2px 8px rgba(10, 16, 13, 0.28);
+}
+
+.edition-banner-panel.has-custom-image .edition-banner-copy p {
+  color: rgba(255, 248, 236, 0.88);
+  text-shadow: 0 2px 8px rgba(10, 16, 13, 0.22);
+}
+
+.edition-banner-panel.has-custom-image .edition-banner-ribbons span {
+  background: rgba(9, 20, 16, 0.34);
+  border-color: rgba(255, 248, 236, 0.16);
+  color: #fff8ec;
+  text-shadow: 0 2px 8px rgba(10, 16, 13, 0.18);
 }
 
 .edition-banner-ribbons {
