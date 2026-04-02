@@ -1039,6 +1039,13 @@ a {
   max-width: 54ch;
 }
 
+.organizer-race-mode-note {
+  background: rgba(214, 163, 65, 0.08);
+  border: 1px solid rgba(173, 130, 52, 0.18);
+  border-radius: 14px;
+  grid-column: 1 / -1;
+}
+
 .race-card {
   --race-accent: var(--gold);
   --race-accent-soft: var(--gold-soft);
@@ -1059,6 +1066,8 @@ a {
 
 .race-card-topline {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: center;
 }
 
@@ -4673,6 +4682,11 @@ body {
   max-width: 72ch;
 }
 
+.race-mode-summary {
+  color: var(--ink-soft) !important;
+  font-size: 0.9rem !important;
+}
+
 .race-course-info-meta {
   display: grid;
   gap: 12px;
@@ -6019,6 +6033,20 @@ body {
   background: rgba(231, 62, 62, 0.16) !important;
   border-color: rgba(231, 62, 62, 0.34) !important;
   color: #c91e1e !important;
+}
+
+.race-status-pill.neutral-card {
+  background: rgba(173, 130, 52, 0.12) !important;
+  border-color: rgba(173, 130, 52, 0.28) !important;
+  color: var(--gold-deep) !important;
+}
+
+.race-card-mode-copy {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: -4px 0 0;
+  text-align: center;
 }
 
 .live-topbar {

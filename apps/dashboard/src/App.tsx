@@ -40,6 +40,8 @@ import {
   createDefaultOrganizerWorkspace,
   deriveOrganizerEventTitle,
   getOrganizerCheckpointsForRace,
+  getOrganizerRaceModeLabel,
+  getOrganizerRaceModeSummary,
   loadOrganizerWorkspace,
   ORGANIZER_WORKSPACE_STORAGE_KEY,
   parseOrganizerGpxFile,
@@ -52,6 +54,7 @@ import {
   type OrganizerParticipantImportMode,
   type OrganizerParticipantDraft,
   type OrganizerRaceDraft,
+  type OrganizerRaceMode,
   type OrganizerSetupDraft
 } from "./organizerSetup";
 import {
@@ -182,6 +185,10 @@ type OrganizerWizardDraft = {
   firstRaceScheduleLabel: string;
   firstRaceStartAt: string;
   firstRaceEditionLabel: "Live" | "Finished";
+  firstRaceMode: OrganizerRaceMode;
+  firstRaceLoopTargetLaps: string;
+  firstRaceLoopTimeLimitHours: string;
+  firstRaceRelayLegCount: string;
 };
 type RunnerDirectoryState = "all" | "registered" | "in-race" | "finisher" | "dns" | "withdrawn";
 type RunnerDirectoryEntry = {
@@ -346,8 +353,25 @@ function buildOrganizerWizardDraft(): OrganizerWizardDraft {
     firstRaceStartTown: "Start Town",
     firstRaceScheduleLabel: "Sun 01 Jan 05:00",
     firstRaceStartAt: "2026-01-01T05:00:00+07:00",
-    firstRaceEditionLabel: "Live"
+    firstRaceEditionLabel: "Live",
+    firstRaceMode: "standard",
+    firstRaceLoopTargetLaps: "6",
+    firstRaceLoopTimeLimitHours: "12",
+    firstRaceRelayLegCount: "4"
   };
+}
+
+function getWizardRaceModeSummary(draft: OrganizerWizardDraft) {
+  switch (draft.firstRaceMode) {
+    case "loop-fixed-laps":
+      return `${draft.firstRaceLoopTargetLaps || "Set"} target laps`;
+    case "loop-fixed-time":
+      return `${draft.firstRaceLoopTimeLimitHours || "Set"} hour time limit`;
+    case "relay":
+      return `${draft.firstRaceRelayLegCount || "Set"} relay legs`;
+    default:
+      return "Fastest total elapsed time";
+  }
 }
 
 function getNationalityCode(bib: string) {
@@ -1116,17 +1140,16 @@ export default function App() {
     visibleRaces.find((race) => race.slug === selectedRaceSlug) ??
     (selectedRaceSlug === EDITION_HOME_VALUE ? featuredRace : festivalData.races.find((race) => race.slug === selectedRaceSlug)) ??
     featuredRace;
+  const selectedOrganizerRace = organizerSetup.races.find((race) => race.slug === selectedRaceCard.slug) ?? null;
   const isEditionHome = selectedRaceSlug === EDITION_HOME_VALUE;
   const isFeaturedRace = selectedRaceCard.slug === featuredRace.slug;
   const activeCourse = useMemo(() => {
-    const organizerRaceDraft = organizerSetup.races.find((race) => race.slug === selectedRaceCard.slug);
-
-    if (!organizerRaceDraft) {
+    if (!selectedOrganizerRace) {
       return selectedRaceCard.slug === EMPTY_RACE_CARD.slug ? EMPTY_COURSE : getDemoCourseForRace(selectedRaceCard);
     }
 
-    return buildOrganizerCourseFromRaceDraft(organizerRaceDraft);
-  }, [organizerSetup.races, selectedRaceCard]);
+    return buildOrganizerCourseFromRaceDraft(selectedOrganizerRace);
+  }, [selectedOrganizerRace, selectedRaceCard]);
   const showEditionHome = isEditionHome && raceDetailView === "race-page";
   const isOrganizerHomeOpen = organizerSessionActive && organizerWorkspaceView === "home";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
@@ -2526,6 +2549,7 @@ export default function App() {
     : "0-0 of 0";
   const raceHomeCards = useMemo(() => {
     return visibleRaces.map((race) => {
+      const raceDraft = organizerSetup.races.find((item) => item.slug === race.slug) ?? null;
       const raceSimulationSnapshot = organizerSimulationSnapshots.get(race.slug);
       const hasSimulatedEntries = (raceSimulationSnapshot?.overallLeaderboard.topEntries.length ?? 0) > 0;
       const homeEntries = hasSimulatedEntries
@@ -2537,6 +2561,8 @@ export default function App() {
       if (!homeEntries) {
         return {
           ...race,
+          modeLabel: raceDraft ? getOrganizerRaceModeLabel(raceDraft.raceMode) : undefined,
+          modeSummary: raceDraft ? getOrganizerRaceModeSummary(raceDraft) : undefined,
           isLive: race.editionLabel.toLowerCase() === "live",
           isSelected: race.slug === selectedRaceCard.slug
         };
@@ -2544,6 +2570,8 @@ export default function App() {
 
       return {
         ...race,
+        modeLabel: raceDraft ? getOrganizerRaceModeLabel(raceDraft.raceMode) : undefined,
+        modeSummary: raceDraft ? getOrganizerRaceModeSummary(raceDraft) : undefined,
         finishers: hasSimulatedEntries
           ? raceSimulationSnapshot?.checkpointLeaderboards.find((board) => board.checkpointId === "finish")?.totalOfficialScans ?? 0
           : finisherCount,
@@ -2567,7 +2595,7 @@ export default function App() {
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
-  }, [dnfDnsCount, featuredRace.slug, finisherCount, organizerSimulationSnapshots, overallLeaderboard.topEntries, selectedRaceCard.slug, visibleRaces]);
+  }, [dnfDnsCount, featuredRace.slug, finisherCount, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, selectedRaceCard.slug, visibleRaces]);
   const eventTitle = isEditionHome ? festivalData.brandName : selectedRaceCard.title;
   const liveStatusLabel =
     liveStatus === "live"
@@ -2614,10 +2642,19 @@ export default function App() {
         : organizerWorkspace.events;
   const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0;
   const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
+  const organizerWizardModeReady =
+    organizerWizardDraft.firstRaceMode === "loop-fixed-laps"
+      ? Number.parseInt(organizerWizardDraft.firstRaceLoopTargetLaps, 10) > 0
+      : organizerWizardDraft.firstRaceMode === "loop-fixed-time"
+        ? Number.parseInt(organizerWizardDraft.firstRaceLoopTimeLimitHours, 10) > 0
+        : organizerWizardDraft.firstRaceMode === "relay"
+          ? Number.parseInt(organizerWizardDraft.firstRaceRelayLegCount, 10) > 1
+          : true;
   const organizerWizardRaceReady =
     organizerWizardDraft.firstRaceTitle.trim().length > 0 &&
     Number.parseFloat(organizerWizardDraft.firstRaceDistanceKm) > 0 &&
-    Number.parseFloat(organizerWizardDraft.firstRaceAscentM) >= 0;
+    Number.parseFloat(organizerWizardDraft.firstRaceAscentM) >= 0 &&
+    organizerWizardModeReady;
   const activeRaceStartAt = selectedRaceCard.startAt;
   const hasRunnerSearchFilters = runnerQuery.trim().length > 0 || runnerCheckpointFilter !== "all";
   const publicRunnerResults =
@@ -2885,6 +2922,11 @@ export default function App() {
     const slug = slugifyOrganizerValue(organizerWizardDraft.firstRaceTitle) || "custom-race-1";
     const distanceKm = Number.parseFloat(organizerWizardDraft.firstRaceDistanceKm) || 50;
     const ascentM = Number.parseFloat(organizerWizardDraft.firstRaceAscentM) || 2800;
+    const raceMode = organizerWizardDraft.firstRaceMode;
+    const loopTargetLaps = raceMode === "loop-fixed-laps" ? Number.parseInt(organizerWizardDraft.firstRaceLoopTargetLaps, 10) || null : null;
+    const loopTimeLimitHours =
+      raceMode === "loop-fixed-time" ? Number.parseInt(organizerWizardDraft.firstRaceLoopTimeLimitHours, 10) || null : null;
+    const relayLegCount = raceMode === "relay" ? Number.parseInt(organizerWizardDraft.firstRaceRelayLegCount, 10) || null : null;
     const template = createOrganizerRaceTemplate(1);
     const course = getDemoCourseForRace({
       slug,
@@ -2898,12 +2940,23 @@ export default function App() {
       slug,
       title: organizerWizardDraft.firstRaceTitle.trim() || template.title,
       editionLabel: organizerWizardDraft.firstRaceEditionLabel,
+      raceMode,
       scheduleLabel: organizerWizardDraft.firstRaceScheduleLabel.trim() || template.scheduleLabel,
       startAt: organizerWizardDraft.firstRaceStartAt || template.startAt,
       startTown: organizerWizardDraft.firstRaceStartTown.trim() || template.startTown,
       distanceKm,
       ascentM,
-      courseDescription: `Describe ${organizerWizardDraft.firstRaceTitle.trim() || template.title} for spectators. Include terrain, challenge profile, and what makes this category unique.`,
+      loopTargetLaps,
+      loopTimeLimitHours,
+      relayLegCount,
+      courseDescription:
+        raceMode === "loop-fixed-laps"
+          ? `Describe ${(organizerWizardDraft.firstRaceTitle.trim() || template.title)} as a looping race with ${loopTargetLaps ?? "set target"} laps. Explain the lap terrain, turnaround flow, and how cut-offs are applied.`
+          : raceMode === "loop-fixed-time"
+            ? `Describe ${(organizerWizardDraft.firstRaceTitle.trim() || template.title)} as a most-loops-within-time challenge. Explain the lap terrain, timing rules, and how loop completion is validated before cut-off.`
+            : raceMode === "relay"
+              ? `Describe ${(organizerWizardDraft.firstRaceTitle.trim() || template.title)} as a relay race with ${relayLegCount ?? "set"} legs. Explain exchange checkpoints, team flow, and how each leg contributes to the final result.`
+              : `Describe ${organizerWizardDraft.firstRaceTitle.trim() || template.title} for spectators. Include terrain, challenge profile, and what makes this category unique.`,
       descentM: course.descentM,
       waypoints: course.waypoints,
       profilePoints: course.profilePoints,
@@ -3917,6 +3970,22 @@ export default function App() {
                           />
                         </label>
                         <label className="organizer-field">
+                          <span>Race mode</span>
+                          <select
+                            onChange={(event) =>
+                              updateOrganizerWizardDraft({
+                                firstRaceMode: (event.target.value as OrganizerRaceMode) || "standard"
+                              })
+                            }
+                            value={organizerWizardDraft.firstRaceMode}
+                          >
+                            <option value="standard">Standard</option>
+                            <option value="loop-fixed-laps">Looping - fixed laps</option>
+                            <option value="loop-fixed-time">Looping - fixed time</option>
+                            <option value="relay">Relay</option>
+                          </select>
+                        </label>
+                        <label className="organizer-field">
                           <span>Race state</span>
                           <select
                             onChange={(event) =>
@@ -3930,6 +3999,33 @@ export default function App() {
                             <option value="Finished">Finished</option>
                           </select>
                         </label>
+                        {organizerWizardDraft.firstRaceMode === "loop-fixed-laps" ? (
+                          <label className="organizer-field">
+                            <span>Target laps</span>
+                            <input
+                              onChange={(event) => updateOrganizerWizardDraft({ firstRaceLoopTargetLaps: event.target.value })}
+                              value={organizerWizardDraft.firstRaceLoopTargetLaps}
+                            />
+                          </label>
+                        ) : null}
+                        {organizerWizardDraft.firstRaceMode === "loop-fixed-time" ? (
+                          <label className="organizer-field">
+                            <span>Time limit (hours)</span>
+                            <input
+                              onChange={(event) => updateOrganizerWizardDraft({ firstRaceLoopTimeLimitHours: event.target.value })}
+                              value={organizerWizardDraft.firstRaceLoopTimeLimitHours}
+                            />
+                          </label>
+                        ) : null}
+                        {organizerWizardDraft.firstRaceMode === "relay" ? (
+                          <label className="organizer-field">
+                            <span>Relay legs</span>
+                            <input
+                              onChange={(event) => updateOrganizerWizardDraft({ firstRaceRelayLegCount: event.target.value })}
+                              value={organizerWizardDraft.firstRaceRelayLegCount}
+                            />
+                          </label>
+                        ) : null}
                         <div className="organizer-step-actions">
                           <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWizardStep("branding")} type="button">
                             Back to branding
@@ -3955,6 +4051,7 @@ export default function App() {
                             <p>
                               {organizerWizardDraft.firstRaceDistanceKm} km · {organizerWizardDraft.firstRaceAscentM} m+
                             </p>
+                            <p>{getWizardRaceModeSummary(organizerWizardDraft)}</p>
                           </article>
                         </div>
                         <div className="organizer-import-note">
@@ -4068,6 +4165,11 @@ export default function App() {
 
           <div className="race-course-info-body">
             <p>{selectedRaceCard.courseDescription}</p>
+            {selectedOrganizerRace ? (
+              <p className="race-mode-summary">
+                <strong>{getOrganizerRaceModeLabel(selectedOrganizerRace.raceMode)}</strong> | {getOrganizerRaceModeSummary(selectedOrganizerRace)}
+              </p>
+            ) : null}
             <div className="race-course-info-meta">
               <article>
                 <span>Start</span>

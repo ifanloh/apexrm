@@ -3,6 +3,9 @@ import type { DemoCourseCheckpoint } from "./demoCourseVariants";
 import {
   createParticipantImportTemplateCsv,
   createParticipantImportTemplateWorkbook,
+  getOrganizerRaceDistanceSummary,
+  getOrganizerRaceModeLabel,
+  getOrganizerRaceModeSummary,
   type OrganizerBrandingDraft,
   type OrganizerCrewAssignmentDraft,
   type OrganizerParticipantImportMode,
@@ -290,6 +293,17 @@ export function OrganizerConsole({
       {
         label: "Highlights defined",
         pass: race.courseHighlights.filter(Boolean).length >= 2
+      },
+      {
+        label: "Race mode configured",
+        pass:
+          race.raceMode === "loop-fixed-laps"
+            ? Boolean(race.loopTargetLaps && race.loopTargetLaps > 0)
+            : race.raceMode === "loop-fixed-time"
+              ? Boolean(race.loopTimeLimitHours && race.loopTimeLimitHours > 0)
+              : race.raceMode === "relay"
+                ? Boolean(race.relayLegCount && race.relayLegCount > 1)
+                : true
       },
       {
         label: "Checkpoint plan ready",
@@ -1191,6 +1205,7 @@ export function OrganizerConsole({
                   <span className={`organizer-status-pill ${selectedRace.editionLabel.toLowerCase() === "live" ? "live" : "finished"}`}>
                     {selectedRace.editionLabel}
                   </span>
+                  <span className="organizer-status-pill published">{getOrganizerRaceModeLabel(selectedRace.raceMode)}</span>
                   <span className={`organizer-status-pill ${selectedRace.isPublished ? "published" : "draft"}`}>
                     {selectedRace.isPublished ? "Published" : "Draft"}
                   </span>
@@ -1219,19 +1234,19 @@ export function OrganizerConsole({
                     <span>{selectedRaceReadiness?.ready ? "ready to publish" : "checks pending"}</span>
                   </div>
                   <div className="panel-badge compact-badge">
+                    <span>Race mode</span>
+                    <strong>{getOrganizerRaceModeLabel(selectedRace.raceMode)}</strong>
+                    <span>{getOrganizerRaceModeSummary(selectedRace)}</span>
+                  </div>
+                  <div className="panel-badge compact-badge">
+                    <span>Distance model</span>
+                    <strong>{getOrganizerRaceDistanceSummary(selectedRace)}</strong>
+                    <span>{selectedRace.checkpoints.length} checkpoints planned</span>
+                  </div>
+                  <div className="panel-badge compact-badge">
                     <span>Participants</span>
                     <strong>{selectedRace.participants.length}</strong>
-                    <span>mapped to this race</span>
-                  </div>
-                  <div className="panel-badge compact-badge">
-                    <span>Checkpoints</span>
-                    <strong>{selectedRace.checkpoints.length}</strong>
-                    <span>course plan</span>
-                  </div>
-                  <div className="panel-badge compact-badge">
-                    <span>Assigned scan crew</span>
-                    <strong>{selectedRace.crewAssignments.length}</strong>
-                    <span>checkpoint scanning team</span>
+                    <span>{selectedRace.crewAssignments.length} scan crew assigned</span>
                   </div>
                 </div>
 
@@ -1255,6 +1270,25 @@ export function OrganizerConsole({
                       </select>
                     </label>
                     <label className="organizer-field">
+                      <span>Race mode</span>
+                      <select
+                        value={selectedRace.raceMode}
+                        onChange={(event) =>
+                          onRaceChange(selectedRace.slug, {
+                            raceMode: event.target.value as OrganizerRaceDraft["raceMode"],
+                            loopTargetLaps: event.target.value === "loop-fixed-laps" ? selectedRace.loopTargetLaps ?? 6 : null,
+                            loopTimeLimitHours: event.target.value === "loop-fixed-time" ? selectedRace.loopTimeLimitHours ?? 12 : null,
+                            relayLegCount: event.target.value === "relay" ? selectedRace.relayLegCount ?? 4 : null
+                          })
+                        }
+                      >
+                        <option value="standard">Standard</option>
+                        <option value="loop-fixed-laps">Looping - fixed laps</option>
+                        <option value="loop-fixed-time">Looping - fixed time</option>
+                        <option value="relay">Relay</option>
+                      </select>
+                    </label>
+                    <label className="organizer-field">
                       <span>Schedule</span>
                       <input value={selectedRace.scheduleLabel} onChange={(event) => onRaceChange(selectedRace.slug, { scheduleLabel: event.target.value })} />
                     </label>
@@ -1267,7 +1301,7 @@ export function OrganizerConsole({
                       <input value={selectedRace.startTown} onChange={(event) => onRaceChange(selectedRace.slug, { startTown: event.target.value })} />
                     </label>
                     <label className="organizer-field">
-                      <span>Distance (km)</span>
+                      <span>{selectedRace.raceMode === "standard" || selectedRace.raceMode === "relay" ? "Distance (km)" : "Loop distance (km)"}</span>
                       <input
                         type="number"
                         value={selectedRace.distanceKm}
@@ -1282,6 +1316,40 @@ export function OrganizerConsole({
                         onChange={(event) => onRaceChange(selectedRace.slug, { ascentM: Number(event.target.value) || 0 })}
                       />
                     </label>
+                    {selectedRace.raceMode === "loop-fixed-laps" ? (
+                      <label className="organizer-field">
+                        <span>Target laps</span>
+                        <input
+                          type="number"
+                          value={selectedRace.loopTargetLaps ?? ""}
+                          onChange={(event) => onRaceChange(selectedRace.slug, { loopTargetLaps: Number(event.target.value) || null })}
+                        />
+                      </label>
+                    ) : null}
+                    {selectedRace.raceMode === "loop-fixed-time" ? (
+                      <label className="organizer-field">
+                        <span>Time limit (hours)</span>
+                        <input
+                          type="number"
+                          value={selectedRace.loopTimeLimitHours ?? ""}
+                          onChange={(event) => onRaceChange(selectedRace.slug, { loopTimeLimitHours: Number(event.target.value) || null })}
+                        />
+                      </label>
+                    ) : null}
+                    {selectedRace.raceMode === "relay" ? (
+                      <label className="organizer-field">
+                        <span>Relay legs</span>
+                        <input
+                          type="number"
+                          value={selectedRace.relayLegCount ?? ""}
+                          onChange={(event) => onRaceChange(selectedRace.slug, { relayLegCount: Number(event.target.value) || null })}
+                        />
+                      </label>
+                    ) : null}
+                    <div className="organizer-import-note organizer-race-mode-note">
+                      <strong>{getOrganizerRaceModeLabel(selectedRace.raceMode)}</strong>
+                      <p>{getOrganizerRaceModeSummary(selectedRace)}</p>
+                    </div>
                     <label className="organizer-field organizer-field-wide">
                       <span>Course description</span>
                       <textarea

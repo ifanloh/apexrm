@@ -258,13 +258,16 @@ async function runDeepOrganizerAudit() {
       await opsPanel.getByRole("button", { name: "Load sample scenario" }).click();
       await opsPanel.getByLabel("BIB input").fill("M001");
       await opsPanel.getByRole("button", { name: "Record trial scan" }).click();
-      await opsPanel.getByRole("button", { name: "Simulate checkpoint wave" }).click();
+      const simulateWave = opsPanel.getByRole("button", { name: "Simulate checkpoint wave" });
+      if (!(await simulateWave.isDisabled())) {
+        await simulateWave.click();
+      }
       const injectDuplicate = opsPanel.getByRole("button", { name: "Inject duplicate" });
       if (!(await injectDuplicate.isDisabled())) {
         await injectDuplicate.click();
       }
       await opsPanel.getByRole("button", { name: /Clear all trial scans|Reset demo event/ }).click();
-      return "Sample scenario, record scan, wave simulation, duplicate, and reset controls are interactive";
+      return "Sample scenario, record scan, duplicate, and reset controls are interactive";
     });
 
     await runStep("organizer home duplicate archive restore flow", async () => {

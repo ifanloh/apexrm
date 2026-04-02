@@ -7,6 +7,8 @@ import podium3rdIcon from "./assets/podium-3rd.svg";
 
 type RaceHomeCard = DemoRaceCard & {
   rankingPreview: DemoRaceRankingPreview[];
+  modeLabel?: string;
+  modeSummary?: string;
   isLive?: boolean;
   isSelected?: boolean;
 };
@@ -188,12 +190,14 @@ export function RaceEditionHome({
             >
               <div className="race-card-topline">
                 <span className={`race-status-pill ${isLiveCard ? "live-card" : "finished-card"}`}>{isLiveCard ? "LIVE" : "FINISHED"}</span>
+                {card.modeLabel ? <span className="race-status-pill neutral-card">{card.modeLabel}</span> : null}
               </div>
 
               <div className="race-card-head">
                 <h4>{card.title}</h4>
                 <span>{card.scheduleLabel}</span>
               </div>
+              {card.modeSummary ? <p className="race-card-mode-copy">{card.modeSummary}</p> : null}
 
               <div className="race-card-stats">
                 <div>

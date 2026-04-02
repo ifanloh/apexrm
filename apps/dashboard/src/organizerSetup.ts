@@ -22,11 +22,14 @@ export type OrganizerBrandingDraft = {
   gpxFileSize: number | null;
 };
 
+export type OrganizerRaceMode = "standard" | "loop-fixed-laps" | "loop-fixed-time" | "relay";
+
 export type OrganizerRaceDraft = {
   slug: string;
   title: string;
   isPublished: boolean;
   editionLabel: string;
+  raceMode: OrganizerRaceMode;
   scheduleLabel: string;
   startAt: string;
   startTown: string;
@@ -34,6 +37,9 @@ export type OrganizerRaceDraft = {
   courseHighlights: string[];
   distanceKm: number;
   ascentM: number;
+  loopTargetLaps: number | null;
+  loopTimeLimitHours: number | null;
+  relayLegCount: number | null;
   finishers: number;
   dnf: number;
   accent: string;
@@ -214,6 +220,19 @@ function normalizeOrganizerCrewAssignment(
   };
 }
 
+function normalizeRaceMode(value?: string | null): OrganizerRaceMode {
+  if (value === "loop-fixed-laps" || value === "loop-fixed-time" || value === "relay") {
+    return value;
+  }
+
+  return "standard";
+}
+
+function normalizePositiveWholeNumber(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 function normalizeOrganizerSimulatedScan(
   raceSlug: string,
   scan: Partial<OrganizerSimulatedScanDraft>,
@@ -238,6 +257,7 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
     title: race.title,
     isPublished: true,
     editionLabel: race.editionLabel,
+    raceMode: "standard",
     scheduleLabel: race.scheduleLabel,
     startAt: race.startAt,
     startTown: race.startTown,
@@ -245,6 +265,9 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
     courseHighlights: race.courseHighlights,
     distanceKm: race.distanceKm,
     ascentM: race.ascentM,
+    loopTargetLaps: null,
+    loopTimeLimitHours: null,
+    relayLegCount: null,
     finishers: race.finishers,
     dnf: race.dnf,
     accent: race.accent,
@@ -298,6 +321,7 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
     title: `Custom Race ${index}`,
     isPublished: false,
     editionLabel: "Live",
+    raceMode: "standard",
     scheduleLabel: "Sun 01 Jan 05:00",
     startAt: "2026-01-01T05:00:00+07:00",
     startTown: "Start Town",
@@ -305,6 +329,9 @@ export function createOrganizerRaceTemplate(index: number): OrganizerRaceDraft {
     courseHighlights: ["Signature climb", "Technical descent", "Scenic finish"],
     distanceKm: 25,
     ascentM: 1400,
+    loopTargetLaps: null,
+    loopTimeLimitHours: null,
+    relayLegCount: null,
     finishers: 0,
     dnf: 0,
     accent: "#d6a341",
@@ -369,6 +396,10 @@ function normalizeOrganizerSetupDraft(parsed?: Partial<OrganizerSetupDraft> | nu
     races: (parsed?.races ?? []).filter((race) => race.slug).map((race, index) => ({
       ...createOrganizerRaceTemplate(index + 1),
       ...race,
+      raceMode: normalizeRaceMode(race.raceMode),
+      loopTargetLaps: normalizePositiveWholeNumber(race.loopTargetLaps),
+      loopTimeLimitHours: normalizePositiveWholeNumber(race.loopTimeLimitHours),
+      relayLegCount: normalizePositiveWholeNumber(race.relayLegCount),
       waypoints: Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : createOrganizerRaceTemplate(index + 1).waypoints,
       profilePoints:
         Array.isArray(race.profilePoints) && race.profilePoints.length
@@ -493,6 +524,45 @@ export function loadOrganizerWorkspace(): OrganizerWorkspaceStore {
 
 export function getOrganizerCheckpointsForRace(race: OrganizerRaceDraft): DemoCourseCheckpoint[] {
   return race.checkpoints?.length ? race.checkpoints : getDemoCourseForRace(race).checkpoints;
+}
+
+export function getOrganizerRaceModeLabel(mode: OrganizerRaceMode) {
+  switch (mode) {
+    case "loop-fixed-laps":
+      return "Looping · Fixed laps";
+    case "loop-fixed-time":
+      return "Looping · Fixed time";
+    case "relay":
+      return "Relay";
+    default:
+      return "Standard";
+  }
+}
+
+export function getOrganizerRaceModeSummary(race: OrganizerRaceDraft) {
+  switch (race.raceMode) {
+    case "loop-fixed-laps":
+      return race.loopTargetLaps ? `${race.loopTargetLaps} laps target` : "Set target laps";
+    case "loop-fixed-time":
+      return race.loopTimeLimitHours ? `Most loops in ${race.loopTimeLimitHours} hours` : "Set time limit";
+    case "relay":
+      return race.relayLegCount ? `${race.relayLegCount} relay legs` : "Set relay legs";
+    default:
+      return "Fastest overall elapsed time";
+  }
+}
+
+export function getOrganizerRaceDistanceSummary(race: OrganizerRaceDraft) {
+  switch (race.raceMode) {
+    case "loop-fixed-laps":
+      return race.loopTargetLaps ? `${race.distanceKm.toFixed(1)} km per lap · ~${(race.distanceKm * race.loopTargetLaps).toFixed(1)} km total` : `${race.distanceKm.toFixed(1)} km per lap`;
+    case "loop-fixed-time":
+      return `${race.distanceKm.toFixed(1)} km per lap`;
+    case "relay":
+      return race.relayLegCount ? `${race.distanceKm.toFixed(1)} km total · ${race.relayLegCount} legs` : `${race.distanceKm.toFixed(1)} km total`;
+    default:
+      return `${race.distanceKm.toFixed(1)} km total`;
+  }
 }
 
 export function buildOrganizerCourseFromRaceDraft(race: OrganizerRaceDraft): DemoCourse {
