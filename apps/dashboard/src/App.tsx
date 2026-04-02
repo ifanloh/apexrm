@@ -123,6 +123,22 @@ function getPlatformRegionKey(location: string): PlatformRegionKey {
   return "papua-maluku";
 }
 
+function getPublicEventStatusLabel(status: OrganizerPublicEventStatus) {
+  if (status === "live") {
+    return "Live";
+  }
+
+  if (status === "upcoming") {
+    return "Upcoming";
+  }
+
+  if (status === "finished") {
+    return "Finished";
+  }
+
+  return "Hidden";
+}
+
 const emptyOverallLeaderboard: OverallLeaderboard = {
   totalRankedRunners: 0,
   topEntries: []
@@ -2883,6 +2899,8 @@ export default function App() {
       count: counts.get(region.key) ?? 0
     })).filter((region) => region.count > 0);
   }, [filteredPublicEventCards]);
+  const platformHeroTickerEvents = filteredPublicEventCards.slice(0, 5);
+  const platformHeroPreviewEvents = filteredPublicEventCards.slice(0, 3);
   const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0 && organizerWizardDraft.eventDateAt.trim().length > 0;
   const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
   const organizerWizardModeReady =
@@ -4108,6 +4126,37 @@ export default function App() {
       <div className="dashboard-main dashboard-main-scroll live-main">
         {showPlatformHome ? (
           <section className="platform-home-shell" id="platform-home">
+            <div className="platform-home-topline">
+              {platformHeroTickerEvents.length ? (
+                platformHeroTickerEvents.map((event) => (
+                  <button className="platform-home-topline-pill" key={`platform-topline-${event.id}`} onClick={() => openPublicEvent(event.id)} type="button">
+                    <span className={`platform-home-topline-dot status-${event.publicStatus}`} aria-hidden="true" />
+                    <span>{event.title}</span>
+                  </button>
+                ))
+              ) : (
+                <span className="platform-home-topline-copy">Public events will appear here as soon as organizers publish their races.</span>
+              )}
+            </div>
+
+            <div className="platform-home-commandbar">
+              <div className="platform-home-commandbrand">
+                <img alt="Trailnesia" src={trailnesiaLogo} />
+                <span>Trailnesia Platform</span>
+              </div>
+              <div className="platform-home-commandnav" role="navigation" aria-label="Platform home sections">
+                <button className="platform-home-commandlink active" onClick={() => jumpToSection("platform-home")} type="button">
+                  Events
+                </button>
+                <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-discovery")} type="button">
+                  Indonesia Map
+                </button>
+                <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-home-events")} type="button">
+                  Event Catalog
+                </button>
+              </div>
+            </div>
+
             <div className="platform-home-hero">
               {platformHeroEvent?.heroBackgroundImageDataUrl ? (
                 <img alt="" className="platform-home-hero-image" src={platformHeroEvent.heroBackgroundImageDataUrl} />
@@ -4118,8 +4167,8 @@ export default function App() {
                   <img alt="Trailnesia" src={trailnesiaLogo} />
                   <span className="detail-label">Trailnesia platform</span>
                 </div>
-                <h2>Find trail events across Indonesia</h2>
-                <p>Discover live, upcoming, and finished trail events from organizers across the platform, then open each event hub to follow its race categories.</p>
+                <h2>Find your next trail event in Indonesia</h2>
+                <p>Discover live, upcoming, and finished events from organizers across the platform, then open each event hub to follow race categories, rankings, and live updates.</p>
                 <div className="platform-home-search">
                   <input
                     aria-label="Search public events"
@@ -4136,20 +4185,21 @@ export default function App() {
                   <span>{upcomingPlatformEvents.length} upcoming</span>
                 </div>
               </div>
-              {platformHeroEvent ? (
-                <div className="platform-home-highlight-card">
-                  <span className={`organizer-status-pill ${platformHeroEvent.publicStatus}`}>
-                    {platformHeroEvent.publicStatus === "live"
-                      ? "Live now"
-                      : platformHeroEvent.publicStatus === "upcoming"
-                        ? "Upcoming"
-                        : "Finished"}
-                  </span>
-                  <strong>{platformHeroEvent.title}</strong>
-                  <p>{platformHeroEvent.locationRibbon}</p>
-                  <span>{platformHeroEvent.dateRibbon}</span>
-                </div>
-              ) : null}
+              <div className="platform-home-hero-preview">
+                {platformHeroPreviewEvents.map((event, index) => (
+                  <button
+                    className={`platform-home-preview-card preview-${index + 1}`}
+                    key={`platform-preview-${event.id}`}
+                    onClick={() => openPublicEvent(event.id)}
+                    type="button"
+                  >
+                    <span className={`organizer-status-pill ${event.publicStatus}`}>{getPublicEventStatusLabel(event.publicStatus)}</span>
+                    <strong>{event.title}</strong>
+                    <p>{event.locationRibbon}</p>
+                    <span>{event.dateRibbon}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {!publicEventCards.length ? (
@@ -4160,7 +4210,7 @@ export default function App() {
               </article>
             ) : (
               <>
-                <section className="platform-discovery-panel">
+                <section className="platform-discovery-panel" id="platform-discovery">
                   <div className="platform-home-section-head">
                     <div>
                       <span className="detail-label">Find events in Indonesia</span>
@@ -4200,7 +4250,7 @@ export default function App() {
                   </div>
                 </section>
 
-                <section className="platform-home-section">
+                <section className="platform-home-section" id="platform-home-events">
                   <div className="platform-home-section-head">
                     <div>
                       <span className="detail-label">Registered events</span>

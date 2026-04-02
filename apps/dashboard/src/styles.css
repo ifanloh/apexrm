@@ -7982,6 +7982,107 @@ body {
   padding: 22px 0 34px;
 }
 
+.platform-home-topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding: 0.1rem 0;
+}
+
+.platform-home-topline-pill {
+  min-height: 28px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(24, 24, 24, 0.9);
+  color: #f8edd3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.platform-home-topline-copy {
+  color: rgba(31, 29, 25, 0.6);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.platform-home-topline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: block;
+}
+
+.platform-home-topline-dot.status-live {
+  background: #35d19c;
+}
+
+.platform-home-topline-dot.status-upcoming {
+  background: #e4b64e;
+}
+
+.platform-home-topline-dot.status-finished {
+  background: #7c8792;
+}
+
+.platform-home-commandbar {
+  min-height: 62px;
+  padding: 0 1rem;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(21, 24, 28, 0.96), rgba(28, 30, 36, 0.94));
+  color: #f8edd3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.platform-home-commandbrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 0.92rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.platform-home-commandbrand img {
+  width: 84px;
+  height: auto;
+  display: block;
+}
+
+.platform-home-commandnav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.platform-home-commandlink {
+  min-height: 36px;
+  padding: 0 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 244, 222, 0.8);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.platform-home-commandlink.active {
+  background: rgba(28, 185, 220, 0.16);
+  border-color: rgba(28, 185, 220, 0.35);
+  color: #ffffff;
+}
+
 .platform-home-empty,
 .platform-discovery-panel,
 .platform-home-section {
@@ -8126,6 +8227,53 @@ body {
   display: grid;
   gap: 0.45rem;
   align-self: end;
+}
+
+.platform-home-hero-preview {
+  position: relative;
+  z-index: 1;
+  margin-left: auto;
+  width: min(100%, 370px);
+  display: grid;
+  gap: 0.9rem;
+  align-self: center;
+}
+
+.platform-home-preview-card {
+  text-align: left;
+  padding: 1rem;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(14, 20, 18, 0.7);
+  backdrop-filter: blur(12px);
+  color: #fff7ea;
+  display: grid;
+  gap: 0.35rem;
+  box-shadow: 0 20px 32px rgba(8, 12, 11, 0.2);
+}
+
+.platform-home-preview-card.preview-2 {
+  margin-left: 1.25rem;
+}
+
+.platform-home-preview-card.preview-3 {
+  margin-left: 2.5rem;
+}
+
+.platform-home-preview-card strong,
+.platform-home-preview-card p,
+.platform-home-preview-card span {
+  margin: 0;
+}
+
+.platform-home-preview-card strong {
+  font-size: 1rem;
+}
+
+.platform-home-preview-card p,
+.platform-home-preview-card span:last-child {
+  color: rgba(255, 242, 219, 0.78);
+  font-size: 0.82rem;
 }
 
 .platform-home-highlight-card strong,
@@ -8393,14 +8541,21 @@ body {
 }
 
 @media (max-width: 980px) {
+  .platform-home-commandbar {
+    align-items: start;
+    flex-direction: column;
+    padding: 0.9rem 1rem;
+  }
+
   .platform-home-hero {
     display: grid;
     min-height: 0;
   }
 
-  .platform-home-highlight-card {
+  .platform-home-highlight-card,
+  .platform-home-hero-preview {
     margin-left: 0;
-    width: min(100%, 320px);
+    width: min(100%, 360px);
   }
 
   .platform-discovery-grid {
@@ -8426,6 +8581,11 @@ body {
     width: 108px;
   }
 
+  .platform-home-preview-card.preview-2,
+  .platform-home-preview-card.preview-3 {
+    margin-left: 0;
+  }
+
   .platform-home-kpis {
     gap: 0.45rem;
   }
@@ -8439,6 +8599,10 @@ body {
 @media (max-width: 640px) {
   .platform-home-hero {
     padding: 1.15rem;
+  }
+
+  .platform-home-commandnav {
+    flex-wrap: wrap;
   }
 
   .platform-home-brand img {
