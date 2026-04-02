@@ -4114,7 +4114,10 @@ export default function App() {
               ) : null}
               <div className="platform-home-hero-overlay" />
               <div className="platform-home-hero-copy">
-                <span className="detail-label">Trailnesia platform</span>
+                <div className="platform-home-brand">
+                  <img alt="Trailnesia" src={trailnesiaLogo} />
+                  <span className="detail-label">Trailnesia platform</span>
+                </div>
                 <h2>Find trail events across Indonesia</h2>
                 <p>Discover live, upcoming, and finished trail events from organizers across the platform, then open each event hub to follow its race categories.</p>
                 <div className="platform-home-search">

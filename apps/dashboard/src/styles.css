@@ -8041,6 +8041,19 @@ body {
   max-width: 580px;
 }
 
+.platform-home-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.platform-home-brand img {
+  width: 126px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 10px 20px rgba(8, 12, 11, 0.24));
+}
+
 .platform-home-hero-copy .detail-label {
   color: rgba(255, 241, 209, 0.8);
 }
@@ -8405,6 +8418,14 @@ body {
     max-width: none;
   }
 
+  .platform-home-brand {
+    gap: 0.7rem;
+  }
+
+  .platform-home-brand img {
+    width: 108px;
+  }
+
   .platform-home-kpis {
     gap: 0.45rem;
   }
@@ -8418,6 +8439,10 @@ body {
 @media (max-width: 640px) {
   .platform-home-hero {
     padding: 1.15rem;
+  }
+
+  .platform-home-brand img {
+    width: 96px;
   }
 
   .platform-home-search input {
