@@ -7978,28 +7978,30 @@ body {
 
 .platform-home-shell {
   display: grid;
-  gap: 1.5rem;
-  padding: 22px 0 34px;
+  gap: 0;
+  padding: 0 0 34px;
 }
 
 .platform-home-topline {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
-  padding: 0.1rem 0;
+  padding: 0.45rem 1.4rem;
+  margin: 0 -18px;
+  background: linear-gradient(90deg, #d5a43e, #69cfd6 72%, #1ca6dd);
 }
 
 .platform-home-topline-pill {
-  min-height: 28px;
-  padding: 0 0.75rem;
+  min-height: 24px;
+  padding: 0 0.55rem;
   border: 0;
-  border-radius: 999px;
-  background: rgba(24, 24, 24, 0.9);
-  color: #f8edd3;
+  border-radius: 8px;
+  background: transparent;
+  color: #171614;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -8032,9 +8034,10 @@ body {
 
 .platform-home-commandbar {
   min-height: 62px;
-  padding: 0 1rem;
-  border-radius: 20px;
-  background: linear-gradient(180deg, rgba(21, 24, 28, 0.96), rgba(28, 30, 36, 0.94));
+  padding: 0 1.35rem;
+  margin: 0 -18px;
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(20, 22, 27, 0.98), rgba(33, 35, 40, 0.96));
   color: #f8edd3;
   display: flex;
   align-items: center;
@@ -8061,25 +8064,24 @@ body {
 .platform-home-commandnav {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.3rem;
 }
 
 .platform-home-commandlink {
-  min-height: 36px;
-  padding: 0 0.95rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  min-height: 40px;
+  padding: 0 0.8rem;
+  border: 0;
+  border-radius: 10px;
   background: transparent;
   color: rgba(255, 244, 222, 0.8);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .platform-home-commandlink.active {
-  background: rgba(28, 185, 220, 0.16);
-  border-color: rgba(28, 185, 220, 0.35);
+  background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
 
@@ -8088,27 +8090,28 @@ body {
 .platform-home-section {
   display: grid;
   gap: 1rem;
-  padding: 1.2rem 1.25rem;
-  border-radius: 24px;
-  border: 1px solid rgba(20, 22, 24, 0.08);
-  background: rgba(255, 253, 249, 0.96);
-  box-shadow: 0 14px 28px rgba(44, 29, 12, 0.05);
+  padding: 1.4rem 1.5rem;
+  border-radius: 0;
+  border: 0;
+  background: rgba(255, 253, 249, 0.98);
+  box-shadow: none;
 }
 
 .platform-home-hero {
   align-items: end;
   background:
-    linear-gradient(125deg, rgba(9, 22, 22, 0.92), rgba(9, 22, 22, 0.58)),
-    radial-gradient(circle at left bottom, rgba(13, 167, 211, 0.2), transparent 40%),
-    linear-gradient(135deg, #0d2d2f, #12352c 56%, #1f4837);
-  border: 1px solid rgba(20, 22, 24, 0.08);
-  border-radius: 28px;
-  box-shadow: 0 18px 34px rgba(21, 26, 23, 0.14);
+    linear-gradient(120deg, rgba(5, 16, 18, 0.95), rgba(10, 18, 23, 0.72)),
+    radial-gradient(circle at left bottom, rgba(0, 159, 220, 0.24), transparent 42%),
+    linear-gradient(135deg, #0c1518, #182931 54%, #1b332d);
+  margin: 0 -18px;
+  border: 0;
+  border-radius: 0 0 28px 28px;
+  box-shadow: 0 18px 34px rgba(12, 15, 19, 0.18);
   gap: 0.9rem;
   display: flex;
-  min-height: 380px;
+  min-height: 460px;
   overflow: hidden;
-  padding: 1.5rem;
+  padding: 2rem 1.8rem 2.2rem;
   position: relative;
 }
 
@@ -8126,20 +8129,20 @@ body {
 
 .platform-home-hero-overlay {
   background:
-    linear-gradient(90deg, rgba(7, 15, 16, 0.84) 0%, rgba(7, 15, 16, 0.52) 38%, rgba(7, 15, 16, 0.18) 100%),
-    linear-gradient(180deg, rgba(18, 169, 204, 0.16), transparent 62%);
+    linear-gradient(90deg, rgba(6, 14, 17, 0.9) 0%, rgba(6, 14, 17, 0.52) 36%, rgba(6, 14, 17, 0.2) 100%),
+    linear-gradient(180deg, rgba(18, 169, 204, 0.18), transparent 58%);
 }
 
 .platform-home-hero-copy,
-.platform-home-highlight-card {
+.platform-home-hero-preview {
   position: relative;
   z-index: 1;
 }
 
 .platform-home-hero-copy {
   display: grid;
-  gap: 1rem;
-  max-width: 580px;
+  gap: 1.15rem;
+  max-width: 620px;
 }
 
 .platform-home-brand {
@@ -8167,33 +8170,59 @@ body {
 
 .platform-home-hero-copy h2 {
   color: #fff8ec;
-  font-size: clamp(2.4rem, 5vw, 4.1rem);
-  line-height: 0.94;
-  max-width: 10ch;
+  font-size: clamp(2.65rem, 5.3vw, 4.55rem);
+  line-height: 0.92;
+  max-width: 9ch;
   text-transform: uppercase;
 }
 
 .platform-home-hero-copy p {
   color: rgba(255, 244, 223, 0.82);
-  font-size: 1rem;
+  font-size: 1.02rem;
   line-height: 1.6;
   margin: 0;
   max-width: 34rem;
 }
 
 .platform-home-search {
-  max-width: 420px;
+  max-width: 500px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
 }
 
 .platform-home-search input {
   width: 100%;
-  min-height: 54px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  min-height: 58px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
-  background: rgba(247, 248, 244, 0.92);
+  background: rgba(247, 248, 244, 0.94);
   color: #1f1d19;
   font: inherit;
-  padding: 0 1rem;
+  padding: 0 1.15rem;
+}
+
+.platform-home-search input::placeholder {
+  color: rgba(31, 29, 25, 0.44);
+}
+
+.platform-home-search-button {
+  min-width: 58px;
+  min-height: 58px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #24b8ea, #0d98d6);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 14px 24px rgba(17, 116, 177, 0.34);
+}
+
+.platform-home-search-button:hover {
+  background: linear-gradient(180deg, #2dc1ef, #0ca5e0);
 }
 
 .platform-home-kpis {
@@ -8215,36 +8244,22 @@ body {
   letter-spacing: 0.04em;
 }
 
-.platform-home-highlight-card {
-  margin-left: auto;
-  width: min(100%, 310px);
-  padding: 1rem;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(12, 19, 16, 0.66);
-  backdrop-filter: blur(10px);
-  color: #fff7ea;
-  display: grid;
-  gap: 0.45rem;
-  align-self: end;
-}
-
 .platform-home-hero-preview {
   position: relative;
   z-index: 1;
   margin-left: auto;
-  width: min(100%, 370px);
+  width: min(100%, 390px);
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
   align-self: center;
 }
 
 .platform-home-preview-card {
   text-align: left;
-  padding: 1rem;
-  border-radius: 22px;
+  padding: 1rem 1.05rem;
+  border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(14, 20, 18, 0.7);
+  background: rgba(14, 20, 18, 0.76);
   backdrop-filter: blur(12px);
   color: #fff7ea;
   display: grid;
@@ -8252,12 +8267,16 @@ body {
   box-shadow: 0 20px 32px rgba(8, 12, 11, 0.2);
 }
 
+.platform-home-preview-card:hover {
+  transform: translateY(-2px);
+}
+
 .platform-home-preview-card.preview-2 {
-  margin-left: 1.25rem;
+  margin-left: 1.4rem;
 }
 
 .platform-home-preview-card.preview-3 {
-  margin-left: 2.5rem;
+  margin-left: 2.8rem;
 }
 
 .platform-home-preview-card strong,
@@ -8274,22 +8293,6 @@ body {
 .platform-home-preview-card span:last-child {
   color: rgba(255, 242, 219, 0.78);
   font-size: 0.82rem;
-}
-
-.platform-home-highlight-card strong,
-.platform-home-highlight-card p,
-.platform-home-highlight-card span {
-  margin: 0;
-}
-
-.platform-home-highlight-card strong {
-  font-size: 1.15rem;
-}
-
-.platform-home-highlight-card p,
-.platform-home-highlight-card span:last-child {
-  color: rgba(255, 242, 219, 0.8);
-  font-size: 0.86rem;
 }
 
 .platform-home-section-head {
@@ -8312,7 +8315,7 @@ body {
 .platform-discovery-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .platform-indonesia-map-card {
@@ -8388,57 +8391,17 @@ body {
   top: 31%;
 }
 
-.platform-discovery-stats {
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-}
-
-.platform-discovery-stat-card {
-  min-height: 0;
-  padding: 1rem 1.05rem;
-  border-radius: 20px;
-  border: 1px solid rgba(20, 22, 24, 0.08);
-  background: linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(250, 246, 238, 0.95));
-  display: grid;
-  gap: 0.35rem;
-}
-
-.platform-discovery-stat-card span,
-.platform-discovery-stat-card p {
-  margin: 0;
-}
-
-.platform-discovery-stat-card span {
-  color: rgba(31, 29, 25, 0.54);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.platform-discovery-stat-card strong {
-  color: #134a3d;
-  font-size: 2.15rem;
-  line-height: 1;
-}
-
-.platform-discovery-stat-card p {
-  color: rgba(31, 29, 25, 0.66);
-  line-height: 1.55;
-}
-
 .platform-event-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
 .platform-event-card {
   background: #fffdf9;
   border: 1px solid rgba(20, 22, 24, 0.08);
-  border-radius: 24px;
-  box-shadow: 0 16px 30px rgba(44, 29, 12, 0.06);
+  border-radius: 18px;
+  box-shadow: 0 14px 28px rgba(44, 29, 12, 0.08);
   color: #1f1d19;
   display: grid;
   gap: 0;
@@ -8447,11 +8410,16 @@ body {
   text-align: left;
 }
 
+.platform-event-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 38px rgba(44, 29, 12, 0.14);
+}
+
 .platform-event-card-media {
   background:
     linear-gradient(135deg, rgba(12, 107, 84, 0.84), rgba(24, 48, 33, 0.72)),
     radial-gradient(circle at top right, rgba(214, 163, 65, 0.3), transparent 50%);
-  min-height: 168px;
+  min-height: 188px;
   padding: 0.9rem;
   position: relative;
 }
@@ -8478,7 +8446,7 @@ body {
 .platform-event-card-body {
   display: grid;
   gap: 0.85rem;
-  padding: 1rem 1.05rem 1.1rem;
+  padding: 0.95rem 1rem 1.05rem;
 }
 
 .platform-event-card-head {
@@ -8552,14 +8520,9 @@ body {
     min-height: 0;
   }
 
-  .platform-home-highlight-card,
   .platform-home-hero-preview {
     margin-left: 0;
     width: min(100%, 360px);
-  }
-
-  .platform-discovery-grid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -8601,6 +8564,13 @@ body {
     padding: 1.15rem;
   }
 
+  .platform-home-topline,
+  .platform-home-commandbar,
+  .platform-home-hero {
+    margin-left: -12px;
+    margin-right: -12px;
+  }
+
   .platform-home-commandnav {
     flex-wrap: wrap;
   }
@@ -8609,8 +8579,17 @@ body {
     width: 96px;
   }
 
+  .platform-home-search {
+    grid-template-columns: 1fr;
+  }
+
   .platform-home-search input {
     min-height: 48px;
+  }
+
+  .platform-home-search-button {
+    min-height: 46px;
+    width: 100%;
   }
 
   .platform-indonesia-map-card {

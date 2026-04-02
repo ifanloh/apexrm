@@ -4173,10 +4173,13 @@ export default function App() {
                   <input
                     aria-label="Search public events"
                     onChange={(event) => setPlatformEventQuery(event.target.value)}
-                    placeholder="Search event, organizer, or location"
+                    placeholder="Find an event, an organizer, a location..."
                     type="search"
                     value={platformEventQuery}
                   />
+                  <button className="platform-home-search-button" type="button">
+                    Search
+                  </button>
                 </div>
                 <div className="platform-home-kpis">
                   <span>{filteredPublicEventCards.length} public events</span>
@@ -4228,24 +4231,6 @@ export default function App() {
                           <span>{region.label}</span>
                         </div>
                       ))}
-                    </div>
-
-                    <div className="platform-discovery-stats">
-                      <article className="platform-discovery-stat-card">
-                        <span>Live events</span>
-                        <strong>{livePlatformEvents.length}</strong>
-                        <p>At least one published race is currently live.</p>
-                      </article>
-                      <article className="platform-discovery-stat-card">
-                        <span>Upcoming events</span>
-                        <strong>{upcomingPlatformEvents.length}</strong>
-                        <p>Published race categories scheduled to start later.</p>
-                      </article>
-                      <article className="platform-discovery-stat-card">
-                        <span>Finished events</span>
-                        <strong>{finishedPlatformEvents.length}</strong>
-                        <p>Results are already available to spectators.</p>
-                      </article>
                     </div>
                   </div>
                 </section>
