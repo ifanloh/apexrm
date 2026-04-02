@@ -1014,6 +1014,31 @@ a {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.race-card-grid-empty {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px dashed rgba(20, 22, 24, 0.14);
+  border-radius: 20px;
+  color: var(--ink-soft);
+  grid-column: 1 / -1;
+  padding: 28px;
+}
+
+.race-card-grid-empty h4,
+.race-card-grid-empty p {
+  margin: 0;
+}
+
+.race-card-grid-empty h4 {
+  color: var(--ink);
+  font-size: 1.1rem;
+  margin-top: 8px;
+}
+
+.race-card-grid-empty p {
+  margin-top: 10px;
+  max-width: 54ch;
+}
+
 .race-card {
   --race-accent: var(--gold);
   --race-accent-soft: var(--gold-soft);

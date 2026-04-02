@@ -716,7 +716,7 @@ export function OrganizerConsole({
                   Load sample scenario
                 </button>
                 <button className="toolbar-link organizer-secondary-action" onClick={onResetDemoEvent} type="button">
-                  Reset demo event
+                  Clear all trial scans
                 </button>
               </div>
 

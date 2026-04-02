@@ -164,6 +164,13 @@ export function RaceEditionHome({
       </div>
 
       <div className="race-card-grid" role="list" aria-label="Race categories">
+        {!cards.length ? (
+          <article className="race-card-grid-empty" role="listitem">
+            <span className="detail-label">No published races yet</span>
+            <h4>Race categories will appear here after the organizer publishes them.</h4>
+            <p>Organizers can keep their event in draft while they finish branding, categories, crew setup, and participant import.</p>
+          </article>
+        ) : null}
         {cards.map((card) => {
           const isLiveCard = card.editionLabel.toLowerCase() === "live";
           const sparkline = buildSparkline(card.profileSeed);

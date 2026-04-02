@@ -3,6 +3,7 @@ import { getDemoCourseForRace, type DemoCourse, type DemoCourseCheckpoint } from
 
 export const ORGANIZER_SETUP_STORAGE_KEY = "trailnesia:organizer-setup";
 export const ORGANIZER_WORKSPACE_STORAGE_KEY = "trailnesia:organizer-workspace";
+const ORGANIZER_CLEAN_START_KEY = "trailnesia:organizer-clean-start-v1";
 
 export type OrganizerBrandingDraft = {
   organizerName: string;
@@ -326,15 +327,15 @@ export function createEmptyOrganizerSetup(): OrganizerSetupDraft {
   return {
     branding: {
       organizerName: "Trailnesia Organizer",
-      brandStackTop: demoRaceFestival.brandStack[0] ?? "EVENT",
-      brandStackBottom: demoRaceFestival.brandStack[1] ?? "RACE",
-      brandName: demoRaceFestival.brandName,
-      editionLabel: demoRaceFestival.editionLabel,
-      bannerTagline: demoRaceFestival.bannerTagline,
-      homeTitle: demoRaceFestival.homeTitle,
-      homeSubtitle: demoRaceFestival.homeSubtitle,
-      dateRibbon: demoRaceFestival.dateRibbon,
-      locationRibbon: demoRaceFestival.locationRibbon,
+      brandStackTop: "TRAIL",
+      brandStackBottom: "NESIA",
+      brandName: "Trailnesia",
+      editionLabel: "Edition draft",
+      bannerTagline: "Organizer edition hub",
+      homeTitle: "Race Categories",
+      homeSubtitle: "No published race categories yet. Add race categories and publish them when they are ready.",
+      dateRibbon: "Set event date",
+      locationRibbon: "Set event location",
       eventLogoDataUrl: null,
       heroBackgroundImageDataUrl: null,
       gpxFileName: null,
@@ -359,59 +360,29 @@ export function createDefaultOrganizerSetup(): OrganizerSetupDraft {
 
 function normalizeOrganizerSetupDraft(parsed?: Partial<OrganizerSetupDraft> | null): OrganizerSetupDraft {
   const fallback = createDefaultOrganizerSetup();
-  const fallbackDemo = createDemoOrganizerSetup();
 
   return {
     branding: {
       ...fallback.branding,
       ...(parsed?.branding ?? {})
     },
-    races: [
-      ...fallbackDemo.races.map((race) => {
-        const override = parsed?.races?.find((item) => item.slug === race.slug);
-        return {
-          ...race,
-          ...(override ?? {}),
-          waypoints: Array.isArray(override?.waypoints) && override.waypoints.length ? override.waypoints : race.waypoints,
-          profilePoints: Array.isArray(override?.profilePoints) && override.profilePoints.length ? override.profilePoints : race.profilePoints,
-          checkpoints: Array.isArray(override?.checkpoints) && override.checkpoints.length ? override.checkpoints : race.checkpoints,
-          participants: Array.isArray(override?.participants) ? override.participants : race.participants,
-          crewAssignments: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.crewAssignments)
-            ? (((override as Partial<OrganizerRaceDraft>).crewAssignments ?? []) as Partial<OrganizerCrewAssignmentDraft>[]).map((crew, index) =>
-                normalizeOrganizerCrewAssignment(race.slug, crew, index)
-              )
-            : race.crewAssignments,
-          simulatedScans: Array.isArray((override as Partial<OrganizerRaceDraft> | undefined)?.simulatedScans)
-            ? (((override as Partial<OrganizerRaceDraft>).simulatedScans ?? []) as Partial<OrganizerSimulatedScanDraft>[]).map((scan, index) =>
-                normalizeOrganizerSimulatedScan(race.slug, scan, index)
-              )
-            : race.simulatedScans
-        };
-      }),
-      ...(parsed?.races ?? [])
-        .filter((race) => race.slug && !fallback.races.some((fallbackRace) => fallbackRace.slug === race.slug))
-        .map((race) => ({
-          ...createOrganizerRaceTemplate(fallback.races.length + 1),
-          ...race,
-          waypoints: Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : createOrganizerRaceTemplate(fallback.races.length + 1).waypoints,
-          profilePoints:
-            Array.isArray(race.profilePoints) && race.profilePoints.length
-              ? race.profilePoints
-              : createOrganizerRaceTemplate(fallback.races.length + 1).profilePoints,
-          checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(fallback.races.length + 1).checkpoints,
-          participants: Array.isArray(race.participants) ? race.participants : [],
-          crewAssignments: Array.isArray(race.crewAssignments)
-            ? race.crewAssignments.map((crew, index) =>
-                normalizeOrganizerCrewAssignment(String(race.slug || "CREW"), crew, index)
-              )
-            : [],
-          simulatedScans: Array.isArray(race.simulatedScans)
-            ? race.simulatedScans.map((scan, index) =>
-                normalizeOrganizerSimulatedScan(String(race.slug || "CREW"), scan, index)
-              )
-            : []
-        }))
-    ]
+    races: (parsed?.races ?? []).filter((race) => race.slug).map((race, index) => ({
+      ...createOrganizerRaceTemplate(index + 1),
+      ...race,
+      waypoints: Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : createOrganizerRaceTemplate(index + 1).waypoints,
+      profilePoints:
+        Array.isArray(race.profilePoints) && race.profilePoints.length
+          ? race.profilePoints
+          : createOrganizerRaceTemplate(index + 1).profilePoints,
+      checkpoints: Array.isArray(race.checkpoints) && race.checkpoints.length ? race.checkpoints : createOrganizerRaceTemplate(index + 1).checkpoints,
+      participants: Array.isArray(race.participants) ? race.participants : [],
+      crewAssignments: Array.isArray(race.crewAssignments)
+        ? race.crewAssignments.map((crew, crewIndex) => normalizeOrganizerCrewAssignment(String(race.slug || "CREW"), crew, crewIndex))
+        : [],
+      simulatedScans: Array.isArray(race.simulatedScans)
+        ? race.simulatedScans.map((scan, scanIndex) => normalizeOrganizerSimulatedScan(String(race.slug || "CREW"), scan, scanIndex))
+        : []
+    }))
   };
 }
 
@@ -449,6 +420,13 @@ export function loadOrganizerWorkspace(): OrganizerWorkspaceStore {
   const fallback = createDefaultOrganizerWorkspace();
 
   try {
+    if (window.localStorage.getItem(ORGANIZER_CLEAN_START_KEY) !== "1") {
+      window.localStorage.removeItem(ORGANIZER_WORKSPACE_STORAGE_KEY);
+      window.localStorage.removeItem(ORGANIZER_SETUP_STORAGE_KEY);
+      window.localStorage.removeItem("trailnesia:organizer-trial-autoseeded");
+      window.localStorage.setItem(ORGANIZER_CLEAN_START_KEY, "1");
+    }
+
     const rawWorkspace = window.localStorage.getItem(ORGANIZER_WORKSPACE_STORAGE_KEY);
 
     if (rawWorkspace) {
@@ -492,11 +470,12 @@ export function loadOrganizerWorkspace(): OrganizerWorkspaceStore {
     }
 
     const migratedSetup = loadOrganizerSetup();
+    const defaultSetup = createDefaultOrganizerSetup();
     const hasMeaningfulLegacyState =
       migratedSetup.races.length > 0 ||
       migratedSetup.branding.eventLogoDataUrl !== null ||
       migratedSetup.branding.heroBackgroundImageDataUrl !== null ||
-      migratedSetup.branding.brandName !== demoRaceFestival.brandName;
+      migratedSetup.branding.brandName !== defaultSetup.branding.brandName;
 
     if (!hasMeaningfulLegacyState) {
       return fallback;

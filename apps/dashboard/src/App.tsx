@@ -28,14 +28,13 @@ import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
 import trailnesiaLogo from "./assets/trailnesia.png";
 import worldMapSvgRaw from "./assets/world-map-detailed.svg?raw";
-import { getDemoCourseForRace } from "./demoCourseVariants";
-import { demoRaceFestival, type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
+import { getDemoCourseForRace, type DemoCourse } from "./demoCourseVariants";
+import { type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
 import { RaceEditionHome } from "./RaceEditionHome";
 import {
   buildOrganizerCourseFromRaceDraft,
   createOrganizerEventRecord,
   createOrganizerInviteCode,
-  createDemoOrganizerSetup,
   createOrganizerRaceTemplate,
   createDefaultOrganizerSetup,
   createDefaultOrganizerWorkspace,
@@ -57,9 +56,7 @@ import {
 } from "./organizerSetup";
 import {
   buildOrganizerRaceSimulationSnapshot,
-  buildOrganizerTrialScenario,
-  seedOrganizerTrialSetup,
-  shouldAutoSeedOrganizerTrial
+  buildOrganizerTrialScenario
 } from "./organizerSimulation";
 import {
   appendOrganizerSimulatedScan,
@@ -82,11 +79,51 @@ const emptyOverallLeaderboard: OverallLeaderboard = {
 };
 
 const FAVORITES_STORAGE_KEY = "arm:dashboard-favorites";
-const ORGANIZER_TRIAL_AUTOSEEDED_KEY = "trailnesia:organizer-trial-autoseeded";
 const FULL_RANKING_PAGE_SIZE = 12;
 const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
 const EDITION_HOME_VALUE = "__edition-home";
 const COUNTRY_CODES = ["ID", "MY", "SG", "AU", "JP", "TH", "PH", "KR", "CN", "VN", "US", "FR"] as const;
+const EMPTY_FESTIVAL = {
+  brandStack: ["TRAIL", "NESIA"],
+  brandName: "Trailnesia",
+  editionLabel: "Edition draft",
+  dateRibbon: "Set event date",
+  locationRibbon: "Set event location",
+  homeTitle: "Race Categories",
+  homeSubtitle: "No published race categories yet. Create race categories and publish them when they are ready.",
+  bannerTagline: "Organizer edition hub",
+  races: [] as DemoRaceCard[]
+};
+const EMPTY_RACE_CARD: DemoRaceCard = {
+  slug: "__no-race__",
+  title: "No race selected",
+  editionLabel: "Draft",
+  scheduleLabel: "",
+  startAt: "",
+  startTown: "-",
+  courseDescription: "No race category has been published yet.",
+  courseHighlights: [],
+  distanceKm: 0,
+  ascentM: 0,
+  finishers: 0,
+  dnf: 0,
+  accent: "#d6a341",
+  accentSoft: "rgba(214, 163, 65, 0.18)",
+  profileSeed: 0,
+  rankingPreview: []
+};
+const EMPTY_COURSE: DemoCourse = {
+  slug: EMPTY_RACE_CARD.slug,
+  title: EMPTY_RACE_CARD.title,
+  subtitle: "No course has been configured yet.",
+  location: "",
+  distanceKm: 0,
+  ascentM: 0,
+  descentM: 0,
+  checkpoints: [],
+  waypoints: [],
+  profilePoints: []
+};
 const TEAM_NAMES = [
   "Mantra Trail Team",
   "Arjuno Runners",
@@ -1050,28 +1087,21 @@ export default function App() {
   const deferredRunnerQuery = useDeferredValue(runnerQuery);
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
   const festivalData = useMemo(() => {
-    const demoRaceBySlug = new Map(demoRaceFestival.races.map((race) => [race.slug, race]));
-    const races = organizerSetup.races.length
-      ? organizerSetup.races.map((raceDraft) => {
-          const baseRace = demoRaceBySlug.get(raceDraft.slug);
-
-          return {
-            ...(baseRace ?? {}),
-            ...raceDraft
-          } as DemoRaceCard;
-        })
-      : demoRaceFestival.races;
+    const races = organizerSetup.races.map((raceDraft) => ({ ...raceDraft }) as DemoRaceCard);
 
     return {
-      ...demoRaceFestival,
-      brandName: organizerSetup.branding.brandName,
-      brandStack: [organizerSetup.branding.brandStackTop, organizerSetup.branding.brandStackBottom],
-      editionLabel: organizerSetup.branding.editionLabel,
-      dateRibbon: organizerSetup.branding.dateRibbon,
-      locationRibbon: organizerSetup.branding.locationRibbon,
-      homeTitle: organizerSetup.branding.homeTitle,
-      homeSubtitle: organizerSetup.branding.homeSubtitle,
-      bannerTagline: organizerSetup.branding.bannerTagline,
+      ...EMPTY_FESTIVAL,
+      brandName: organizerSetup.branding.brandName || EMPTY_FESTIVAL.brandName,
+      brandStack: [
+        organizerSetup.branding.brandStackTop || EMPTY_FESTIVAL.brandStack[0],
+        organizerSetup.branding.brandStackBottom || EMPTY_FESTIVAL.brandStack[1]
+      ],
+      editionLabel: organizerSetup.branding.editionLabel || EMPTY_FESTIVAL.editionLabel,
+      dateRibbon: organizerSetup.branding.dateRibbon || EMPTY_FESTIVAL.dateRibbon,
+      locationRibbon: organizerSetup.branding.locationRibbon || EMPTY_FESTIVAL.locationRibbon,
+      homeTitle: organizerSetup.branding.homeTitle || EMPTY_FESTIVAL.homeTitle,
+      homeSubtitle: organizerSetup.branding.homeSubtitle || EMPTY_FESTIVAL.homeSubtitle,
+      bannerTagline: organizerSetup.branding.bannerTagline || EMPTY_FESTIVAL.bannerTagline,
       races
     };
   }, [organizerSetup]);
@@ -1080,7 +1110,7 @@ export default function App() {
     [festivalData.races, organizerSetup.races]
   );
   const visibleRaces = spectatorRaces;
-  const fallbackVisibleRace = visibleRaces[0] ?? festivalData.races[0];
+  const fallbackVisibleRace = visibleRaces[0] ?? festivalData.races[0] ?? EMPTY_RACE_CARD;
   const featuredRace = visibleRaces.find((race) => race.editionLabel.toLowerCase() === "live") ?? fallbackVisibleRace;
   const selectedRaceCard =
     visibleRaces.find((race) => race.slug === selectedRaceSlug) ??
@@ -1092,7 +1122,7 @@ export default function App() {
     const organizerRaceDraft = organizerSetup.races.find((race) => race.slug === selectedRaceCard.slug);
 
     if (!organizerRaceDraft) {
-      return getDemoCourseForRace(selectedRaceCard);
+      return selectedRaceCard.slug === EMPTY_RACE_CARD.slug ? EMPTY_COURSE : getDemoCourseForRace(selectedRaceCard);
     }
 
     return buildOrganizerCourseFromRaceDraft(organizerRaceDraft);
@@ -1180,24 +1210,6 @@ export default function App() {
 
     setOrganizerWorkspaceView((current) => (current === "spectator" ? "home" : current));
   }, [organizerSessionActive]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !organizerSessionActive) {
-      return;
-    }
-
-    const alreadySeeded = window.localStorage.getItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY) === "1";
-    if (alreadySeeded || !shouldAutoSeedOrganizerTrial(organizerSetup)) {
-      return;
-    }
-
-    const seededSetup = seedOrganizerTrialSetup(organizerSetup);
-    window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
-    updateActiveOrganizerSetup(() => seededSetup);
-    setOrganizerSetupRaceSlug(seededSetup.races[0]?.slug ?? "");
-    setSelectedRaceSlug(EDITION_HOME_VALUE);
-    setRaceDetailView("race-page");
-  }, [organizerSessionActive, organizerSetup]);
 
   useEffect(() => {
     if (!organizerSetup.races.length) {
@@ -3199,34 +3211,22 @@ export default function App() {
     }));
   }
 
-  function resetOrganizerDemoEvent() {
+  function resetOrganizerTrialData() {
     if (!organizerActiveEvent) {
-      loadOrganizerTrialWorkspace();
       return;
     }
 
-    const freshSetup = seedOrganizerTrialSetup(createDemoOrganizerSetup());
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
-    }
     updateOrganizerWorkspaceEvent(organizerActiveEvent.id, (event) => ({
       ...event,
-      title: deriveOrganizerEventTitle(freshSetup),
       updatedAt: new Date().toISOString(),
-      setup: freshSetup
+      setup: {
+        ...event.setup,
+        races: event.setup.races.map((race) => ({
+          ...race,
+          simulatedScans: []
+        }))
+      }
     }));
-    setOrganizerSetupRaceSlug(freshSetup.races[0]?.slug ?? "");
-    setSelectedRaceSlug(EDITION_HOME_VALUE);
-    setRaceDetailView("race-page");
-    clearOrganizerImportDraft();
-  }
-
-  function loadOrganizerTrialWorkspace() {
-    const seededSetup = seedOrganizerTrialSetup(createDemoOrganizerSetup());
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(ORGANIZER_TRIAL_AUTOSEEDED_KEY, "1");
-    }
-    createOrganizerWorkspaceEvent(seededSetup);
   }
 
   function applyOrganizerImport() {
@@ -3762,9 +3762,6 @@ export default function App() {
                       <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
                         Create your first event
                       </button>
-                      <button className="toolbar-link organizer-secondary-action" onClick={loadOrganizerTrialWorkspace} type="button">
-                        Load trial demo
-                      </button>
                     </div>
                   </section>
                 ) : (
@@ -4024,7 +4021,7 @@ export default function App() {
               onClearImport={clearOrganizerImportDraft}
               onGpxChange={handleOrganizerGpxChange}
               onLoadSampleScenario={loadOrganizerTrialScenario}
-              onResetDemoEvent={resetOrganizerDemoEvent}
+              onResetDemoEvent={resetOrganizerTrialData}
               onRegenerateCrewInvite={regenerateOrganizerCrewInvite}
               onToggleRacePublish={toggleOrganizerRacePublish}
               onRemoveCheckpoint={removeOrganizerCheckpoint}

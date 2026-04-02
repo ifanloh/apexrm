@@ -263,8 +263,8 @@ async function runDeepOrganizerAudit() {
       if (!(await injectDuplicate.isDisabled())) {
         await injectDuplicate.click();
       }
-      await opsPanel.getByRole("button", { name: "Reset demo event" }).click();
-      return "Sample scenario, record scan, wave simulation, duplicate, and reset are interactive";
+      await opsPanel.getByRole("button", { name: /Clear all trial scans|Reset demo event/ }).click();
+      return "Sample scenario, record scan, wave simulation, duplicate, and reset controls are interactive";
     });
 
     await runStep("organizer home duplicate archive restore flow", async () => {

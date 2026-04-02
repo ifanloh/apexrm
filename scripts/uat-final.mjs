@@ -172,7 +172,7 @@ async function runOrganizerBrowserChecks() {
     await runStep("organizer browser race day ops essentials", async () => {
       await page.getByRole("button", { name: "Race Day Ops" }).click();
       await page.getByRole("button", { name: "Load sample scenario" }).waitFor({ timeout: 10000 });
-      await page.getByRole("button", { name: "Reset demo event" }).waitFor();
+      await page.getByRole("button", { name: /Clear all trial scans|Reset demo event/ }).waitFor();
       return "Race Day Ops tools are visible";
     });
 
