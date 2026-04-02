@@ -8139,6 +8139,41 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 }
 
+.topbar-left-cluster {
+  overflow: visible;
+}
+
+.topbar-center,
+.live-trail-shell.race-detail-mode .topbar-center {
+  flex: 0 0 auto;
+  max-width: none;
+  min-width: 0;
+  overflow: visible;
+  width: auto;
+}
+
+.topbar-select,
+.live-trail-shell.race-detail-mode .topbar-select {
+  flex: 0 0 auto;
+  max-width: none;
+  min-width: 0;
+  width: auto;
+}
+
+.topbar-select-shell,
+.live-trail-shell.race-detail-mode .topbar-select-shell {
+  display: inline-flex;
+  max-width: none;
+  min-width: 168px;
+  width: auto;
+}
+
+.topbar-select-shell select,
+.live-trail-shell.race-detail-mode .topbar-select-shell select {
+  min-width: 168px;
+  width: auto;
+}
+
 @media (max-width: 1100px) {
   .live-shell-body.with-sidebar-rail,
   .live-shell-body.no-sidebar-rail {
