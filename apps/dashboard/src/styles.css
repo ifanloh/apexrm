@@ -6441,6 +6441,19 @@ body {
   justify-content: flex-end;
 }
 
+.organizer-console-save {
+  background: linear-gradient(135deg, rgba(225, 183, 76, 0.98), rgba(199, 147, 32, 0.94));
+  border-color: rgba(199, 147, 32, 0.94);
+  box-shadow: 0 12px 24px rgba(151, 108, 19, 0.18);
+  color: #2a1b08;
+}
+
+.organizer-console-save:hover {
+  background: linear-gradient(135deg, rgba(234, 193, 88, 1), rgba(208, 156, 38, 0.98));
+  border-color: rgba(208, 156, 38, 0.98);
+  box-shadow: 0 16px 30px rgba(151, 108, 19, 0.22);
+}
+
 .organizer-console-back {
   border-color: rgba(255, 247, 237, 0.5);
   color: #fff7ed;
@@ -6748,6 +6761,33 @@ body {
   width: fit-content;
 }
 
+.organizer-file-trigger,
+.organizer-apply-button,
+.organizer-primary-action,
+.organizer-step-next {
+  background: linear-gradient(135deg, rgba(191, 72, 39, 0.98), rgba(140, 33, 31, 0.96));
+  border-color: rgba(140, 33, 31, 0.96);
+  box-shadow: 0 12px 24px rgba(120, 34, 25, 0.16);
+  color: #fff9f3;
+}
+
+.organizer-file-trigger:hover,
+.organizer-apply-button:hover,
+.organizer-primary-action:hover,
+.organizer-step-next:hover {
+  background: linear-gradient(135deg, rgba(207, 83, 47, 1), rgba(153, 39, 36, 0.98));
+  border-color: rgba(153, 39, 36, 0.98);
+  box-shadow: 0 16px 30px rgba(120, 34, 25, 0.22);
+}
+
+.organizer-file-trigger:disabled,
+.organizer-apply-button:disabled,
+.organizer-primary-action:disabled,
+.organizer-step-next:disabled {
+  box-shadow: none;
+  opacity: 0.5;
+}
+
 .organizer-race-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7040,8 +7080,23 @@ body {
   color: #98620f;
 }
 
+.organizer-publish-button {
+  background: linear-gradient(135deg, rgba(42, 133, 86, 0.98), rgba(25, 102, 68, 0.96));
+  border-color: rgba(25, 102, 68, 0.96);
+  box-shadow: 0 12px 24px rgba(31, 111, 73, 0.18);
+  color: #f6fff9;
+}
+
+.organizer-publish-button:hover {
+  background: linear-gradient(135deg, rgba(48, 147, 95, 1), rgba(27, 113, 74, 0.98));
+  border-color: rgba(27, 113, 74, 0.98);
+  box-shadow: 0 16px 30px rgba(31, 111, 73, 0.22);
+}
+
 .organizer-publish-button.secondary {
+  background: rgba(255, 251, 242, 0.96);
   border-color: rgba(183, 120, 23, 0.28);
+  box-shadow: none;
   color: #98620f;
 }
 
@@ -7050,6 +7105,7 @@ body {
 }
 
 .organizer-publish-button:disabled {
+  box-shadow: none;
   opacity: 0.5;
   cursor: not-allowed;
 }

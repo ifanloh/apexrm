@@ -667,7 +667,7 @@ export function OrganizerConsole({
           )}
         </div>
         <div className="organizer-console-actions">
-          <button className="toolbar-link organizer-secondary-action" onClick={onSaveDraft} type="button">
+          <button className="toolbar-link organizer-console-save" onClick={onSaveDraft} type="button">
             Save draft
           </button>
           <button className="toolbar-link organizer-console-back" onClick={onBackToSpectator} type="button">
@@ -1610,9 +1610,9 @@ export function OrganizerConsole({
                   <button className="toolbar-link organizer-secondary-action" onClick={goToPreviousStep} type="button">
                     Back to branding
                   </button>
-                  <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
-                    Continue to participants
-                  </button>
+              <button className="toolbar-link organizer-step-next" onClick={goToNextStep} type="button">
+                Continue to participants
+              </button>
                 </div>
               </>
             ) : (
@@ -1838,7 +1838,7 @@ export function OrganizerConsole({
               <button className="toolbar-link organizer-secondary-action" onClick={goToPreviousStep} type="button">
                 Back to participants
               </button>
-              <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
+              <button className="toolbar-link organizer-step-next" onClick={goToNextStep} type="button">
                 Continue to save draft & publish
               </button>
             </div>
@@ -1994,7 +1994,7 @@ export function OrganizerConsole({
             <button className="toolbar-link organizer-secondary-action" onClick={goToPreviousStep} type="button">
               Back to races & checkpoints
             </button>
-            <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
+            <button className="toolbar-link organizer-step-next" onClick={goToNextStep} type="button">
               Continue to scanner crew
             </button>
           </div>
