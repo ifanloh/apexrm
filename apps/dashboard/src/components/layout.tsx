@@ -24,7 +24,7 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col bg-background">
+    <div className="flex h-screen min-h-0 flex-col overflow-hidden bg-background" style={{ height: "100dvh" }}>
       <header className="sticky top-0 z-50 w-full border-b bg-card">
         <div className="container flex h-16 items-center px-4 justify-between">
           <div className="flex items-center gap-6">

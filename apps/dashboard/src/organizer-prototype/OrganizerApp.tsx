@@ -34,7 +34,11 @@ function ShadowMount({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  return <div ref={hostRef}>{container ? createPortal(children, container) : null}</div>;
+  return (
+    <div className="organizer-prototype-host flex min-h-0 flex-1 flex-col" ref={hostRef}>
+      {container ? createPortal(children, container) : null}
+    </div>
+  );
 }
 
 export function OrganizerPrototypeApp({

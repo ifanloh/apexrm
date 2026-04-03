@@ -62,6 +62,22 @@
 
 :host,
 .organizer-prototype-root {
+  display: block;
+  inline-size: 100%;
+}
+
+:host {
+  block-size: 100%;
+  min-block-size: 100%;
+}
+
+.organizer-prototype-root {
+  block-size: 100%;
+  min-block-size: 100%;
+}
+
+:host,
+.organizer-prototype-root {
   --button-outline: rgba(0, 0, 0, 0.1);
   --badge-outline: rgba(0, 0, 0, 0.05);
   --opaque-button-border-intensity: -8;
