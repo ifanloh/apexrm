@@ -7969,15 +7969,28 @@ body {
   font-weight: 700;
 }
 
-.live-shell-body.platform-home-body .dashboard-main.dashboard-main-scroll {
-  background: linear-gradient(180deg, #f8f4ea, #fbf8f1);
-  padding: 0 22px 40px;
+.live-trail-shell.platform-home-mode {
+  display: block;
+  max-width: none;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
-.live-main > .platform-home-shell {
+.live-trail-shell.platform-home-mode .live-shell-body {
+  display: block;
+  min-height: 100dvh;
+  overflow: visible;
+}
+
+.live-shell-body.platform-home-body .dashboard-main.dashboard-main-scroll {
+  background: linear-gradient(180deg, #f8f4ea, #fbf8f1);
+  padding: 0 0 40px;
+}
+
+.live-main.platform-home-main > .platform-home-shell {
   margin-left: auto;
   margin-right: auto;
-  max-width: 1360px;
+  max-width: none;
   width: 100%;
 }
 
@@ -7985,13 +7998,14 @@ body {
   display: grid;
   gap: 0.9rem;
   padding: 0 0 20px;
+  width: 100%;
 }
 
 .platform-home-topline {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
-  padding: 0.38rem 1.1rem;
+  padding: 0.38rem max(1rem, calc((100vw - 1320px) / 2 + 1rem));
   background: linear-gradient(90deg, #d5a43e, #69cfd6 72%, #1ca6dd);
   border-radius: 0;
 }
@@ -8039,7 +8053,7 @@ body {
 
 .platform-home-commandbar {
   min-height: 62px;
-  padding: 0 1.35rem;
+  padding: 0 max(1rem, calc((100vw - 1320px) / 2 + 1rem));
   border-radius: 0;
   background: linear-gradient(180deg, rgba(20, 22, 27, 0.98), rgba(33, 35, 40, 0.96));
   color: #f8edd3;
@@ -8124,7 +8138,7 @@ body {
 .platform-home-section {
   display: grid;
   gap: 1rem;
-  padding: 1.4rem 1.5rem;
+  padding: 1.6rem max(1rem, calc((100vw - 1320px) / 2 + 1rem));
   border-radius: 0;
   border: 0;
   background: rgba(255, 253, 249, 0.98);
@@ -8138,14 +8152,14 @@ body {
     radial-gradient(circle at left bottom, rgba(0, 159, 220, 0.24), transparent 42%),
     linear-gradient(135deg, #0c1518, #182931 54%, #1b332d);
   border: 0;
-  border-radius: 0 0 24px 24px;
+  border-radius: 0;
   box-shadow: 0 18px 34px rgba(12, 15, 19, 0.18);
   display: grid;
   gap: 1.25rem;
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
   min-height: 520px;
   overflow: hidden;
-  padding: 2rem 1.7rem 2.2rem;
+  padding: 2rem max(1rem, calc((100vw - 1320px) / 2 + 1rem)) 2.2rem;
   position: relative;
 }
 
@@ -8743,6 +8757,20 @@ body {
 }
 
 @media (max-width: 640px) {
+  .live-shell-body.platform-home-body .dashboard-main.dashboard-main-scroll {
+    padding-bottom: 28px;
+  }
+
+  .platform-home-topline,
+  .platform-home-commandbar,
+  .platform-home-hero,
+  .platform-home-empty,
+  .platform-discovery-panel,
+  .platform-home-section {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
   .platform-home-hero {
     padding: 1.15rem;
   }

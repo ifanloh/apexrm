@@ -3940,7 +3940,7 @@ export default function App() {
 
   return (
     <main
-      className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
+      className={`dashboard-shell dashboard-hub-shell live-trail-shell ${showPlatformHome ? "platform-home-mode" : isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
     >
       {!showPlatformHome ? (
       <header className="topbar topbar-hub live-topbar">
@@ -4162,7 +4162,7 @@ export default function App() {
       </aside>
         ) : null}
 
-      <div className="dashboard-main dashboard-main-scroll live-main">
+      <div className={`dashboard-main dashboard-main-scroll live-main ${showPlatformHome ? "platform-home-main" : ""}`}>
         {showPlatformHome ? (
           <section className="platform-home-shell" id="platform-home">
             <div className="platform-home-topline">
