@@ -3,12 +3,15 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { getOrganizerPortalContainer } from "@/lib/portal"
 
 const Dialog = DialogPrimitive.Root
 
 const DialogTrigger = DialogPrimitive.Trigger
 
-const DialogPortal = DialogPrimitive.Portal
+const DialogPortal = ({ container, ...props }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Portal>) => (
+  <DialogPrimitive.Portal container={container ?? getOrganizerPortalContainer()} {...props} />
+)
 
 const DialogClose = DialogPrimitive.Close
 

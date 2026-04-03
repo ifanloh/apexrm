@@ -34,6 +34,8 @@ export interface Race {
   elevationGain?: number | null;
   maxParticipants?: number | null;
   cutoffTime?: string | null;
+  gpxFileName?: string | null;
+  gpxData?: string | null;
   status: RaceStatus;
   participantCount: number;
   checkpointCount: number;
@@ -48,7 +50,10 @@ export interface Checkpoint {
   name: string;
   orderIndex: number;
   distanceFromStart?: number | null;
+  isStartLine: boolean;
   isFinishLine: boolean;
+  gpxFileName?: string | null;
+  gpxData?: string | null;
   assignedCrewId?: number | null;
   createdAt: string;
 }
@@ -119,6 +124,7 @@ export interface RaceDayStatus {
     checkpointId: number;
     name: string;
     orderIndex: number;
+    isStartLine: boolean;
     isFinishLine: boolean;
     assignedCrew: string | null;
     scanCount: number;
@@ -348,6 +354,7 @@ export function useGetRaceDayStatus(eventId: number, raceId: number, options?: Q
         checkpointId: checkpoint.id,
         name: checkpoint.name,
         orderIndex: checkpoint.orderIndex,
+        isStartLine: checkpoint.isStartLine,
         isFinishLine: checkpoint.isFinishLine,
         assignedCrew: store.crew.find((member) => member.id === checkpoint.assignedCrewId)?.name ?? null,
         scanCount: scans.filter((scan) => scan.checkpointId === checkpoint.id).length,
@@ -393,6 +400,8 @@ export function useCreateEvent() {
         elevationGain: data.firstRaceElevationGain,
         maxParticipants: data.firstRaceMaxParticipants,
         cutoffTime: null,
+        gpxFileName: null,
+        gpxData: null,
         status: "draft",
         participantCount: 0,
         checkpointCount: 0,
@@ -463,6 +472,8 @@ export function useCreateRace() {
       elevationGain: data.elevationGain ?? null,
       maxParticipants: data.maxParticipants ?? null,
       cutoffTime: data.cutoffTime ?? null,
+      gpxFileName: data.gpxFileName ?? null,
+      gpxData: data.gpxData ?? null,
       status: "draft",
       participantCount: 0,
       checkpointCount: 0,
@@ -507,19 +518,82 @@ export function useCreateCheckpoint() {
       name: data.name || `Checkpoint ${store.nextIds.checkpoint}`,
       orderIndex: data.orderIndex ?? 1,
       distanceFromStart: data.distanceFromStart ?? null,
+      isStartLine: Boolean(data.isStartLine),
       isFinishLine: Boolean(data.isFinishLine),
+      gpxFileName: data.gpxFileName ?? null,
+      gpxData: data.gpxData ?? null,
       assignedCrewId: data.assignedCrewId ?? null,
       createdAt: nowIso()
     };
     setStore((current) =>
       hydrate({
         ...current,
-        checkpoints: [...current.checkpoints, checkpoint].sort((a, b) => a.orderIndex - b.orderIndex),
+        checkpoints: [...current.checkpoints, checkpoint]
+          .map((entry) => {
+            if (entry.raceId !== raceId || entry.id === checkpoint.id) {
+              return entry;
+            }
+
+            if (checkpoint.isStartLine && entry.isStartLine) {
+              return { ...entry, isStartLine: false };
+            }
+
+            if (checkpoint.isFinishLine && entry.isFinishLine) {
+              return { ...entry, isFinishLine: false };
+            }
+
+            return entry;
+          })
+          .sort((a, b) => a.orderIndex - b.orderIndex),
         nextIds: { ...current.nextIds, checkpoint: current.nextIds.checkpoint + 1 }
       })
     );
     return checkpoint;
   });
+}
+
+export function useUpdateCheckpoint() {
+  return useMutation<{ eventId: number; raceId: number; checkpointId: number; data: Partial<Checkpoint> }, Checkpoint>(
+    ({ setStore, store }, { raceId, checkpointId, data }) => {
+      const checkpoint = store.checkpoints.find((entry) => entry.id === checkpointId && entry.raceId === raceId);
+      if (!checkpoint) throw new Error("Checkpoint not found");
+      const nextCheckpoint: Checkpoint = {
+        ...checkpoint,
+        ...data,
+        isStartLine: data.isStartLine ?? checkpoint.isStartLine,
+        isFinishLine: data.isFinishLine ?? checkpoint.isFinishLine
+      };
+
+      setStore((current) =>
+        hydrate({
+          ...current,
+          checkpoints: current.checkpoints
+            .map((entry) => {
+              if (entry.id === checkpointId) {
+                return nextCheckpoint;
+              }
+
+              if (entry.raceId !== raceId) {
+                return entry;
+              }
+
+              if (nextCheckpoint.isStartLine && entry.isStartLine) {
+                return { ...entry, isStartLine: false };
+              }
+
+              if (nextCheckpoint.isFinishLine && entry.isFinishLine) {
+                return { ...entry, isFinishLine: false };
+              }
+
+              return entry;
+            })
+            .sort((a, b) => a.orderIndex - b.orderIndex)
+        })
+      );
+
+      return nextCheckpoint;
+    }
+  );
 }
 
 export function useDeleteCheckpoint() {
@@ -618,14 +692,14 @@ export function useCreateScannerCrewMember() {
       assignedCheckpointId: data.assignedCheckpointId ?? null,
       createdAt: nowIso()
     };
-    setStore((current) => ({ ...current, crew: [...current.crew, member], nextIds: { ...current.nextIds, crew: current.nextIds.crew + 1 } }));
+    setStore((current) => hydrate({ ...current, crew: [...current.crew, member], nextIds: { ...current.nextIds, crew: current.nextIds.crew + 1 } }));
     return member;
   });
 }
 
 export function useDeleteScannerCrewMember() {
   return useMutation<{ eventId: number; scannerId: number }, void>(({ setStore }, { scannerId }) => {
-    setStore((current) => ({
+    setStore((current) => hydrate({
       ...current,
       crew: current.crew.filter((member) => member.id !== scannerId),
       checkpoints: current.checkpoints.map((checkpoint) => (checkpoint.assignedCrewId === scannerId ? { ...checkpoint, assignedCrewId: null } : checkpoint))

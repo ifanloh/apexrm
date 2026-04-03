@@ -2,14 +2,13 @@ import { useState } from "react";
 import { 
   useListScannerCrew, getListScannerCrewQueryKey,
   useCreateScannerCrewMember,
-  useDeleteScannerCrewMember,
-  useListRaces
+  useDeleteScannerCrewMember
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Trash2, Smartphone, ShieldCheck } from "lucide-react";

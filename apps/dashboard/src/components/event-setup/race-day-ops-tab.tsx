@@ -108,6 +108,7 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="font-semibold text-stone-200">{cp.name}</h4>
+                          {cp.isStartLine && <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px]">START</Badge>}
                           {cp.isFinishLine && <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px]">FINISH</Badge>}
                         </div>
                         <p className="text-xs text-stone-500 mt-1">Crew: {cp.assignedCrew || 'None'}</p>
