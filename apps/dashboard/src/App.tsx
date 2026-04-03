@@ -3780,9 +3780,17 @@ export default function App() {
     }
 
     window.setTimeout(() => {
-      document.getElementById(sectionId)?.scrollIntoView({
+      const target = document.getElementById(sectionId);
+
+      if (!target) {
+        return;
+      }
+
+      const top = target.getBoundingClientRect().top + window.scrollY - (showPlatformHome ? 18 : 12);
+
+      window.scrollTo({
         behavior: "smooth",
-        block: "start"
+        top: Math.max(0, top)
       });
     }, 80);
   }
@@ -4155,7 +4163,7 @@ export default function App() {
                     <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-home-events")} type="button">
                       Events
                     </button>
-                    <button className="platform-home-commandlink" onClick={() => jumpToSection("runtime-footer")} type="button">
+                    <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-home-contact")} type="button">
                       Contact
                     </button>
                   </div>
@@ -4295,6 +4303,44 @@ export default function App() {
                       <p>We could not find any published events that match your current search.</p>
                     </article>
                   )}
+                </section>
+
+                <section className="platform-home-section platform-home-contact-section" id="platform-home-contact">
+                  <div className="platform-home-section-head">
+                    <div>
+                      <span className="detail-label">Contact</span>
+                      <h3>Need help bringing your trail event live?</h3>
+                    </div>
+                    <p>Trailnesia helps organizers launch public event hubs, scanner crews, and race-day live tracking with one structured workflow.</p>
+                  </div>
+
+                  <article className="platform-home-contact-card">
+                    <div className="platform-home-contact-copy">
+                      <strong>Organizer onboarding and platform support</strong>
+                      <p>Use the organizer login if your account is ready, or contact the Trailnesia team for onboarding, publishing, and race-day setup assistance.</p>
+                    </div>
+                    <div className="platform-home-contact-actions">
+                      {organizerSessionActive ? (
+                        <button className="auth-trigger" onClick={openOrganizerHome} type="button">
+                          Open organizer
+                        </button>
+                      ) : (
+                        <button
+                          className="auth-trigger"
+                          onClick={() => {
+                            setLoginError(null);
+                            setIsLoginModalOpen(true);
+                          }}
+                          type="button"
+                        >
+                          Login
+                        </button>
+                      )}
+                      <button className="secondary-action" onClick={() => jumpToSection("platform-home")} type="button">
+                        Back to top
+                      </button>
+                    </div>
+                  </article>
                 </section>
               </>
             )}
