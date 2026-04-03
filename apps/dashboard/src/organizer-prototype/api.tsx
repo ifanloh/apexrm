@@ -1,0 +1,661 @@
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+
+export type EventStatus = "draft" | "upcoming" | "live" | "finished" | "archived";
+export type RaceStatus = "draft" | "upcoming" | "live" | "finished";
+export type ParticipantStatus = "registered" | "checked_in" | "finished" | "dnf";
+
+export interface User {
+  id: number;
+  username: string;
+  name: string;
+  role: string;
+}
+
+export interface Event {
+  id: number;
+  name: string;
+  location: string;
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  logoUrl?: string | null;
+  bannerUrl?: string | null;
+  status: EventStatus;
+  organizerId: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Race {
+  id: number;
+  eventId: number;
+  name: string;
+  distance?: number | null;
+  elevationGain?: number | null;
+  maxParticipants?: number | null;
+  cutoffTime?: string | null;
+  status: RaceStatus;
+  participantCount: number;
+  checkpointCount: number;
+  crewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Checkpoint {
+  id: number;
+  raceId: number;
+  name: string;
+  orderIndex: number;
+  distanceFromStart?: number | null;
+  isFinishLine: boolean;
+  assignedCrewId?: number | null;
+  createdAt: string;
+}
+
+export interface Participant {
+  id: number;
+  raceId: number;
+  bibNumber?: string | null;
+  fullName: string;
+  email: string;
+  phone?: string | null;
+  gender?: string | null;
+  ageCategory?: string | null;
+  emergencyContact?: string | null;
+  status: ParticipantStatus;
+  createdAt: string;
+}
+
+export interface ScannerCrewMember {
+  id: number;
+  eventId: number;
+  name: string;
+  username: string;
+  password?: string | null;
+  assignedCheckpointId?: number | null;
+  createdAt: string;
+}
+
+export interface ScanEvent {
+  id: number;
+  participantId: number;
+  participantName: string;
+  bibNumber?: string | null;
+  checkpointId: number;
+  checkpointName: string;
+  scannedAt: string;
+  isDuplicate: boolean;
+  raceId: number;
+}
+
+export interface ReadinessCheck {
+  label: string;
+  passed: boolean;
+  detail?: string | null;
+}
+
+export interface EventSummary {
+  eventId: number;
+  eventStatus: string;
+  totalRaces: number;
+  publishedRaces: number;
+  liveRaces: number;
+  totalParticipants: number;
+  totalScannerCrew: number;
+  readinessChecks: ReadinessCheck[];
+}
+
+export interface RaceDayStatus {
+  raceId: number;
+  raceName: string;
+  raceStatus: string;
+  startedAt?: string | null;
+  totalParticipants: number;
+  scannedIn: number;
+  finished: number;
+  dnf: number;
+  checkpoints: Array<{
+    checkpointId: number;
+    name: string;
+    orderIndex: number;
+    isFinishLine: boolean;
+    assignedCrew: string | null;
+    scanCount: number;
+    lastScanAt: string | null;
+  }>;
+}
+
+type Store = {
+  user: User;
+  events: Event[];
+  races: Race[];
+  checkpoints: Checkpoint[];
+  participants: Participant[];
+  crew: ScannerCrewMember[];
+  scans: ScanEvent[];
+  nextIds: Record<"event" | "race" | "checkpoint" | "participant" | "crew" | "scan", number>;
+};
+
+type PrototypeContextValue = {
+  store: Store;
+  setStore: React.Dispatch<React.SetStateAction<Store>>;
+  logout: () => void;
+};
+
+type QueryOptions = {
+  query?: {
+    enabled?: boolean;
+    retry?: boolean;
+    queryKey?: unknown[];
+    refetchInterval?: number;
+  };
+};
+
+type MutationCallbacks<TData> = {
+  onSuccess?: (data: TData) => void;
+  onError?: (error: Error) => void;
+};
+
+const STORAGE_KEY = "trailnesia:organizer-prototype:v1";
+const PrototypeContext = createContext<PrototypeContextValue | null>(null);
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function eventStatusFor(races: Race[], archived = false): EventStatus {
+  if (archived) return "archived";
+  if (races.some((race) => race.status === "live")) return "live";
+  if (races.some((race) => race.status === "upcoming")) return "upcoming";
+  if (races.length > 0 && races.every((race) => race.status === "finished")) return "finished";
+  return "draft";
+}
+
+function hydrate(store: Store): Store {
+  const races = store.races.map((race) => ({
+    ...race,
+    participantCount: store.participants.filter((participant) => participant.raceId === race.id).length,
+    checkpointCount: store.checkpoints.filter((checkpoint) => checkpoint.raceId === race.id).length,
+    crewCount: store.crew.filter((member) => member.eventId === race.eventId).length
+  }));
+  const events = store.events.map((event) => ({
+    ...event,
+    status: eventStatusFor(races.filter((race) => race.eventId === event.id), event.status === "archived")
+  }));
+  return { ...store, events, races };
+}
+
+function emptyStore(user: User): Store {
+  return hydrate({
+    user,
+    events: [],
+    races: [],
+    checkpoints: [],
+    participants: [],
+    crew: [],
+    scans: [],
+    nextIds: { event: 1, race: 1, checkpoint: 1, participant: 1, crew: 1, scan: 1 }
+  });
+}
+
+function loadStore(user: User) {
+  if (typeof window === "undefined") return emptyStore(user);
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return emptyStore(user);
+  try {
+    return hydrate({ ...(JSON.parse(raw) as Store), user });
+  } catch {
+    return emptyStore(user);
+  }
+}
+
+function saveStore(store: Store) {
+  if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+}
+
+function parseCsv(csvData: string) {
+  const lines = csvData.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const parseLine = (line: string) => line.split(",").map((value) => value.trim().replace(/^"|"$/g, ""));
+  return {
+    headers: lines[0] ? parseLine(lines[0]) : [],
+    rows: lines.slice(1).map(parseLine)
+  };
+}
+
+export function OrganizerPrototypeProvider({ children, user, onLogout }: { children: ReactNode; user: User; onLogout: () => void }) {
+  const [store, setStore] = useState<Store>(() => loadStore(user));
+  useEffect(() => saveStore(store), [store]);
+  const value = useMemo(() => ({ store, setStore, logout: onLogout }), [onLogout, store]);
+  return <PrototypeContext.Provider value={value}>{children}</PrototypeContext.Provider>;
+}
+
+function usePrototypeContext() {
+  const context = useContext(PrototypeContext);
+  if (!context) throw new Error("Organizer prototype context is missing.");
+  return context;
+}
+
+function useMutation<TVars, TData>(runner: (context: PrototypeContextValue, variables: TVars) => TData) {
+  const context = usePrototypeContext();
+  const [isPending, setIsPending] = useState(false);
+  return {
+    isPending,
+    mutate(variables: TVars, callbacks?: MutationCallbacks<TData>) {
+      setIsPending(true);
+      try {
+        const result = runner(context, variables);
+        callbacks?.onSuccess?.(result);
+      } catch (error) {
+        callbacks?.onError?.(error instanceof Error ? error : new Error("Prototype mutation failed"));
+      } finally {
+        setIsPending(false);
+      }
+    }
+  };
+}
+
+export const getListEventsQueryKey = () => ["prototype-events"];
+export const getGetEventQueryKey = (eventId: number) => ["prototype-event", eventId];
+export const getListRacesQueryKey = (eventId: number) => ["prototype-races", eventId];
+export const getListCheckpointsQueryKey = (eventId: number, raceId: number) => ["prototype-checkpoints", eventId, raceId];
+export const getListParticipantsQueryKey = (eventId: number, raceId: number) => ["prototype-participants", eventId, raceId];
+export const getListScannerCrewQueryKey = (eventId: number) => ["prototype-crew", eventId];
+export const getGetEventSummaryQueryKey = (eventId: number) => ["prototype-summary", eventId];
+export const getGetRaceDayStatusQueryKey = (eventId: number, raceId: number) => ["prototype-race-day-status", eventId, raceId];
+export const getListScansQueryKey = (eventId: number, raceId: number) => ["prototype-scans", eventId, raceId];
+
+export function useListEvents() {
+  const { store } = usePrototypeContext();
+  return { data: store.events, isLoading: false };
+}
+
+export function useGetEvent(eventId: number, options?: QueryOptions) {
+  const { store } = usePrototypeContext();
+  return { data: options?.query?.enabled === false ? undefined : store.events.find((event) => event.id === eventId) ?? null, isLoading: false, error: null };
+}
+
+export function useListRaces(eventId: number, options?: QueryOptions) {
+  const { store } = usePrototypeContext();
+  return { data: options?.query?.enabled === false ? undefined : store.races.filter((race) => race.eventId === eventId), isLoading: false };
+}
+
+export function useListCheckpoints(eventId: number, raceId: number, options?: QueryOptions) {
+  const { store } = usePrototypeContext();
+  const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
+  return { data: exists && options?.query?.enabled !== false ? store.checkpoints.filter((checkpoint) => checkpoint.raceId === raceId) : [], isLoading: false };
+}
+
+export function useListParticipants(eventId: number, raceId: number, options?: QueryOptions) {
+  const { store } = usePrototypeContext();
+  const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
+  return { data: exists && options?.query?.enabled !== false ? store.participants.filter((participant) => participant.raceId === raceId) : [], isLoading: false };
+}
+
+export function useListScannerCrew(eventId: number, options?: QueryOptions) {
+  const { store } = usePrototypeContext();
+  return { data: options?.query?.enabled === false ? undefined : store.crew.filter((member) => member.eventId === eventId), isLoading: false };
+}
+
+export function useGetEventSummary(eventId: number, options?: QueryOptions) {
+  const { store } = usePrototypeContext();
+  if (options?.query?.enabled === false) return { data: undefined, isLoading: false };
+  const event = store.events.find((entry) => entry.id === eventId);
+  const races = store.races.filter((entry) => entry.eventId === eventId);
+  const readinessChecks: ReadinessCheck[] = [
+    { label: "Event basics configured", passed: Boolean(event?.name.trim()) && Boolean(event?.location.trim()), detail: "Set the event name and location." },
+    { label: "At least one race category exists", passed: races.length > 0, detail: "Create the first race category." },
+    { label: "Checkpoints route is defined", passed: store.checkpoints.some((checkpoint) => races.some((race) => race.id === checkpoint.raceId)), detail: "Add at least one checkpoint." },
+    { label: "Participants are loaded", passed: store.participants.some((participant) => races.some((race) => race.id === participant.raceId)), detail: "Import or add participants." },
+    { label: "Scanner crew accounts are ready", passed: store.crew.some((member) => member.eventId === eventId), detail: "Create at least one crew account." }
+  ];
+  return {
+    data: event
+      ? {
+          eventId,
+          eventStatus: event.status,
+          totalRaces: races.length,
+          publishedRaces: races.filter((race) => race.status !== "draft").length,
+          liveRaces: races.filter((race) => race.status === "live").length,
+          totalParticipants: store.participants.filter((participant) => races.some((race) => race.id === participant.raceId)).length,
+          totalScannerCrew: store.crew.filter((member) => member.eventId === eventId).length,
+          readinessChecks
+        }
+      : null,
+    isLoading: false
+  };
+}
+
+export function useGetRaceDayStatus(eventId: number, raceId: number, options?: QueryOptions) {
+  const { store } = usePrototypeContext();
+  if (options?.query?.enabled === false) return { data: undefined, isLoading: false };
+  const race = store.races.find((entry) => entry.id === raceId && entry.eventId === eventId);
+  if (!race) return { data: null, isLoading: false };
+  const checkpoints = store.checkpoints.filter((checkpoint) => checkpoint.raceId === raceId).sort((a, b) => a.orderIndex - b.orderIndex);
+  const participants = store.participants.filter((participant) => participant.raceId === raceId);
+  const scans = store.scans.filter((scan) => scan.raceId === raceId);
+  return {
+    data: {
+      raceId,
+      raceName: race.name,
+      raceStatus: race.status,
+      startedAt: race.status === "live" ? race.updatedAt : null,
+      totalParticipants: participants.length,
+      scannedIn: new Set(scans.map((scan) => scan.participantId)).size,
+      finished: participants.filter((participant) => participant.status === "finished").length,
+      dnf: participants.filter((participant) => participant.status === "dnf").length,
+      checkpoints: checkpoints.map((checkpoint) => ({
+        checkpointId: checkpoint.id,
+        name: checkpoint.name,
+        orderIndex: checkpoint.orderIndex,
+        isFinishLine: checkpoint.isFinishLine,
+        assignedCrew: store.crew.find((member) => member.id === checkpoint.assignedCrewId)?.name ?? null,
+        scanCount: scans.filter((scan) => scan.checkpointId === checkpoint.id).length,
+        lastScanAt: scans.filter((scan) => scan.checkpointId === checkpoint.id).sort((a, b) => b.scannedAt.localeCompare(a.scannedAt))[0]?.scannedAt ?? null
+      }))
+    } satisfies RaceDayStatus,
+    isLoading: false
+  };
+}
+
+export function useListScans(eventId: number, raceId: number, options?: QueryOptions) {
+  const { store } = usePrototypeContext();
+  const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
+  return {
+    data: exists && options?.query?.enabled !== false ? store.scans.filter((scan) => scan.raceId === raceId).sort((a, b) => b.scannedAt.localeCompare(a.scannedAt)) : [],
+    isLoading: false
+  };
+}
+
+export function useCreateEvent() {
+  return useMutation<{ data: { name: string; location: string; startDate?: string; endDate?: string; description?: string; logoUrl?: string; bannerUrl?: string; firstRaceName: string; firstRaceDistance: number; firstRaceElevationGain: number; firstRaceMaxParticipants: number } }, Event>(
+    ({ setStore, store }, { data }) => {
+      const timestamp = nowIso();
+      const event: Event = {
+        id: store.nextIds.event,
+        name: data.name,
+        location: data.location,
+        description: data.description || null,
+        startDate: data.startDate || null,
+        endDate: data.endDate || null,
+        logoUrl: data.logoUrl || null,
+        bannerUrl: data.bannerUrl || null,
+        status: "draft",
+        organizerId: store.user.id,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      const race: Race = {
+        id: store.nextIds.race,
+        eventId: event.id,
+        name: data.firstRaceName,
+        distance: data.firstRaceDistance,
+        elevationGain: data.firstRaceElevationGain,
+        maxParticipants: data.firstRaceMaxParticipants,
+        cutoffTime: null,
+        status: "draft",
+        participantCount: 0,
+        checkpointCount: 0,
+        crewCount: 0,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      setStore((current) =>
+        hydrate({
+          ...current,
+          events: [...current.events, event],
+          races: [...current.races, race],
+          nextIds: { ...current.nextIds, event: current.nextIds.event + 1, race: current.nextIds.race + 1 }
+        })
+      );
+      return event;
+    }
+  );
+}
+
+export function useUpdateEvent() {
+  return useMutation<{ eventId: number; data: Partial<Event> }, Event>(({ setStore, store }, { eventId, data }) => {
+    const event = store.events.find((entry) => entry.id === eventId);
+    if (!event) throw new Error("Event not found");
+    const nextEvent = { ...event, ...data, updatedAt: nowIso() };
+    setStore((current) => hydrate({ ...current, events: current.events.map((entry) => (entry.id === eventId ? nextEvent : entry)) }));
+    return nextEvent;
+  });
+}
+
+export function useDeleteEvent() {
+  return useMutation<{ eventId: number }, void>(({ setStore }, { eventId }) => {
+    setStore((current) => hydrate({ ...current, events: current.events.map((event) => (event.id === eventId ? { ...event, status: "archived", updatedAt: nowIso() } : event)) }));
+  });
+}
+
+export function useDuplicateEvent() {
+  return useMutation<{ eventId: number }, Event>(({ setStore, store }, { eventId }) => {
+    const source = store.events.find((event) => event.id === eventId);
+    if (!source) throw new Error("Event not found");
+    const timestamp = nowIso();
+    const duplicate: Event = { ...source, id: store.nextIds.event, name: `${source.name} Copy`, status: "draft", createdAt: timestamp, updatedAt: timestamp };
+    const sourceRaces = store.races.filter((race) => race.eventId === eventId);
+    let nextRaceId = store.nextIds.race;
+    let nextCheckpointId = store.nextIds.checkpoint;
+    const races = sourceRaces.map((race) => ({ ...race, id: nextRaceId++, eventId: duplicate.id, status: "draft" as RaceStatus, participantCount: 0, crewCount: 0, createdAt: timestamp, updatedAt: timestamp }));
+    const checkpoints = sourceRaces.flatMap((race, index) => store.checkpoints.filter((checkpoint) => checkpoint.raceId === race.id).map((checkpoint) => ({ ...checkpoint, id: nextCheckpointId++, raceId: races[index].id, assignedCrewId: null, createdAt: timestamp })));
+    setStore((current) =>
+      hydrate({
+        ...current,
+        events: [...current.events, duplicate],
+        races: [...current.races, ...races],
+        checkpoints: [...current.checkpoints, ...checkpoints],
+        nextIds: { ...current.nextIds, event: current.nextIds.event + 1, race: nextRaceId, checkpoint: nextCheckpointId }
+      })
+    );
+    return duplicate;
+  });
+}
+
+export function useCreateRace() {
+  return useMutation<{ eventId: number; data: Partial<Race> }, Race>(({ setStore, store }, { eventId, data }) => {
+    const race: Race = {
+      id: store.nextIds.race,
+      eventId,
+      name: data.name || `Race ${store.nextIds.race}`,
+      distance: data.distance ?? null,
+      elevationGain: data.elevationGain ?? null,
+      maxParticipants: data.maxParticipants ?? null,
+      cutoffTime: data.cutoffTime ?? null,
+      status: "draft",
+      participantCount: 0,
+      checkpointCount: 0,
+      crewCount: 0,
+      createdAt: nowIso(),
+      updatedAt: nowIso()
+    };
+    setStore((current) => hydrate({ ...current, races: [...current.races, race], nextIds: { ...current.nextIds, race: current.nextIds.race + 1 } }));
+    return race;
+  });
+}
+
+export function useUpdateRace() {
+  return useMutation<{ eventId: number; raceId: number; data: Partial<Race> }, Race>(({ setStore, store }, { raceId, data }) => {
+    const race = store.races.find((entry) => entry.id === raceId);
+    if (!race) throw new Error("Race not found");
+    const nextRace = { ...race, ...data, updatedAt: nowIso() };
+    setStore((current) => hydrate({ ...current, races: current.races.map((entry) => (entry.id === raceId ? nextRace : entry)) }));
+    return nextRace;
+  });
+}
+
+export function useDeleteRace() {
+  return useMutation<{ eventId: number; raceId: number }, void>(({ setStore }, { raceId }) => {
+    setStore((current) =>
+      hydrate({
+        ...current,
+        races: current.races.filter((race) => race.id !== raceId),
+        checkpoints: current.checkpoints.filter((checkpoint) => checkpoint.raceId !== raceId),
+        participants: current.participants.filter((participant) => participant.raceId !== raceId),
+        scans: current.scans.filter((scan) => scan.raceId !== raceId)
+      })
+    );
+  });
+}
+
+export function useCreateCheckpoint() {
+  return useMutation<{ eventId: number; raceId: number; data: Partial<Checkpoint> }, Checkpoint>(({ setStore, store }, { raceId, data }) => {
+    const checkpoint: Checkpoint = {
+      id: store.nextIds.checkpoint,
+      raceId,
+      name: data.name || `Checkpoint ${store.nextIds.checkpoint}`,
+      orderIndex: data.orderIndex ?? 1,
+      distanceFromStart: data.distanceFromStart ?? null,
+      isFinishLine: Boolean(data.isFinishLine),
+      assignedCrewId: data.assignedCrewId ?? null,
+      createdAt: nowIso()
+    };
+    setStore((current) =>
+      hydrate({
+        ...current,
+        checkpoints: [...current.checkpoints, checkpoint].sort((a, b) => a.orderIndex - b.orderIndex),
+        nextIds: { ...current.nextIds, checkpoint: current.nextIds.checkpoint + 1 }
+      })
+    );
+    return checkpoint;
+  });
+}
+
+export function useDeleteCheckpoint() {
+  return useMutation<{ eventId: number; raceId: number; checkpointId: number }, void>(({ setStore }, { checkpointId }) => {
+    setStore((current) =>
+      hydrate({
+        ...current,
+        checkpoints: current.checkpoints.filter((checkpoint) => checkpoint.id !== checkpointId),
+        crew: current.crew.map((member) => (member.assignedCheckpointId === checkpointId ? { ...member, assignedCheckpointId: null } : member)),
+        scans: current.scans.filter((scan) => scan.checkpointId !== checkpointId)
+      })
+    );
+  });
+}
+
+export function useCreateParticipant() {
+  return useMutation<{ eventId: number; raceId: number; data: Partial<Participant> }, Participant>(({ setStore, store }, { raceId, data }) => {
+    const participant: Participant = {
+      id: store.nextIds.participant,
+      raceId,
+      bibNumber: data.bibNumber || null,
+      fullName: data.fullName || "Unnamed runner",
+      email: data.email || "runner@trailnesia.local",
+      phone: data.phone || null,
+      gender: data.gender || null,
+      ageCategory: data.ageCategory || null,
+      emergencyContact: data.emergencyContact || null,
+      status: "registered",
+      createdAt: nowIso()
+    };
+    setStore((current) => hydrate({ ...current, participants: [...current.participants, participant], nextIds: { ...current.nextIds, participant: current.nextIds.participant + 1 } }));
+    return participant;
+  });
+}
+
+export function useDeleteParticipant() {
+  return useMutation<{ eventId: number; raceId: number; participantId: number }, void>(({ setStore }, { participantId }) => {
+    setStore((current) => hydrate({ ...current, participants: current.participants.filter((participant) => participant.id !== participantId), scans: current.scans.filter((scan) => scan.participantId !== participantId) }));
+  });
+}
+
+export function useImportParticipants() {
+  return useMutation<{ eventId: number; raceId: number; data: { csvData: string; preview: boolean } }, { imported: number; skipped: number; errors: string[] }>(
+    ({ setStore, store }, { raceId, data }) => {
+      const { headers, rows } = parseCsv(data.csvData);
+      const errors: string[] = [];
+      let imported = 0;
+      let skipped = 0;
+      let nextParticipantId = store.nextIds.participant;
+      const importedParticipants: Participant[] = [];
+      rows.forEach((row, index) => {
+        const fullName = row[headers.indexOf("fullName")] ?? "";
+        const email = row[headers.indexOf("email")] ?? "";
+        if (!fullName || !email) {
+          skipped += 1;
+          errors.push(`Row ${index + 2}: fullName and email are required.`);
+          return;
+        }
+        imported += 1;
+        importedParticipants.push({
+          id: nextParticipantId++,
+          raceId,
+          bibNumber: row[headers.indexOf("bibNumber")] ?? null,
+          fullName,
+          email,
+          phone: row[headers.indexOf("phone")] ?? null,
+          gender: row[headers.indexOf("gender")] ?? null,
+          ageCategory: row[headers.indexOf("ageCategory")] ?? null,
+          emergencyContact: null,
+          status: "registered",
+          createdAt: nowIso()
+        });
+      });
+      if (!data.preview) {
+        setStore((current) =>
+          hydrate({
+            ...current,
+            participants: [...current.participants.filter((participant) => participant.raceId !== raceId), ...importedParticipants],
+            nextIds: { ...current.nextIds, participant: nextParticipantId }
+          })
+        );
+      }
+      return { imported, skipped, errors };
+    }
+  );
+}
+
+export function useCreateScannerCrewMember() {
+  return useMutation<{ eventId: number; data: Partial<ScannerCrewMember> }, ScannerCrewMember>(({ setStore, store }, { eventId, data }) => {
+    const member: ScannerCrewMember = {
+      id: store.nextIds.crew,
+      eventId,
+      name: data.name || `Crew ${store.nextIds.crew}`,
+      username: data.username || `crew_${store.nextIds.crew}`,
+      password: data.password || null,
+      assignedCheckpointId: data.assignedCheckpointId ?? null,
+      createdAt: nowIso()
+    };
+    setStore((current) => ({ ...current, crew: [...current.crew, member], nextIds: { ...current.nextIds, crew: current.nextIds.crew + 1 } }));
+    return member;
+  });
+}
+
+export function useDeleteScannerCrewMember() {
+  return useMutation<{ eventId: number; scannerId: number }, void>(({ setStore }, { scannerId }) => {
+    setStore((current) => ({
+      ...current,
+      crew: current.crew.filter((member) => member.id !== scannerId),
+      checkpoints: current.checkpoints.map((checkpoint) => (checkpoint.assignedCrewId === scannerId ? { ...checkpoint, assignedCrewId: null } : checkpoint))
+    }));
+  });
+}
+
+export function usePublishRace() {
+  return useMutation<{ eventId: number; raceId: number }, Race>(({ setStore, store }, { raceId }) => {
+    const race = store.races.find((entry) => entry.id === raceId);
+    if (!race) throw new Error("Race not found");
+    const nextRace = { ...race, status: "upcoming" as RaceStatus, updatedAt: nowIso() };
+    setStore((current) => hydrate({ ...current, races: current.races.map((entry) => (entry.id === raceId ? nextRace : entry)) }));
+    return nextRace;
+  });
+}
+
+export function useGoLiveRace() {
+  return useMutation<{ eventId: number; raceId: number }, Race>(({ setStore, store }, { raceId }) => {
+    const race = store.races.find((entry) => entry.id === raceId);
+    if (!race) throw new Error("Race not found");
+    const nextRace = { ...race, status: "live" as RaceStatus, updatedAt: nowIso() };
+    setStore((current) => hydrate({ ...current, races: current.races.map((entry) => (entry.id === raceId ? nextRace : entry)) }));
+    return nextRace;
+  });
+}
+
+export function useLogout() {
+  const { logout } = usePrototypeContext();
+  return useMutation<void, void>(() => {
+    logout();
+  });
+}
