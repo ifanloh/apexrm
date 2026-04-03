@@ -1322,7 +1322,8 @@ export default function App() {
   const normalizedRunnerQuery = runnerQuery.trim().toUpperCase();
   const isOrganizerHomeOpen = organizerSessionActive && organizerWorkspaceView === "home";
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
-  const activeFestivalSetup = isOrganizerHomeOpen || isOrganizerConsoleOpen ? organizerSetup : spectatorSetup;
+  const isOrganizerWorkspaceOpen = isOrganizerHomeOpen || isOrganizerConsoleOpen;
+  const activeFestivalSetup = isOrganizerWorkspaceOpen ? organizerSetup : spectatorSetup;
   const festivalData = useMemo(() => {
     const races = activeFestivalSetup.races.map((raceDraft) => ({ ...raceDraft }) as DemoRaceCard);
 
@@ -1369,11 +1370,10 @@ export default function App() {
 
     return buildOrganizerCourseFromRaceDraft(selectedOrganizerRace);
   }, [selectedOrganizerRace, selectedRaceCard]);
-  const showPlatformHome = !isOrganizerHomeOpen && !isOrganizerConsoleOpen && !spectatorEvent;
+  const showPlatformHome = !isOrganizerWorkspaceOpen && !spectatorEvent;
   const showEditionHome = !showPlatformHome && isEditionHome && raceDetailView === "race-page";
-  const showSidebarRail = !isEditionHome && !isOrganizerConsoleOpen && !isOrganizerHomeOpen && raceDetailView === "race-page" && !isActiveRaceUpcoming;
-  const raceMenuLabel =
-    !isEditionHome && !isOrganizerHomeOpen && !isOrganizerConsoleOpen ? selectedRaceCard.title : "Home";
+  const showSidebarRail = !isEditionHome && !isOrganizerWorkspaceOpen && raceDetailView === "race-page" && !isActiveRaceUpcoming;
+  const raceMenuLabel = !isEditionHome && !isOrganizerWorkspaceOpen ? selectedRaceCard.title : "Home";
   const organizerSelectedRace =
     organizerSetup.races.find((race) => race.slug === organizerSetupRaceSlug) ?? organizerSetup.races[0] ?? null;
   const organizerCheckpointDraft = organizerSelectedRace ? getOrganizerCheckpointsForRace(organizerSelectedRace) : [];
@@ -4052,9 +4052,9 @@ export default function App() {
 
   return (
     <main
-      className={`dashboard-shell dashboard-hub-shell live-trail-shell ${showPlatformHome ? "platform-home-mode" : isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
+      className={`dashboard-shell dashboard-hub-shell live-trail-shell ${showPlatformHome ? "platform-home-mode" : isOrganizerWorkspaceOpen ? "organizer-page-mode" : isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
     >
-      {!showPlatformHome ? (
+      {!showPlatformHome && !isOrganizerWorkspaceOpen ? (
       <header className="topbar topbar-hub live-topbar">
         <div className="topbar-left-cluster">
           <div className="topbar-race-lockup">
@@ -4177,7 +4177,7 @@ export default function App() {
       </header>
       ) : null}
 
-      {!showPlatformHome && showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
+      {!showPlatformHome && !isOrganizerWorkspaceOpen && showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
 
       {showEditionHome ? (
         <div className="live-shell-banner">
@@ -4196,10 +4196,10 @@ export default function App() {
 
       <div
         className={`live-shell-body ${showPlatformHome ? "platform-home-body" : showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"} ${
-          showEditionHome ? "edition-home-body" : "race-detail-body"
+          showEditionHome ? "edition-home-body" : isOrganizerWorkspaceOpen ? "organizer-page-body" : "race-detail-body"
         }`}
       >
-        {!showPlatformHome ? (
+        {!showPlatformHome && !isOrganizerWorkspaceOpen ? (
         <aside className="dashboard-sidebar live-sidebar">
           <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
             <button className="live-sidebar-logo" onClick={focusHome} type="button" aria-label="Back to edition home">
@@ -4274,7 +4274,7 @@ export default function App() {
       </aside>
         ) : null}
 
-      <div className={`dashboard-main dashboard-main-scroll live-main ${showPlatformHome ? "platform-home-main" : ""}`}>
+      <div className={`dashboard-main dashboard-main-scroll live-main ${showPlatformHome ? "platform-home-main" : isOrganizerWorkspaceOpen ? "organizer-page-main" : ""}`}>
         {showPlatformHome ? (
           <section className="platform-home-shell" id="platform-home">
             <div className="platform-home-hero-shell">
@@ -4488,148 +4488,176 @@ export default function App() {
               </>
             )}
           </section>
-        ) : isOrganizerHomeOpen ? (
-          <section className="panel organizer-home-shell">
-            <div className="organizer-home-hero">
-              <div className="organizer-home-copy">
-                <span className="detail-label">Organizer dashboard</span>
-                <h2>Organizer Home</h2>
-                <p>
-                  Kelola draft, lihat event yang perlu perhatian, lalu lanjutkan setup dengan alur yang lebih tenang dari publish `Upcoming` sampai `Live`.
-                </p>
-                <div className="organizer-home-actions">
-                  <button className="toolbar-link organizer-primary-action organizer-home-primary" onClick={handleCreateOrganizerFirstEvent} type="button">
-                    {organizerHasEvents ? "Create new event" : "Create your first event"}
-                  </button>
-                  {organizerActiveEvent ? (
-                    <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(organizerActiveEvent.id)} type="button">
-                      Open active event
-                    </button>
-                  ) : null}
-                  <button className="toolbar-link organizer-secondary-action" onClick={openActiveSpectatorPreview} type="button">
-                    Open spectator preview
-                  </button>
+        ) : isOrganizerWorkspaceOpen ? (
+          <section className="organizer-app-shell">
+            <header className="organizer-app-bar">
+              <div className="organizer-app-brand">
+                <span className="organizer-app-brand-mark">
+                  <img alt="Trailnesia" src={trailnesiaLogo} />
+                </span>
+                <div>
+                  <span className="detail-label">Organizer dashboard</span>
+                  <strong>Trailnesia Organizer</strong>
                 </div>
               </div>
+              <div className="organizer-app-actions">
+                {organizerActiveEvent ? (
+                  <span className="organizer-app-context">
+                    {organizerActiveEvent.title}
+                  </span>
+                ) : null}
+                <button className="toolbar-link organizer-secondary-action" onClick={openActiveSpectatorPreview} type="button">
+                  Spectator view
+                </button>
+                <button className="toolbar-link organizer-secondary-action" onClick={handleLogout} type="button">
+                  Logout
+                </button>
+              </div>
+            </header>
 
-              <aside className="organizer-home-command">
-                <span className="organizer-flow-pill secondary">{organizerDraftStatusLabel}</span>
-                <p className="organizer-home-note">All setup changes stay private until you publish a race category.</p>
-                <div className="organizer-home-flow">
-                  <span className="organizer-flow-pill">1. Create draft</span>
-                  <span className="organizer-flow-pill">2. Finish course</span>
-                  <span className="organizer-flow-pill">3. Import participants</span>
-                  <span className="organizer-flow-pill">4. Set scanner crew</span>
-                  <span className="organizer-flow-pill">5. Publish Upcoming</span>
-                  <span className="organizer-flow-pill">6. Unlock Live</span>
-                </div>
-              </aside>
-            </div>
-
-            {organizerHasEvents ? (
-              <>
-                <div className="organizer-home-grid organizer-home-summary-grid">
-                <article className="organizer-home-card">
-                  <span className="detail-label">Events</span>
-                  <strong>{organizerEventCount}</strong>
-                  <p>{organizerVisibleEvents.length === 1 ? "1 active organizer event." : `${organizerVisibleEvents.length} active organizer events.`}</p>
-                </article>
-                <article className="organizer-home-card">
-                  <span className="detail-label">Race categories</span>
-                  <strong>{organizerPublishedCount + organizerDraftCount}</strong>
-                  <p>{organizerPublishedCount} published and {organizerDraftCount} draft across all events.</p>
-                </article>
-                <article className="organizer-home-card">
-                  <span className="detail-label">Current workspace</span>
-                  <h3>{organizerActiveEvent?.title ?? "No active event"}</h3>
-                  <p>{organizerActivePublishedCount} published and {organizerActiveDraftCount} draft in the current workspace.</p>
-                  <span className={`organizer-status-pill ${organizerActiveEventPhase}`}>{organizerActiveEventPhaseLabel}</span>
-                </article>
-                </div>
-                <section className="organizer-home-events-shell">
-                  <div className="organizer-home-events-head">
-                    <div>
-                      <span className="detail-label">Your events</span>
-                      <h3>Open the next event that needs attention</h3>
-                      <p>Drafts stay private, published categories appear online, and live events float to the top naturally.</p>
+            <div className="organizer-app-content">
+              {isOrganizerHomeOpen ? (
+                <section className="organizer-home-shell">
+                  <div className="organizer-home-hero">
+                    <div className="organizer-home-copy">
+                      <span className="detail-label">Organizer dashboard</span>
+                      <h2>Organizer Home</h2>
+                      <p>
+                        Kelola draft, lihat event yang perlu perhatian, lalu lanjutkan setup dengan alur yang lebih tenang dari publish `Upcoming` sampai `Live`.
+                      </p>
+                      <div className="organizer-home-actions">
+                        <button className="toolbar-link organizer-primary-action organizer-home-primary" onClick={handleCreateOrganizerFirstEvent} type="button">
+                          {organizerHasEvents ? "Create new event" : "Create your first event"}
+                        </button>
+                        {organizerActiveEvent ? (
+                          <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(organizerActiveEvent.id)} type="button">
+                            Open active event
+                          </button>
+                        ) : null}
+                        <button className="toolbar-link organizer-secondary-action" onClick={openActiveSpectatorPreview} type="button">
+                          Open spectator preview
+                        </button>
+                      </div>
                     </div>
-                  <div className="organizer-home-actions organizer-home-filters">
-                    <button
-                      className={`organizer-flow-pill ${organizerHomeFilter === "active" ? "" : "secondary"}`}
-                      onClick={() => setOrganizerHomeFilter("active")}
-                      type="button"
-                    >
-                      Active
-                    </button>
-                    <button
-                      className={`organizer-flow-pill ${organizerHomeFilter === "all" ? "" : "secondary"}`}
-                      onClick={() => setOrganizerHomeFilter("all")}
-                      type="button"
-                    >
-                      All
-                    </button>
-                    <button
-                      className={`organizer-flow-pill ${organizerHomeFilter === "archived" ? "" : "secondary"}`}
-                      onClick={() => setOrganizerHomeFilter("archived")}
-                      type="button"
-                    >
-                      Archived
-                    </button>
-                  </div>
-                  </div>
-                  <div className="organizer-event-card-grid">
-                    {organizerHomeEvents.map((event) => {
-                      const publishedCount = event.setup.races.filter((race) => race.isPublished).length;
-                      const draftCount = event.setup.races.length - publishedCount;
-                      const isActive = organizerActiveEvent?.id === event.id;
-                      const phase = deriveOrganizerEventPhase(event);
-                      const phaseLabel = phase === "live" ? "Live" : phase === "ready" ? "Ready" : "Draft";
-                      const publicStatus = deriveOrganizerPublicEventStatus(event);
-                      const publicStatusLabel =
-                        publicStatus === "live"
-                          ? "Public Live"
-                          : publicStatus === "upcoming"
-                            ? "Public Upcoming"
-                            : publicStatus === "finished"
-                              ? "Public Finished"
-                              : "Private";
-                      const isArchived = Boolean(event.archivedAt);
-                      const nextActionLabel = isArchived
-                        ? "Restore this archived event if you want to reuse it."
-                        : publishedCount === 0
-                          ? "Finish setup and publish your first race category."
-                          : publicStatus === "live"
-                            ? "Monitor Race Day Ops and official standings."
-                            : publicStatus === "upcoming"
-                              ? "Clear the remaining live blockers before race day."
-                              : "Review the finished edition or duplicate it for the next year.";
 
-                      return (
-                        <article className={`organizer-event-card ${isActive ? "active" : ""} ${isArchived ? "archived" : ""}`} key={event.id}>
-                          <div
-                            className="organizer-event-main organizer-event-card-media"
-                            style={
-                              event.setup.branding.heroBackgroundImageDataUrl
-                                ? { backgroundImage: `linear-gradient(180deg, rgba(14, 30, 22, 0.14), rgba(14, 30, 22, 0.38)), url(${event.setup.branding.heroBackgroundImageDataUrl})` }
-                                : undefined
-                            }
-                          >
-                            <div className="organizer-event-card-head">
-                              <span className="detail-label">{isArchived ? "Archived event" : isActive ? "Current workspace" : "Organizer event"}</span>
-                              <strong>{event.title}</strong>
-                              <p>{event.setup.branding.locationRibbon} / {event.setup.branding.dateRibbon}</p>
-                            </div>
-                            <div className="organizer-event-badges">
-                              <span className={`organizer-status-pill ${isArchived ? "draft" : phase}`}>{isArchived ? "Archived" : phaseLabel}</span>
-                              {!isArchived && publicStatus !== "hidden" ? (
-                                <span className={`organizer-status-pill ${publicStatus}`}>{publicStatusLabel}</span>
-                              ) : null}
-                              {!isArchived ? (
-                                <span className={`ranking-chip ${isActive ? "chip-finish" : "chip-live"}`}>{isActive ? "Active" : "Workspace"}</span>
-                              ) : null}
-                            </div>
+                    <aside className="organizer-home-command">
+                      <span className="organizer-flow-pill secondary">{organizerDraftStatusLabel}</span>
+                      <p className="organizer-home-note">All setup changes stay private until you publish a race category.</p>
+                      <div className="organizer-home-flow">
+                        <span className="organizer-flow-pill">1. Create draft</span>
+                        <span className="organizer-flow-pill">2. Finish course</span>
+                        <span className="organizer-flow-pill">3. Import participants</span>
+                        <span className="organizer-flow-pill">4. Set scanner crew</span>
+                        <span className="organizer-flow-pill">5. Publish Upcoming</span>
+                        <span className="organizer-flow-pill">6. Unlock Live</span>
+                      </div>
+                    </aside>
+                  </div>
+
+                  {organizerHasEvents ? (
+                    <>
+                      <div className="organizer-home-grid organizer-home-summary-grid">
+                        <article className="organizer-home-card">
+                          <span className="detail-label">Events</span>
+                          <strong>{organizerEventCount}</strong>
+                          <p>{organizerVisibleEvents.length === 1 ? "1 active organizer event." : `${organizerVisibleEvents.length} active organizer events.`}</p>
+                        </article>
+                        <article className="organizer-home-card">
+                          <span className="detail-label">Race categories</span>
+                          <strong>{organizerPublishedCount + organizerDraftCount}</strong>
+                          <p>{organizerPublishedCount} published and {organizerDraftCount} draft across all events.</p>
+                        </article>
+                        <article className="organizer-home-card">
+                          <span className="detail-label">Current workspace</span>
+                          <h3>{organizerActiveEvent?.title ?? "No active event"}</h3>
+                          <p>{organizerActivePublishedCount} published and {organizerActiveDraftCount} draft in the current workspace.</p>
+                          <span className={`organizer-status-pill ${organizerActiveEventPhase}`}>{organizerActiveEventPhaseLabel}</span>
+                        </article>
+                      </div>
+                      <section className="organizer-home-events-shell">
+                        <div className="organizer-home-events-head">
+                          <div>
+                            <span className="detail-label">Your events</span>
+                            <h3>Open the next event that needs attention</h3>
+                            <p>Drafts stay private, published categories appear online, and live events float to the top naturally.</p>
                           </div>
-                          <div className="organizer-event-card-body">
+                          <div className="organizer-home-actions organizer-home-filters">
+                            <button
+                              className={`organizer-flow-pill ${organizerHomeFilter === "active" ? "" : "secondary"}`}
+                              onClick={() => setOrganizerHomeFilter("active")}
+                              type="button"
+                            >
+                              Active
+                            </button>
+                            <button
+                              className={`organizer-flow-pill ${organizerHomeFilter === "all" ? "" : "secondary"}`}
+                              onClick={() => setOrganizerHomeFilter("all")}
+                              type="button"
+                            >
+                              All
+                            </button>
+                            <button
+                              className={`organizer-flow-pill ${organizerHomeFilter === "archived" ? "" : "secondary"}`}
+                              onClick={() => setOrganizerHomeFilter("archived")}
+                              type="button"
+                            >
+                              Archived
+                            </button>
+                          </div>
+                        </div>
+                        <div className="organizer-event-card-grid">
+                          {organizerHomeEvents.map((event) => {
+                            const publishedCount = event.setup.races.filter((race) => race.isPublished).length;
+                            const draftCount = event.setup.races.length - publishedCount;
+                            const isActive = organizerActiveEvent?.id === event.id;
+                            const phase = deriveOrganizerEventPhase(event);
+                            const phaseLabel = phase === "live" ? "Live" : phase === "ready" ? "Ready" : "Draft";
+                            const publicStatus = deriveOrganizerPublicEventStatus(event);
+                            const publicStatusLabel =
+                              publicStatus === "live"
+                                ? "Public Live"
+                                : publicStatus === "upcoming"
+                                  ? "Public Upcoming"
+                                  : publicStatus === "finished"
+                                    ? "Public Finished"
+                                    : "Private";
+                            const isArchived = Boolean(event.archivedAt);
+                            const nextActionLabel = isArchived
+                              ? "Restore this archived event if you want to reuse it."
+                              : publishedCount === 0
+                                ? "Finish setup and publish your first race category."
+                                : publicStatus === "live"
+                                  ? "Monitor Race Day Ops and official standings."
+                                  : publicStatus === "upcoming"
+                                    ? "Clear the remaining live blockers before race day."
+                                    : "Review the finished edition or duplicate it for the next year.";
+
+                            return (
+                              <article className={`organizer-event-card ${isActive ? "active" : ""} ${isArchived ? "archived" : ""}`} key={event.id}>
+                                <div
+                                  className="organizer-event-main organizer-event-card-media"
+                                  style={
+                                    event.setup.branding.heroBackgroundImageDataUrl
+                                      ? { backgroundImage: `linear-gradient(180deg, rgba(14, 30, 22, 0.14), rgba(14, 30, 22, 0.38)), url(${event.setup.branding.heroBackgroundImageDataUrl})` }
+                                      : undefined
+                                  }
+                                >
+                                  <div className="organizer-event-card-head">
+                                    <span className="detail-label">{isArchived ? "Archived event" : isActive ? "Current workspace" : "Organizer event"}</span>
+                                    <strong>{event.title}</strong>
+                                    <p>{event.setup.branding.locationRibbon} / {event.setup.branding.dateRibbon}</p>
+                                  </div>
+                                  <div className="organizer-event-badges">
+                                    <span className={`organizer-status-pill ${isArchived ? "draft" : phase}`}>{isArchived ? "Archived" : phaseLabel}</span>
+                                    {!isArchived && publicStatus !== "hidden" ? (
+                                      <span className={`organizer-status-pill ${publicStatus}`}>{publicStatusLabel}</span>
+                                    ) : null}
+                                    {!isArchived ? (
+                                      <span className={`ranking-chip ${isActive ? "chip-finish" : "chip-live"}`}>{isActive ? "Active" : "Workspace"}</span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                                <div className="organizer-event-card-body">
                             <div className="organizer-event-card-meta">
                               <span>{event.setup.races.length} categories</span>
                               <span>{publishedCount} published</span>
@@ -4930,10 +4958,10 @@ export default function App() {
               </>
             )}
           </section>
-        ) : isOrganizerConsoleOpen ? (
+        ) : (
           <Suspense
             fallback={
-              <section className="panel organizer-console-loading" aria-busy="true">
+              <section className="organizer-console-loading" aria-busy="true">
                 <span className="detail-label">Organizer console</span>
                 <h2>Loading organizer workspace...</h2>
                 <p>Preparing branding, race setup, participants, and race-day tools.</p>
@@ -4990,6 +5018,9 @@ export default function App() {
               selectedRaceSlug={organizerSetupRaceSlug}
             />
           </Suspense>
+        )}
+            </div>
+          </section>
         ) : showEditionHome ? (
           <>
             <RaceEditionHome
