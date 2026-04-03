@@ -4617,14 +4617,6 @@ export default function App() {
                             <div className="organizer-event-card-head">
                               <span className="detail-label">{isArchived ? "Archived event" : isActive ? "Current workspace" : "Organizer event"}</span>
                               <strong>{event.title}</strong>
-                              {/*
-                              <p>{event.setup.branding.locationRibbon} · {event.setup.branding.dateRibbon}</p>
-                              {/*
-                              <p>{event.setup.branding.locationRibbon} · {event.setup.branding.dateRibbon}</p>
-                                {event.setup.races.length} categories · {publishedCount} published · {draftCount} draft
-                              */}{/*
-                              <p>{event.setup.branding.locationRibbon}{" · "}{event.setup.branding.dateRibbon}</p>
-                              */}
                               <p>{event.setup.branding.locationRibbon} / {event.setup.branding.dateRibbon}</p>
                             </div>
                             <div className="organizer-event-badges">
