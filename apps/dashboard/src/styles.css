@@ -6818,6 +6818,11 @@ body {
   justify-content: flex-end;
 }
 
+.organizer-race-step-note,
+.organizer-participant-toolbar {
+  margin-top: -0.1rem;
+}
+
 .organizer-race-summary {
   display: grid;
   gap: 0.85rem;

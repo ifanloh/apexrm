@@ -45,9 +45,11 @@ type OrganizerConsoleProps = {
     skippedExistingRows: number;
     skippedNewRows: number;
   };
+  initialView: OrganizerConsoleView;
   importMode: OrganizerParticipantImportMode;
   importPreview: ParticipantImportPreview;
   importText: string;
+  navigationToken: number;
   onBackToSpectator: () => void;
   onSaveDraft: () => void;
   onBrandingChange: (patch: Partial<OrganizerBrandingDraft>) => void;
@@ -96,9 +98,11 @@ export function OrganizerConsole({
   opsUpdatedAt,
   importFileName,
   importImpact,
+  initialView,
   importMode,
   importPreview,
   importText,
+  navigationToken,
   onBackToSpectator,
   onSaveDraft,
   onBrandingChange,
@@ -126,22 +130,22 @@ export function OrganizerConsole({
   onLoadSampleScenario,
   onResetDemoEvent
 }: OrganizerConsoleProps) {
-  const [activeView, setActiveView] = useState<OrganizerConsoleView>("branding");
+  const [activeView, setActiveView] = useState<OrganizerConsoleView>(initialView);
   const [simulationBib, setSimulationBib] = useState("");
   const [simulationCheckpointId, setSimulationCheckpointId] = useState("");
   const [simulationCrewAssignmentId, setSimulationCrewAssignmentId] = useState("");
   const setupSteps: Array<{ view: OrganizerSetupStepView; title: string; shortLabel: string; description: string }> = [
     {
       view: "branding",
-      title: "Fill event basics",
+      title: "Review event identity & assets",
       shortLabel: "Event",
-      description: "Isi nama event, tanggal, logo, dan hero image lebih dulu."
+      description: "Periksa nama event dan tanggal, lalu lengkapi logo dan hero image untuk halaman publik."
     },
     {
       view: "races",
-      title: "Add race categories",
+      title: "Finish race setup",
       shortLabel: "Races",
-      description: "Tambah semua kategori race, lalu rapikan GPX dan checkpoint untuk tiap race."
+      description: "Lengkapi GPX, mode race, dan checkpoint untuk tiap kategori sebelum roster diimpor."
     },
     {
       view: "participants",
@@ -175,19 +179,19 @@ export function OrganizerConsole({
     }
   > = {
     branding: {
-      label: "Do this first",
-      title: "Lengkapi identitas event dulu",
-      summary: "Mulai dari nama event, tanggal, logo, dan hero image supaya draft punya konteks yang jelas.",
+      label: "Complete event identity",
+      title: "Cek identitas event lalu unggah aset visual",
+      summary: "Wizard sudah menyimpan data inti event. Di sini kamu tinggal merapikan nama, tanggal, logo, dan hero image untuk tampilan publik.",
       bullets: [
-        "Isi nama organizer, nama event, dan edition label.",
-        "Set event date & time dengan format kalender yang sudah seragam.",
+        "Pastikan organizer name, event name, dan edition name sudah final.",
+        "Cek event date & time sebelum race category dipublish.",
         "Upload logo dan hero image kalau asetnya sudah siap."
       ]
     },
     races: {
       label: "Next step",
-      title: "Tambah semua kategori race",
-      summary: "Buat semua kategori lebih dulu supaya alur event utuh sebelum peserta dan crew dimasukkan.",
+      title: "Lengkapi course untuk tiap race",
+      summary: "Mulai dari race category yang aktif, lalu lengkapi GPX, mode race, deskripsi course, dan checkpoint sebelum masuk roster peserta.",
       bullets: [
         "Tambah tiap kategori race yang akan tayang di event ini.",
         "Isi mode race, jarak, ascent, dan start time.",
@@ -199,7 +203,7 @@ export function OrganizerConsole({
       title: "Masukkan peserta per race",
       summary: "Pilih satu race, download template, lalu upload roster khusus untuk race itu.",
       bullets: [
-        "Pastikan selected race sudah benar sebelum upload.",
+        "Pastikan race yang dipilih di toolbar ini sudah benar sebelum upload.",
         "Gunakan template CSV atau Excel agar kolomnya tidak salah.",
         "Pakai mode import yang sesuai: add, update, merge, atau replace."
       ]
@@ -505,6 +509,10 @@ export function OrganizerConsole({
     selectedRace?.participants.find((participant) => participant.bib.trim().toUpperCase() === simulationBib.trim().toUpperCase()) ?? null;
 
   useEffect(() => {
+    setActiveView(initialView);
+  }, [initialView, navigationToken]);
+
+  useEffect(() => {
     if (activeView === "operations") {
       return;
     }
@@ -645,7 +653,7 @@ export function OrganizerConsole({
           <p className="section-label">Organizer setup</p>
           <h2>Set up your event step by step</h2>
           <p className="organizer-console-copy">
-            Kerjakan satu langkah pada satu waktu: isi event, tambah race, upload peserta, atur scanner crew, lalu simpan draft dan publish.
+            Lanjutkan dari langkah yang belum lengkap: rapikan identitas event, selesaikan race setup, import peserta, atur scanner crew, lalu publish dari review.
           </p>
           <p className="organizer-console-meta">
             {eventTitle} · {eventPhaseLabel} · Signed in as {profileLabel}
@@ -1095,8 +1103,8 @@ export function OrganizerConsole({
           <div className="panel-head compact">
             <div>
               <p className="organizer-step-label">Step 1 of 5</p>
-              <p className="section-label">Branding</p>
-              <h3>Edition identity</h3>
+              <p className="section-label">Event identity</p>
+              <h3>Event copy & public assets</h3>
             </div>
           </div>
 
@@ -1106,7 +1114,7 @@ export function OrganizerConsole({
               <input value={branding.organizerName} onChange={(event) => onBrandingChange({ organizerName: event.target.value })} />
             </label>
             <label className="organizer-field">
-              <span>Brand name</span>
+              <span>Event name</span>
               <input value={branding.brandName} onChange={(event) => onBrandingChange({ brandName: event.target.value })} />
             </label>
             <label className="organizer-field">
@@ -1118,7 +1126,7 @@ export function OrganizerConsole({
               <input value={branding.brandStackBottom} onChange={(event) => onBrandingChange({ brandStackBottom: event.target.value })} />
             </label>
             <label className="organizer-field">
-              <span>Edition label</span>
+              <span>Edition name</span>
               <input value={branding.editionLabel} onChange={(event) => onBrandingChange({ editionLabel: event.target.value })} />
             </label>
             <label className="organizer-field">
@@ -1345,19 +1353,16 @@ export function OrganizerConsole({
                   <span className={`organizer-status-pill ${selectedRace.isPublished ? "published" : "draft"}`}>
                     {selectedRace.isPublished ? "Published" : "Draft"}
                   </span>
-                  <button
-                    className="toolbar-link organizer-secondary-action"
-                    disabled={!selectedRace.isPublished && !selectedRaceReadiness?.publishReady}
-                    onClick={() => onToggleRacePublish(selectedRace.slug, !selectedRace.isPublished)}
-                    type="button"
-                  >
-                    {selectedRace.isPublished ? "Unpublish" : "Publish"}
-                  </button>
                   <button className="toolbar-link organizer-remove-race" onClick={() => onRemoveRace(selectedRace.slug)} type="button">
                     Remove race
                   </button>
                 </div>
               ) : null}
+            </div>
+
+            <div className="organizer-import-note organizer-race-step-note">
+              <strong>Publish happens in Review.</strong>
+              <p>Rapikan course di langkah ini. Tombol publish hanya muncul di step Review supaya setup berjalan lurus dari atas ke bawah.</p>
             </div>
 
             {selectedRace ? (
@@ -1856,6 +1861,30 @@ export function OrganizerConsole({
           </div>
 
           <div className="organizer-participant-import-shell">
+            <div className="organizer-race-toolbar organizer-participant-toolbar">
+              <label className="organizer-field organizer-race-selector">
+                <span>Selected race</span>
+                <select onChange={(event) => onSelectRace(event.target.value)} value={selectedRaceSlug}>
+                  {races.map((race) => (
+                    <option key={`participant-race-${race.slug}`} value={race.slug}>
+                      {race.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedRace ? (
+                <div className="organizer-race-toolbar-actions organizer-participant-toolbar-actions">
+                  <span className={`organizer-status-pill ${getOrganizerRaceStateTone(selectedRace.editionLabel)}`}>
+                    {selectedRace.editionLabel}
+                  </span>
+                  <span className={`organizer-status-pill ${selectedRace.isPublished ? "published" : "draft"}`}>
+                    {selectedRace.isPublished ? "Published" : "Draft"}
+                  </span>
+                  <span className="organizer-status-pill published">{selectedRace.participants.length} participants</span>
+                </div>
+              ) : null}
+            </div>
+
             <div className="organizer-import-toolbar">
               <div className="organizer-template-actions">
                 <button className="toolbar-link organizer-secondary-action" onClick={() => downloadParticipantTemplate("csv")} type="button">
@@ -1932,7 +1961,7 @@ export function OrganizerConsole({
             <div className="organizer-import-note">
               <strong>Template columns</strong>
               <p>Use exactly: <code>bib</code>, <code>name</code>, <code>gender</code>, <code>country</code>, <code>club</code>.</p>
-              <p>This import applies only to the currently selected race.</p>
+              <p>This import applies only to the race selected above.</p>
             </div>
 
             <div className="organizer-import-mode-shell">

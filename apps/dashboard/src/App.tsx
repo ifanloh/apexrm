@@ -208,6 +208,11 @@ const COUNTRY_PRIORITY_ORDER = ["ID", "MY", "SG", "TH", "AU", "JP", "KR", "PH", 
 type OrganizerEventPhase = "draft" | "ready" | "live";
 type OrganizerPublicEventStatus = "hidden" | "upcoming" | "live" | "finished";
 type OrganizerHomeFilter = "active" | "archived" | "all";
+type OrganizerConsoleLandingView = "branding" | "races" | "participants" | "crew" | "overview";
+type OrganizerConsoleEntryTarget = {
+  view: OrganizerConsoleLandingView;
+  raceSlug: string;
+};
 
 type CountryCode = (typeof COUNTRY_CODES)[number];
 
@@ -857,11 +862,28 @@ function isOrganizerRaceReadyForPublish(branding: OrganizerBrandingDraft, race: 
     Boolean(race.gpxFileName) &&
     race.courseDescription.trim().length >= 24 &&
     race.courseHighlights.filter(Boolean).length >= 2 &&
+    isOrganizerRaceModeConfigured(race) &&
     race.checkpoints.length >= 3 &&
     race.participants.length > 0 &&
     Boolean(race.startAt.trim()) &&
     Boolean(race.scheduleLabel.trim())
   );
+}
+
+function isOrganizerRaceModeConfigured(race: OrganizerRaceDraft) {
+  if (race.raceMode === "loop-fixed-laps") {
+    return Boolean(race.loopTargetLaps && race.loopTargetLaps > 0);
+  }
+
+  if (race.raceMode === "loop-fixed-time") {
+    return Boolean(race.loopTimeLimitHours && race.loopTimeLimitHours > 0);
+  }
+
+  if (race.raceMode === "relay") {
+    return Boolean(race.relayLegCount && race.relayLegCount > 1);
+  }
+
+  return true;
 }
 
 function isOrganizerRaceReadyForLive(branding: OrganizerBrandingDraft, race: OrganizerRaceDraft) {
@@ -918,6 +940,74 @@ function deriveOrganizerPublicEventStatus(event: OrganizerEventRecord): Organize
   }
 
   return "finished";
+}
+
+function resolveOrganizerConsoleEntryTarget(
+  setup: OrganizerSetupDraft,
+  preferredRaceSlug?: string | null
+): OrganizerConsoleEntryTarget {
+  const fallbackRace = setup.races.find((race) => race.slug === preferredRaceSlug) ?? setup.races[0] ?? null;
+
+  if (!fallbackRace) {
+    return {
+      view: "branding",
+      raceSlug: ""
+    };
+  }
+
+  if (!setup.branding.eventLogoDataUrl || !setup.branding.heroBackgroundImageDataUrl) {
+    return {
+      view: "branding",
+      raceSlug: fallbackRace.slug
+    };
+  }
+
+  const raceMissingCourseSetup =
+    setup.races.find(
+      (race) =>
+        !Boolean(race.gpxFileName) ||
+        race.courseDescription.trim().length < 24 ||
+        race.courseHighlights.filter(Boolean).length < 2 ||
+        !isOrganizerRaceModeConfigured(race) ||
+        race.checkpoints.length < 3 ||
+        !Boolean(race.startAt.trim()) ||
+        !Boolean(race.scheduleLabel.trim())
+    ) ?? null;
+
+  if (raceMissingCourseSetup) {
+    return {
+      view: "races",
+      raceSlug: raceMissingCourseSetup.slug
+    };
+  }
+
+  const raceMissingParticipants = setup.races.find((race) => race.participants.length === 0) ?? null;
+
+  if (raceMissingParticipants) {
+    return {
+      view: "participants",
+      raceSlug: raceMissingParticipants.slug
+    };
+  }
+
+  const raceMissingCrew =
+    setup.races.find(
+      (race) =>
+        race.crewAssignments.length === 0 ||
+        race.crewAssignments.some((crew) => !["accepted", "active"].includes(crew.status) || crew.deviceLabel.trim().length === 0)
+    ) ?? null;
+
+  if (raceMissingCrew) {
+    return {
+      view: "crew",
+      raceSlug: raceMissingCrew.slug
+    };
+  }
+
+  return {
+    view: "overview",
+    raceSlug: fallbackRace.slug
+  };
 }
 
 function buildDuplicatedOrganizerEventTitle(sourceTitle: string, existingTitles: string[]) {
@@ -1197,6 +1287,8 @@ export default function App() {
   const [organizerImportFileName, setOrganizerImportFileName] = useState<string | null>(null);
   const [organizerImportMode, setOrganizerImportMode] = useState<OrganizerParticipantImportMode>("merge");
   const [organizerSetupRaceSlug, setOrganizerSetupRaceSlug] = useState<string>(createDefaultOrganizerSetup().races[0]?.slug ?? "");
+  const [organizerConsoleInitialView, setOrganizerConsoleInitialView] = useState<OrganizerConsoleLandingView>("overview");
+  const [organizerConsoleNavigationKey, setOrganizerConsoleNavigationKey] = useState(0);
   const [organizerDraftSavedAt, setOrganizerDraftSavedAt] = useState<string | null>(() => new Date().toISOString());
   const [organizerWizardOpen, setOrganizerWizardOpen] = useState(false);
   const [organizerWizardStep, setOrganizerWizardStep] = useState<OrganizerWizardStep>("basics");
@@ -2978,22 +3070,43 @@ export default function App() {
     });
   }
 
-  function createOrganizerWorkspaceEvent(setup: OrganizerSetupDraft, options?: { openConsole?: boolean }) {
+  function openOrganizerConsoleForTarget(target: OrganizerConsoleEntryTarget) {
+    setOrganizerConsoleInitialView(target.view);
+    setOrganizerConsoleNavigationKey((current) => current + 1);
+    setOrganizerSetupRaceSlug(target.raceSlug);
+    setSelectedRaceSlug(EDITION_HOME_VALUE);
+    setRaceDetailView("race-page");
+    setOrganizerWorkspaceView("console");
+  }
+
+  function createOrganizerWorkspaceEvent(
+    setup: OrganizerSetupDraft,
+    options?: { openConsole?: boolean; consoleTarget?: OrganizerConsoleEntryTarget }
+  ) {
     const normalizedSetup: OrganizerSetupDraft = {
       ...setup,
       races: setup.races.map((race) => normalizeOrganizerRaceGoLiveState(setup.branding, race))
     };
+    const consoleTarget =
+      options?.consoleTarget ??
+      resolveOrganizerConsoleEntryTarget(normalizedSetup, normalizedSetup.races[0]?.slug ?? null);
     const newEvent = createOrganizerEventRecord(normalizedSetup);
     setOrganizerWorkspace((current) => ({
       activeEventId: newEvent.id,
       events: [...current.events, newEvent]
     }));
-    setOrganizerSetupRaceSlug(normalizedSetup.races[0]?.slug ?? "");
-    setSelectedRaceSlug(EDITION_HOME_VALUE);
-    setRaceDetailView("race-page");
     clearOrganizerImportDraft();
     setOrganizerWizardOpen(false);
-    setOrganizerWorkspaceView(options?.openConsole === false ? "home" : "console");
+
+    if (options?.openConsole === false) {
+      setOrganizerSetupRaceSlug(consoleTarget.raceSlug || (normalizedSetup.races[0]?.slug ?? ""));
+      setSelectedRaceSlug(EDITION_HOME_VALUE);
+      setRaceDetailView("race-page");
+      setOrganizerWorkspaceView("home");
+      return;
+    }
+
+    openOrganizerConsoleForTarget(consoleTarget);
   }
 
   function duplicateOrganizerEvent(eventId: string) {
@@ -3164,8 +3277,11 @@ export default function App() {
       return;
     }
 
-    setOrganizerSetupRaceSlug((current) => current || organizerSetup.races[0]?.slug || "");
-    setOrganizerWorkspaceView("console");
+    const target = resolveOrganizerConsoleEntryTarget(organizerSetup, organizerSetupRaceSlug);
+    openOrganizerConsoleForTarget({
+      ...target,
+      raceSlug: target.raceSlug || organizerSetup.races[0]?.slug || ""
+    });
   }
 
   function openOrganizerEvent(eventId: string) {
@@ -3175,11 +3291,10 @@ export default function App() {
       return;
     }
 
+    const target = resolveOrganizerConsoleEntryTarget(nextEvent.setup, nextEvent.setup.races[0]?.slug ?? null);
     setOrganizerActiveEvent(eventId);
-    setOrganizerSetupRaceSlug(nextEvent.setup.races[0]?.slug ?? "");
-    setSelectedRaceSlug(EDITION_HOME_VALUE);
-    setRaceDetailView("race-page");
-    setOrganizerWorkspaceView("console");
+    clearOrganizerImportDraft();
+    openOrganizerConsoleForTarget(target);
   }
 
   function saveOrganizerDraftNow() {
@@ -3341,7 +3456,12 @@ export default function App() {
       races: [firstRace]
     };
 
-    createOrganizerWorkspaceEvent(newSetup);
+    createOrganizerWorkspaceEvent(newSetup, {
+      consoleTarget: {
+        view: "races",
+        raceSlug: firstRace.slug
+      }
+    });
     closeOrganizerWizard();
   }
 
@@ -4375,30 +4495,29 @@ export default function App() {
                 <span className="detail-label">Organizer portal</span>
                 <h2>Organizer Home</h2>
                 <p>
-                  Trailnesia mengirim email login lebih dulu. Setelah masuk, organizer cukup membuat event, menambah race categories,
-                  mengatur crew accounts, lalu menyimpan draft sampai siap publish.
+                  Masuk sebagai organizer, buat event draft, lalu lanjutkan setup course, peserta, dan scanner crew sampai race category siap dipublish.
                 </p>
                 <div className="organizer-home-actions">
                   <span className="organizer-flow-pill secondary">{organizerDraftStatusLabel}</span>
                   <span className="organizer-home-note">All setup changes stay private until you publish a race category.</span>
                 </div>
                 <div className="organizer-home-flow">
-                  <span className="organizer-flow-pill">1. Login via Trailnesia email</span>
-                  <span className="organizer-flow-pill">2. Create event & race categories</span>
-                  <span className="organizer-flow-pill">3. Set up crew accounts</span>
-                  <span className="organizer-flow-pill">4. Save draft & publish</span>
+                  <span className="organizer-flow-pill">1. Login organizer</span>
+                  <span className="organizer-flow-pill">2. Create event draft</span>
+                  <span className="organizer-flow-pill">3. Finish course & checkpoints</span>
+                  <span className="organizer-flow-pill">4. Import participants</span>
+                  <span className="organizer-flow-pill">5. Set up scanner crew</span>
+                  <span className="organizer-flow-pill">6. Review & publish</span>
                 </div>
               </div>
 
               <div className="organizer-home-actions">
+                <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
+                  {organizerHasEvents ? "Create new event" : "Create your first event"}
+                </button>
                 {organizerActiveEvent ? (
-                  <button className="auth-trigger" onClick={() => openOrganizerEvent(organizerActiveEvent.id)} type="button">
+                  <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(organizerActiveEvent.id)} type="button">
                     Open active event
-                  </button>
-                ) : null}
-                {organizerHasEvents ? (
-                  <button className="toolbar-link organizer-secondary-action" onClick={handleCreateOrganizerFirstEvent} type="button">
-                    Create new event
                   </button>
                 ) : null}
                 <button className="toolbar-link organizer-secondary-action" onClick={openActiveSpectatorPreview} type="button">
@@ -4528,14 +4647,8 @@ export default function App() {
                     <span className="detail-label">First-time organizer</span>
                     <h3>You have no events yet</h3>
                     <p>
-                      Use the login credentials sent by Trailnesia, then create your event, add race categories, set up scanner crew accounts,
-                      and keep everything in draft until it is ready to publish.
+                      Mulai dari tombol create di atas. Wizard akan membuat event draft dan race category pertama, lalu console akan membawa kamu ke langkah setup berikutnya.
                     </p>
-                    <div className="organizer-home-actions">
-                      <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
-                        Create your first event
-                      </button>
-                    </div>
                   </section>
                 ) : (
                   <section className="organizer-wizard-shell">
@@ -4543,7 +4656,7 @@ export default function App() {
                       <div>
                         <span className="detail-label">Create event</span>
                         <h3>Start your event draft</h3>
-                        <p>Isi data event dulu, lalu buat kategori race pertama. Setelah wizard selesai, kamu bisa tambah kategori lain di setup console.</p>
+                        <p>Isi data event inti dan race category pertama. Setelah draft dibuat, setup console akan langsung membuka langkah berikutnya yang masih perlu dilengkapi.</p>
                       </div>
                       <div className="organizer-home-actions">
                         <span className="organizer-flow-pill">Step {organizerWizardStep === "basics" ? 1 : organizerWizardStep === "branding" ? 2 : organizerWizardStep === "race" ? 3 : 4} of 4</span>
@@ -4580,7 +4693,7 @@ export default function App() {
                           />
                         </label>
                         <label className="organizer-field">
-                          <span>Event brand</span>
+                          <span>Event name</span>
                           <input
                             onChange={(event) => updateOrganizerWizardDraft({ brandName: event.target.value })}
                             placeholder="Trailnesia Bromo Ultra"
@@ -4588,7 +4701,7 @@ export default function App() {
                           />
                         </label>
                         <label className="organizer-field">
-                          <span>Edition label</span>
+                          <span>Edition name</span>
                           <input
                             onChange={(event) => updateOrganizerWizardDraft({ editionLabel: event.target.value })}
                             value={organizerWizardDraft.editionLabel}
@@ -4646,7 +4759,7 @@ export default function App() {
                             Back to basics
                           </button>
                           <button className="auth-trigger" disabled={!organizerWizardBrandingReady} onClick={() => setOrganizerWizardStep("race")} type="button">
-                            Continue to race category
+                            Continue to first race
                           </button>
                         </div>
                       </div>
@@ -4767,8 +4880,8 @@ export default function App() {
                         <div className="organizer-import-note">
                           <strong>Draft only.</strong>
                           <p>
-                            Wizard ini membuat event draft dan satu kategori race pertama dengan status Upcoming. Setelah masuk setup console,
-                            kamu bisa tambah kategori lain, upload GPX, import participants, dan set up scanner crew sebelum publish.
+                            Wizard ini membuat event draft dan satu kategori race pertama dengan status Upcoming. Setelah ini kamu akan langsung masuk ke race setup
+                            untuk melengkapi GPX, checkpoint, participants, lalu scanner crew sebelum publish.
                           </p>
                         </div>
                         <div className="organizer-step-actions">
@@ -4776,7 +4889,7 @@ export default function App() {
                             Back to race category
                           </button>
                           <button className="auth-trigger" onClick={finalizeOrganizerWizard} type="button">
-                            Create draft and continue
+                            Create draft and open race setup
                           </button>
                         </div>
                       </div>
@@ -4807,8 +4920,10 @@ export default function App() {
               importMode={organizerImportMode}
               importPreview={organizerImportPreview}
               importText={organizerImportText}
+              initialView={organizerConsoleInitialView}
               leaderboards={organizerConsoleLeaderboards}
               liveModeLabel={liveStatusLabel}
+              navigationToken={organizerConsoleNavigationKey}
               notifications={organizerConsoleNotifications}
               onAddRace={addOrganizerRace}
               onAddCheckpoint={addOrganizerCheckpoint}
