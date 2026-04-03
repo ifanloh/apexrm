@@ -213,6 +213,10 @@ function toPersistedStore(store: Store): PersistedStore {
   return persisted;
 }
 
+function persistedStoreKey(store: Store | PersistedStore) {
+  return JSON.stringify("user" in store ? toPersistedStore(store) : store);
+}
+
 function hydratePersistedStore(user: User, payload: PersistedStore) {
   return hydrate({
     ...payload,
@@ -340,18 +344,23 @@ export function OrganizerPrototypeProvider({ children, user, onLogout }: { child
 
       try {
         const remoteStore = await fetchRemoteWorkspace(user);
+        const currentStore = latestStoreRef.current;
+        const localChangedDuringHydration = persistedStoreKey(currentStore) !== persistedStoreKey(localStore);
 
         if (!isActive) {
           return;
         }
 
         if (remoteStore) {
-          const nextStore = hydratePersistedStore(user, remoteStore);
-          setStore(nextStore);
-          saveStore(nextStore);
+          if (localChangedDuringHydration) {
+            await saveRemoteWorkspace(user, currentStore);
+            saveStore(currentStore);
+          } else {
+            const nextStore = hydratePersistedStore(user, remoteStore);
+            setStore(nextStore);
+            saveStore(nextStore);
+          }
         } else {
-          const currentStore = latestStoreRef.current;
-
           if (hasWorkspaceContent(currentStore)) {
             await saveRemoteWorkspace(user, currentStore);
           } else if (hasWorkspaceContent(localStore)) {
