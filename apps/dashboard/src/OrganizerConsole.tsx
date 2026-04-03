@@ -211,7 +211,7 @@ export function OrganizerConsole({
     crew: {
       label: "Scanner setup",
       title: "Atur akun scanner crew",
-      summary: "Race bisa dipublish sebagai Upcoming walau crew belum lengkap, tapi status Live butuh crew dan device yang sudah siap.",
+      summary: "Race bisa dipublish sebagai Upcoming tanpa menunggu scanner crew lengkap, tapi status Live tetap butuh GPX, peserta, crew, dan device yang sudah siap.",
       bullets: [
         "Tambah crew scanner satu per satu beserta email dan checkpoint.",
         "Kirim invite lalu tandai crew yang sudah accepted.",
@@ -221,11 +221,11 @@ export function OrganizerConsole({
     overview: {
       label: "Review before publish",
       title: "Simpan draft lalu publish race",
-      summary: "Published race boleh tetap Upcoming walau crew belum lengkap. Status Live baru terbuka saat semua readiness hijau.",
+      summary: "Published race boleh tetap Upcoming walau GPX, peserta, atau crew belum lengkap. Status Live baru terbuka saat semua readiness hijau.",
       bullets: [
         "Cek kategori race yang masih draft.",
         "Publish kategori yang sudah siap tampil ke publik.",
-        "Selesaikan blocker crew dan device sebelum race diubah ke Live."
+        "Selesaikan blocker GPX, peserta, crew, dan device sebelum race diubah ke Live."
       ]
     },
     operations: {
@@ -366,10 +366,6 @@ export function OrganizerConsole({
         pass: Boolean(branding.heroBackgroundImageDataUrl)
       },
       {
-        label: "GPX linked to race",
-        pass: Boolean(race.gpxFileName)
-      },
-      {
         label: "Course description filled",
         pass: race.courseDescription.trim().length >= 24
       },
@@ -393,16 +389,20 @@ export function OrganizerConsole({
         pass: race.checkpoints.length >= 3
       },
       {
-        label: "Participants imported",
-        pass: race.participants.length > 0
-      },
-      {
         label: "Start schedule set",
         pass: Boolean(race.startAt.trim()) && Boolean(race.scheduleLabel.trim())
       }
     ];
     const liveChecks = [
       ...publishChecks,
+      {
+        label: "GPX linked to race",
+        pass: Boolean(race.gpxFileName)
+      },
+      {
+        label: "Participants imported",
+        pass: race.participants.length > 0
+      },
       {
         label: "Crew assigned",
         pass: race.crewAssignments.length > 0
@@ -728,7 +728,7 @@ export function OrganizerConsole({
             <strong>Draft mode stays private.</strong>
             <p>
               All changes in branding, races, participants, and crew are saved as draft. Spectators only see categories that
-              you publish explicitly, and every published category stays Upcoming until the full go-live checks are green.
+              you publish explicitly. Upcoming can go public before GPX, participants, and crew are complete, while Live still waits for every go-live check.
             </p>
           </div>
 
@@ -1261,8 +1261,8 @@ export function OrganizerConsole({
                 {!liveReady ? (
                   <p className="organizer-readiness-note">
                     {publishReady
-                      ? "This category can be published now and will stay Upcoming until every go-live check is green."
-                      : "Finish the public setup first, then publish it as Upcoming while ops readiness is completed."}
+                      ? "This category can be published now as Upcoming. GPX, participants, and crew can follow before it moves to Live."
+                      : "Finish the public-facing basics first, then publish it as Upcoming while live blockers are completed."}
                   </p>
                 ) : null}
               </article>
@@ -1379,7 +1379,7 @@ export function OrganizerConsole({
                           ? "ready for live"
                           : selectedRaceReadiness.publishReady
                             ? "publishable as upcoming"
-                            : "publish checks pending"
+                            : "public basics pending"
                         : "select a race"}
                     </span>
                   </div>

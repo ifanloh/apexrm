@@ -859,12 +859,10 @@ function isOrganizerRaceReadyForPublish(branding: OrganizerBrandingDraft, race: 
   return (
     Boolean(branding.eventLogoDataUrl) &&
     Boolean(branding.heroBackgroundImageDataUrl) &&
-    Boolean(race.gpxFileName) &&
     race.courseDescription.trim().length >= 24 &&
     race.courseHighlights.filter(Boolean).length >= 2 &&
     isOrganizerRaceModeConfigured(race) &&
     race.checkpoints.length >= 3 &&
-    race.participants.length > 0 &&
     Boolean(race.startAt.trim()) &&
     Boolean(race.scheduleLabel.trim())
   );
@@ -892,6 +890,8 @@ function isOrganizerRaceReadyForLive(branding: OrganizerBrandingDraft, race: Org
 
   return (
     isOrganizerRaceReadyForPublish(branding, race) &&
+    Boolean(race.gpxFileName) &&
+    race.participants.length > 0 &&
     race.crewAssignments.length > 0 &&
     acceptedCrew.length === race.crewAssignments.length &&
     provisionedCrew.length === race.crewAssignments.length
@@ -3443,7 +3443,7 @@ export default function App() {
         homeTitle,
         homeSubtitle:
           organizerWizardDraft.homeSubtitle.trim() ||
-          "Draft your first race category, import participants, and prepare scan crews before publishing spectator access.",
+          "Draft your first race category, publish it as Upcoming, then finish GPX, participants, and scan crews before going Live.",
         bannerTagline: organizerWizardDraft.bannerTagline.trim() || "Organizer edition hub",
         eventDateAt: normalizeOrganizerDateTimeInputValue(organizerWizardDraft.eventDateAt),
         dateRibbon: formatOrganizerDateRibbon(organizerWizardDraft.eventDateAt),
@@ -4495,7 +4495,7 @@ export default function App() {
                 <span className="detail-label">Organizer portal</span>
                 <h2>Organizer Home</h2>
                 <p>
-                  Masuk sebagai organizer, buat event draft, lalu lanjutkan setup course, peserta, dan scanner crew sampai race category siap dipublish.
+                  Masuk sebagai organizer, buat event draft, publish kategori sebagai Upcoming saat halaman publiknya siap, lalu lanjutkan GPX, peserta, dan scanner crew sampai race siap Live.
                 </p>
                 <div className="organizer-home-actions">
                   <span className="organizer-flow-pill secondary">{organizerDraftStatusLabel}</span>
@@ -4881,7 +4881,7 @@ export default function App() {
                           <strong>Draft only.</strong>
                           <p>
                             Wizard ini membuat event draft dan satu kategori race pertama dengan status Upcoming. Setelah ini kamu akan langsung masuk ke race setup
-                            untuk melengkapi GPX, checkpoint, participants, lalu scanner crew sebelum publish.
+                            untuk melengkapi copy publik dan checkpoint. GPX, participants, dan scanner crew bisa disusulkan sebelum race diubah ke Live.
                           </p>
                         </div>
                         <div className="organizer-step-actions">
