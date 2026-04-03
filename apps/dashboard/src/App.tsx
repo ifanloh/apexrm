@@ -987,6 +987,58 @@ const RUNNER_DIRECTORY_EXTRA_PROFILES = [
 ];
 const LOCAL_ORGANIZER_USERNAME = "admin";
 const LOCAL_ORGANIZER_PASSWORD = "admin";
+const LOCAL_ORGANIZER_SESSION_KEY = "arm:local-organizer-session";
+
+function buildLocalOrganizerProfile() {
+  return authProfileSchema.parse({
+    userId: "local-admin",
+    email: LOCAL_ORGANIZER_USERNAME,
+    role: "admin",
+    crewCode: null,
+    displayName: "Admin"
+  });
+}
+
+function readLocalOrganizerSession() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(LOCAL_ORGANIZER_SESSION_KEY);
+
+    if (!raw) {
+      return false;
+    }
+
+    const parsed = JSON.parse(raw) as { username?: unknown } | null;
+    return parsed?.username === LOCAL_ORGANIZER_USERNAME;
+  } catch {
+    return false;
+  }
+}
+
+function persistLocalOrganizerSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(
+    LOCAL_ORGANIZER_SESSION_KEY,
+    JSON.stringify({
+      username: LOCAL_ORGANIZER_USERNAME,
+      issuedAt: new Date().toISOString()
+    })
+  );
+}
+
+function clearLocalOrganizerSession() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(LOCAL_ORGANIZER_SESSION_KEY);
+}
 
 function buildPreviewLeaderboard(race: DemoRaceCard, category?: "women" | "men"): OverallLeaderboard {
   const source = race.rankingPreview.filter((entry) => {
@@ -1606,32 +1658,77 @@ export default function App() {
     : null;
 
   useEffect(() => {
-    if (!supabase) {
-      setIsAuthenticated(false);
+    const restoreLocalOrganizerSession = () => {
+      setIsAuthenticated(true);
       setAccessToken(null);
-      setProfile(null);
+      setProfile(buildLocalOrganizerProfile());
+      setIsLocalOrganizerAuth(true);
+      setOrganizerWorkspaceView("home");
+    };
+
+    if (!supabase) {
+      if (readLocalOrganizerSession()) {
+        restoreLocalOrganizerSession();
+      } else {
+        setIsAuthenticated(false);
+        setAccessToken(null);
+        setProfile(null);
+        setIsLocalOrganizerAuth(false);
+      }
+
       setIsBootstrapping(false);
       return;
     }
 
+    let isMounted = true;
+
     void supabase.auth.getSession().then(({ data }) => {
-      setIsAuthenticated(Boolean(data.session));
-      setAccessToken(data.session?.access_token ?? null);
-      setProfile(data.session ? deriveProfileFromSession(data.session) : null);
+      if (!isMounted) {
+        return;
+      }
+
+      if (data.session) {
+        clearLocalOrganizerSession();
+        setIsAuthenticated(true);
+        setAccessToken(data.session.access_token);
+        setProfile(deriveProfileFromSession(data.session));
+        setIsLocalOrganizerAuth(false);
+      } else if (readLocalOrganizerSession()) {
+        restoreLocalOrganizerSession();
+      } else {
+        setIsAuthenticated(false);
+        setAccessToken(null);
+        setProfile(null);
+        setIsLocalOrganizerAuth(false);
+      }
+
       setIsBootstrapping(false);
     });
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session));
-      setAccessToken(session?.access_token ?? null);
-      setProfile(session ? deriveProfileFromSession(session) : null);
+      if (session) {
+        clearLocalOrganizerSession();
+        setIsAuthenticated(true);
+        setAccessToken(session.access_token);
+        setProfile(deriveProfileFromSession(session));
+        setIsLocalOrganizerAuth(false);
+      } else if (readLocalOrganizerSession()) {
+        restoreLocalOrganizerSession();
+      } else {
+        setIsAuthenticated(false);
+        setAccessToken(null);
+        setProfile(null);
+        setIsLocalOrganizerAuth(false);
+      }
+
       setFetchError(null);
       setIsBootstrapping(false);
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -3269,6 +3366,7 @@ export default function App() {
       void supabase.auth.signOut();
     }
 
+    clearLocalOrganizerSession();
     setIsLocalOrganizerAuth(false);
     setIsAuthenticated(false);
     setAccessToken(null);
@@ -4121,15 +4219,8 @@ export default function App() {
     const normalizedLogin = loginEmail.trim().toLowerCase();
 
     if (normalizedLogin === LOCAL_ORGANIZER_USERNAME && loginPassword === LOCAL_ORGANIZER_PASSWORD) {
-      setProfile(
-        authProfileSchema.parse({
-          userId: "local-admin",
-          email: LOCAL_ORGANIZER_USERNAME,
-          role: "admin",
-          crewCode: null,
-          displayName: "Admin"
-        })
-      );
+      persistLocalOrganizerSession();
+      setProfile(buildLocalOrganizerProfile());
       setIsAuthenticated(true);
       setAccessToken(null);
       setIsLocalOrganizerAuth(true);

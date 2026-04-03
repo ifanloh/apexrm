@@ -442,44 +442,49 @@ export const getListScansQueryKey = (eventId: number, raceId: number) => ["proto
 
 export function useListEvents() {
   const { store, isStoreLoading } = usePrototypeContext();
-  return { data: store.events, isLoading: isStoreLoading };
+  return { data: store.events, isLoading: isStoreLoading && store.events.length === 0 };
 }
 
 export function useGetEvent(eventId: number, options?: QueryOptions) {
   const { store, isStoreLoading } = usePrototypeContext();
+  const event = options?.query?.enabled === false ? undefined : store.events.find((entry) => entry.id === eventId) ?? null;
   return {
-    data: options?.query?.enabled === false ? undefined : store.events.find((event) => event.id === eventId) ?? null,
-    isLoading: isStoreLoading,
+    data: event,
+    isLoading: isStoreLoading && !event,
     error: null
   };
 }
 
 export function useListRaces(eventId: number, options?: QueryOptions) {
   const { store, isStoreLoading } = usePrototypeContext();
-  return { data: options?.query?.enabled === false ? undefined : store.races.filter((race) => race.eventId === eventId), isLoading: isStoreLoading };
+  const races = options?.query?.enabled === false ? undefined : store.races.filter((race) => race.eventId === eventId);
+  return { data: races, isLoading: isStoreLoading && Array.isArray(races) && races.length === 0 };
 }
 
 export function useListCheckpoints(eventId: number, raceId: number, options?: QueryOptions) {
   const { store, isStoreLoading } = usePrototypeContext();
   const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
+  const data = exists && options?.query?.enabled !== false ? store.checkpoints.filter((checkpoint) => checkpoint.raceId === raceId) : [];
   return {
-    data: exists && options?.query?.enabled !== false ? store.checkpoints.filter((checkpoint) => checkpoint.raceId === raceId) : [],
-    isLoading: isStoreLoading
+    data,
+    isLoading: isStoreLoading && exists && data.length === 0
   };
 }
 
 export function useListParticipants(eventId: number, raceId: number, options?: QueryOptions) {
   const { store, isStoreLoading } = usePrototypeContext();
   const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
+  const data = exists && options?.query?.enabled !== false ? store.participants.filter((participant) => participant.raceId === raceId) : [];
   return {
-    data: exists && options?.query?.enabled !== false ? store.participants.filter((participant) => participant.raceId === raceId) : [],
-    isLoading: isStoreLoading
+    data,
+    isLoading: isStoreLoading && exists && data.length === 0
   };
 }
 
 export function useListScannerCrew(eventId: number, options?: QueryOptions) {
   const { store, isStoreLoading } = usePrototypeContext();
-  return { data: options?.query?.enabled === false ? undefined : store.crew.filter((member) => member.eventId === eventId), isLoading: isStoreLoading };
+  const crew = options?.query?.enabled === false ? undefined : store.crew.filter((member) => member.eventId === eventId);
+  return { data: crew, isLoading: isStoreLoading && Array.isArray(crew) && crew.length === 0 };
 }
 
 export function useGetEventSummary(eventId: number, options?: QueryOptions) {
@@ -507,7 +512,7 @@ export function useGetEventSummary(eventId: number, options?: QueryOptions) {
           readinessChecks
         }
       : null,
-    isLoading: isStoreLoading
+    isLoading: isStoreLoading && !event
   };
 }
 
@@ -540,16 +545,17 @@ export function useGetRaceDayStatus(eventId: number, raceId: number, options?: Q
         lastScanAt: scans.filter((scan) => scan.checkpointId === checkpoint.id).sort((a, b) => b.scannedAt.localeCompare(a.scannedAt))[0]?.scannedAt ?? null
       }))
     } satisfies RaceDayStatus,
-    isLoading: isStoreLoading
+    isLoading: isStoreLoading && !race
   };
 }
 
 export function useListScans(eventId: number, raceId: number, options?: QueryOptions) {
   const { store, isStoreLoading } = usePrototypeContext();
   const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
+  const data = exists && options?.query?.enabled !== false ? store.scans.filter((scan) => scan.raceId === raceId).sort((a, b) => b.scannedAt.localeCompare(a.scannedAt)) : [];
   return {
-    data: exists && options?.query?.enabled !== false ? store.scans.filter((scan) => scan.raceId === raceId).sort((a, b) => b.scannedAt.localeCompare(a.scannedAt)) : [],
-    isLoading: isStoreLoading
+    data,
+    isLoading: isStoreLoading && exists && data.length === 0
   };
 }
 
