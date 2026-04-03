@@ -52,8 +52,6 @@ export interface Checkpoint {
   distanceFromStart?: number | null;
   isStartLine: boolean;
   isFinishLine: boolean;
-  gpxFileName?: string | null;
-  gpxData?: string | null;
   assignedCrewId?: number | null;
   createdAt: string;
 }
@@ -520,8 +518,6 @@ export function useCreateCheckpoint() {
       distanceFromStart: data.distanceFromStart ?? null,
       isStartLine: Boolean(data.isStartLine),
       isFinishLine: Boolean(data.isFinishLine),
-      gpxFileName: data.gpxFileName ?? null,
-      gpxData: data.gpxData ?? null,
       assignedCrewId: data.assignedCrewId ?? null,
       createdAt: nowIso()
     };
@@ -550,50 +546,6 @@ export function useCreateCheckpoint() {
     );
     return checkpoint;
   });
-}
-
-export function useUpdateCheckpoint() {
-  return useMutation<{ eventId: number; raceId: number; checkpointId: number; data: Partial<Checkpoint> }, Checkpoint>(
-    ({ setStore, store }, { raceId, checkpointId, data }) => {
-      const checkpoint = store.checkpoints.find((entry) => entry.id === checkpointId && entry.raceId === raceId);
-      if (!checkpoint) throw new Error("Checkpoint not found");
-      const nextCheckpoint: Checkpoint = {
-        ...checkpoint,
-        ...data,
-        isStartLine: data.isStartLine ?? checkpoint.isStartLine,
-        isFinishLine: data.isFinishLine ?? checkpoint.isFinishLine
-      };
-
-      setStore((current) =>
-        hydrate({
-          ...current,
-          checkpoints: current.checkpoints
-            .map((entry) => {
-              if (entry.id === checkpointId) {
-                return nextCheckpoint;
-              }
-
-              if (entry.raceId !== raceId) {
-                return entry;
-              }
-
-              if (nextCheckpoint.isStartLine && entry.isStartLine) {
-                return { ...entry, isStartLine: false };
-              }
-
-              if (nextCheckpoint.isFinishLine && entry.isFinishLine) {
-                return { ...entry, isFinishLine: false };
-              }
-
-              return entry;
-            })
-            .sort((a, b) => a.orderIndex - b.orderIndex)
-        })
-      );
-
-      return nextCheckpoint;
-    }
-  );
 }
 
 export function useDeleteCheckpoint() {

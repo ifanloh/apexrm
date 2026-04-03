@@ -8,7 +8,6 @@ import {
   useListCheckpoints,
   getListCheckpointsQueryKey,
   useCreateCheckpoint,
-  useUpdateCheckpoint,
   useDeleteCheckpoint
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -19,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Trash2, Flag, Upload, Route, MapPinned } from "lucide-react";
+import { PlusCircle, Trash2, Flag, Upload, Route } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -115,7 +114,7 @@ export function RacesTab({ eventId }: { eventId: number }) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Races & Checkpoints</h2>
-          <p className="text-muted-foreground mt-1">Manage categories, route GPX, and checkpoint structure.</p>
+          <p className="text-muted-foreground mt-1">Manage categories, one route GPX per race, and checkpoint structure.</p>
         </div>
         <Dialog open={isAddRaceOpen} onOpenChange={setIsAddRaceOpen}>
           <DialogTrigger asChild>
@@ -252,7 +251,6 @@ function CheckpointsList({ eventId, raceId }: { eventId: number; raceId: number 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createMutation = useCreateCheckpoint();
-  const updateMutation = useUpdateCheckpoint();
   const deleteMutation = useDeleteCheckpoint();
 
   const [formData, setFormData] = useState({
@@ -282,32 +280,6 @@ function CheckpointsList({ eventId, raceId }: { eventId: number; raceId: number 
         onError: () => toast({ variant: "destructive", title: "Failed to add checkpoint" })
       }
     );
-  };
-
-  const handleCheckpointGpxUpload = async (checkpointId: number, file: File | undefined) => {
-    if (!file) {
-      return;
-    }
-
-    try {
-      const gpxData = await readUploadedText(file);
-      updateMutation.mutate(
-        { eventId, raceId, checkpointId, data: { gpxFileName: file.name, gpxData } },
-        {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getListCheckpointsQueryKey(eventId, raceId) });
-            toast({ title: "Checkpoint GPX uploaded" });
-          },
-          onError: (error: Error) => toast({ variant: "destructive", title: "Failed to upload checkpoint GPX", description: error.message })
-        }
-      );
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Failed to read GPX file",
-        description: error instanceof Error ? error.message : "Please try another GPX file."
-      });
-    }
   };
 
   const handleDelete = (checkpointId: number) => {
@@ -341,29 +313,10 @@ function CheckpointsList({ eventId, raceId }: { eventId: number; raceId: number 
                   {checkpoint.isStartLine ? <Badge variant="outline" className="bg-primary/10 text-primary">Start Line</Badge> : null}
                   {checkpoint.isFinishLine ? <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Finish Line</Badge> : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <MapPinned className="h-3.5 w-3.5" />
-                  <span>{checkpoint.gpxFileName || "No checkpoint GPX uploaded yet"}</span>
-                </div>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 md:justify-end">
-              <Button asChild variant="outline" size="sm">
-                <label className="cursor-pointer">
-                  <Upload className="h-4 w-4" />
-                  {checkpoint.gpxFileName ? "Replace GPX" : "Upload GPX"}
-                  <input
-                    accept=".gpx,application/gpx+xml,application/xml,text/xml"
-                    className="hidden"
-                    onChange={(event) => {
-                      void handleCheckpointGpxUpload(checkpoint.id, event.target.files?.[0]);
-                      event.currentTarget.value = "";
-                    }}
-                    type="file"
-                  />
-                </label>
-              </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(checkpoint.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
