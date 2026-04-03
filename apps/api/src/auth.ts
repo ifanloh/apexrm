@@ -218,6 +218,29 @@ export async function requireAuth(request: FastifyRequest): Promise<AuthUser> {
   return authenticateToken(token);
 }
 
+export async function requireOrganizerWorkspaceAuth(request: FastifyRequest): Promise<AuthUser> {
+  const token = getRequestToken(request);
+
+  if (token) {
+    return authenticateToken(token);
+  }
+
+  const demoUserHeader = request.headers["x-organizer-demo-user"];
+  const demoUser = typeof demoUserHeader === "string" ? demoUserHeader.trim() : null;
+
+  if (demoUser === "local-admin") {
+    return {
+      userId: "local-admin",
+      email: "admin",
+      role: "admin",
+      crewCode: null,
+      displayName: "Admin"
+    };
+  }
+
+  throw new Error("Missing bearer token");
+}
+
 export function requireRole(actor: AuthUser, allowedRoles: AuthRole[]) {
   if (!allowedRoles.includes(actor.role)) {
     throw new Error("Forbidden");

@@ -28,6 +28,98 @@ function normalizeBib(value: string) {
   return value.trim().toUpperCase();
 }
 
+type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
+export async function ensureOrganizerWorkspaceTable(sql: Sql) {
+  await sql`
+    create table if not exists public.organizer_workspaces (
+      owner_user_id text primary key,
+      username text,
+      display_name text,
+      payload jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+}
+
+export async function getOrganizerWorkspace(
+  sql: Sql,
+  ownerUserId: string
+): Promise<{
+  ownerUserId: string;
+  username: string | null;
+  displayName: string | null;
+  payload: unknown;
+  updatedAt: string;
+} | null> {
+  const [row] = await sql<{
+    owner_user_id: string;
+    username: string | null;
+    display_name: string | null;
+    payload: unknown;
+    updated_at: string | Date;
+  }[]>`
+    select owner_user_id, username, display_name, payload, updated_at
+    from public.organizer_workspaces
+    where owner_user_id = ${ownerUserId}
+    limit 1
+  `;
+
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ownerUserId: row.owner_user_id,
+    username: row.username,
+    displayName: row.display_name,
+    payload: row.payload,
+    updatedAt: toIsoString(row.updated_at)
+  };
+}
+
+export async function saveOrganizerWorkspace(
+  sql: Sql,
+  input: {
+    ownerUserId: string;
+    username: string | null;
+    displayName: string | null;
+    payload: JsonValue;
+  }
+) {
+  const [row] = await sql<{
+    updated_at: string | Date;
+  }[]>`
+    insert into public.organizer_workspaces (
+      owner_user_id,
+      username,
+      display_name,
+      payload,
+      updated_at
+    )
+    values (
+      ${input.ownerUserId},
+      ${input.username},
+      ${input.displayName},
+      ${sql.json(input.payload)},
+      now()
+    )
+    on conflict (owner_user_id) do update
+    set
+      username = excluded.username,
+      display_name = excluded.display_name,
+      payload = excluded.payload,
+      updated_at = now()
+    returning updated_at
+  `;
+
+  return {
+    updatedAt: row ? toIsoString(row.updated_at) : new Date().toISOString()
+  };
+}
+
 export type ScanProcessResult =
   | {
       status: "accepted";

@@ -78,3 +78,12 @@ create table if not exists public.top5_notifications (
 
 create unique index if not exists top5_notifications_checkpoint_bib_position_normalized_unique
   on public.top5_notifications (checkpoint_id, (upper(trim(bib))), position);
+
+create table if not exists public.organizer_workspaces (
+  owner_user_id text primary key,
+  username text,
+  display_name text,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);

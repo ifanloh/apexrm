@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { supabase } from "@/supabase";
 
 export type EventStatus = "draft" | "upcoming" | "live" | "finished" | "archived";
 export type RaceStatus = "draft" | "upcoming" | "live" | "finished";
@@ -9,6 +10,8 @@ export interface User {
   username: string;
   name: string;
   role: string;
+  workspaceOwnerId: string;
+  isLocalAuth?: boolean;
 }
 
 export interface Event {
@@ -141,10 +144,13 @@ type Store = {
   nextIds: Record<"event" | "race" | "checkpoint" | "participant" | "crew" | "scan", number>;
 };
 
+type PersistedStore = Omit<Store, "user">;
+
 type PrototypeContextValue = {
   store: Store;
   setStore: React.Dispatch<React.SetStateAction<Store>>;
   logout: () => void;
+  isStoreLoading: boolean;
 };
 
 type QueryOptions = {
@@ -163,6 +169,7 @@ type MutationCallbacks<TData> = {
 
 const STORAGE_KEY = "trailnesia:organizer-prototype:v1";
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
 
 function nowIso() {
   return new Date().toISOString();
@@ -190,6 +197,29 @@ function hydrate(store: Store): Store {
   return { ...store, events, races };
 }
 
+function hasWorkspaceContent(store: Store | PersistedStore) {
+  return [
+    store.events.length,
+    store.races.length,
+    store.checkpoints.length,
+    store.participants.length,
+    store.crew.length,
+    store.scans.length
+  ].some((count) => count > 0);
+}
+
+function toPersistedStore(store: Store): PersistedStore {
+  const { user: _user, ...persisted } = store;
+  return persisted;
+}
+
+function hydratePersistedStore(user: User, payload: PersistedStore) {
+  return hydrate({
+    ...payload,
+    user
+  });
+}
+
 function emptyStore(user: User): Store {
   return hydrate({
     user,
@@ -208,14 +238,76 @@ function loadStore(user: User) {
   const raw = window.localStorage.getItem(STORAGE_KEY);
   if (!raw) return emptyStore(user);
   try {
-    return hydrate({ ...(JSON.parse(raw) as Store), user });
+    const parsed = JSON.parse(raw) as Partial<Store>;
+    const payload = "events" in parsed ? (parsed as PersistedStore) : toPersistedStore(emptyStore(user));
+    return hydratePersistedStore(user, payload);
   } catch {
     return emptyStore(user);
   }
 }
 
 function saveStore(store: Store) {
-  if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersistedStore(store)));
+}
+
+async function getWorkspaceAccessToken(user: User) {
+  if (user.isLocalAuth || !supabase) {
+    return null;
+  }
+
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
+async function requestWorkspaceJson<T>(user: User, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  const accessToken = await getWorkspaceAccessToken(user);
+
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  } else if (user.workspaceOwnerId === "local-admin") {
+    headers.set("x-organizer-demo-user", user.workspaceOwnerId);
+  } else {
+    throw new Error("Organizer workspace auth is unavailable.");
+  }
+
+  if (init?.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/organizer/workspace`, {
+    ...init,
+    cache: "no-store",
+    headers
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Workspace request failed (${response.status})`);
+  }
+
+  return (await response.json()) as T;
+}
+
+async function fetchRemoteWorkspace(user: User): Promise<PersistedStore | null> {
+  const payload = await requestWorkspaceJson<{
+    item: {
+      payload: PersistedStore | null;
+    } | null;
+  }>(user);
+
+  return payload.item?.payload ?? null;
+}
+
+async function saveRemoteWorkspace(user: User, store: Store) {
+  await requestWorkspaceJson(user, {
+    body: JSON.stringify({
+      payload: toPersistedStore(store),
+      username: user.username,
+      displayName: user.name
+    }),
+    method: "PUT"
+  });
 }
 
 function parseCsv(csvData: string) {
@@ -229,8 +321,67 @@ function parseCsv(csvData: string) {
 
 export function OrganizerPrototypeProvider({ children, user, onLogout }: { children: ReactNode; user: User; onLogout: () => void }) {
   const [store, setStore] = useState<Store>(() => loadStore(user));
-  useEffect(() => saveStore(store), [store]);
-  const value = useMemo(() => ({ store, setStore, logout: onLogout }), [onLogout, store]);
+  const [isStoreLoading, setIsStoreLoading] = useState(false);
+  const hasHydratedRemoteRef = useRef(false);
+
+  useEffect(() => {
+    let isActive = true;
+    const localStore = loadStore(user);
+    setStore(localStore);
+    hasHydratedRemoteRef.current = false;
+
+    const hydrateRemoteStore = async () => {
+      setIsStoreLoading(true);
+
+      try {
+        const remoteStore = await fetchRemoteWorkspace(user);
+
+        if (!isActive) {
+          return;
+        }
+
+        if (remoteStore) {
+          const nextStore = hydratePersistedStore(user, remoteStore);
+          setStore(nextStore);
+          saveStore(nextStore);
+        } else if (hasWorkspaceContent(localStore)) {
+          await saveRemoteWorkspace(user, localStore);
+        }
+      } catch (error) {
+        console.error("Organizer workspace sync failed.", error);
+      } finally {
+        if (!isActive) {
+          return;
+        }
+
+        hasHydratedRemoteRef.current = true;
+        setIsStoreLoading(false);
+      }
+    };
+
+    void hydrateRemoteStore();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user.id, user.isLocalAuth, user.name, user.role, user.username, user.workspaceOwnerId]);
+
+  useEffect(() => {
+    saveStore(store);
+
+    if (!hasHydratedRemoteRef.current) {
+      return;
+    }
+
+    void saveRemoteWorkspace(user, store).catch((error) => {
+      console.error("Organizer workspace save failed.", error);
+    });
+  }, [store, user.id, user.isLocalAuth, user.name, user.username, user.workspaceOwnerId]);
+
+  const value = useMemo(
+    () => ({ store, setStore, logout: onLogout, isStoreLoading }),
+    [isStoreLoading, onLogout, store]
+  );
   return <PrototypeContext.Provider value={value}>{children}</PrototypeContext.Provider>;
 }
 
@@ -270,40 +421,50 @@ export const getGetRaceDayStatusQueryKey = (eventId: number, raceId: number) => 
 export const getListScansQueryKey = (eventId: number, raceId: number) => ["prototype-scans", eventId, raceId];
 
 export function useListEvents() {
-  const { store } = usePrototypeContext();
-  return { data: store.events, isLoading: false };
+  const { store, isStoreLoading } = usePrototypeContext();
+  return { data: store.events, isLoading: isStoreLoading };
 }
 
 export function useGetEvent(eventId: number, options?: QueryOptions) {
-  const { store } = usePrototypeContext();
-  return { data: options?.query?.enabled === false ? undefined : store.events.find((event) => event.id === eventId) ?? null, isLoading: false, error: null };
+  const { store, isStoreLoading } = usePrototypeContext();
+  return {
+    data: options?.query?.enabled === false ? undefined : store.events.find((event) => event.id === eventId) ?? null,
+    isLoading: isStoreLoading,
+    error: null
+  };
 }
 
 export function useListRaces(eventId: number, options?: QueryOptions) {
-  const { store } = usePrototypeContext();
-  return { data: options?.query?.enabled === false ? undefined : store.races.filter((race) => race.eventId === eventId), isLoading: false };
+  const { store, isStoreLoading } = usePrototypeContext();
+  return { data: options?.query?.enabled === false ? undefined : store.races.filter((race) => race.eventId === eventId), isLoading: isStoreLoading };
 }
 
 export function useListCheckpoints(eventId: number, raceId: number, options?: QueryOptions) {
-  const { store } = usePrototypeContext();
+  const { store, isStoreLoading } = usePrototypeContext();
   const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
-  return { data: exists && options?.query?.enabled !== false ? store.checkpoints.filter((checkpoint) => checkpoint.raceId === raceId) : [], isLoading: false };
+  return {
+    data: exists && options?.query?.enabled !== false ? store.checkpoints.filter((checkpoint) => checkpoint.raceId === raceId) : [],
+    isLoading: isStoreLoading
+  };
 }
 
 export function useListParticipants(eventId: number, raceId: number, options?: QueryOptions) {
-  const { store } = usePrototypeContext();
+  const { store, isStoreLoading } = usePrototypeContext();
   const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
-  return { data: exists && options?.query?.enabled !== false ? store.participants.filter((participant) => participant.raceId === raceId) : [], isLoading: false };
+  return {
+    data: exists && options?.query?.enabled !== false ? store.participants.filter((participant) => participant.raceId === raceId) : [],
+    isLoading: isStoreLoading
+  };
 }
 
 export function useListScannerCrew(eventId: number, options?: QueryOptions) {
-  const { store } = usePrototypeContext();
-  return { data: options?.query?.enabled === false ? undefined : store.crew.filter((member) => member.eventId === eventId), isLoading: false };
+  const { store, isStoreLoading } = usePrototypeContext();
+  return { data: options?.query?.enabled === false ? undefined : store.crew.filter((member) => member.eventId === eventId), isLoading: isStoreLoading };
 }
 
 export function useGetEventSummary(eventId: number, options?: QueryOptions) {
-  const { store } = usePrototypeContext();
-  if (options?.query?.enabled === false) return { data: undefined, isLoading: false };
+  const { store, isStoreLoading } = usePrototypeContext();
+  if (options?.query?.enabled === false) return { data: undefined, isLoading: isStoreLoading };
   const event = store.events.find((entry) => entry.id === eventId);
   const races = store.races.filter((entry) => entry.eventId === eventId);
   const readinessChecks: ReadinessCheck[] = [
@@ -326,15 +487,15 @@ export function useGetEventSummary(eventId: number, options?: QueryOptions) {
           readinessChecks
         }
       : null,
-    isLoading: false
+    isLoading: isStoreLoading
   };
 }
 
 export function useGetRaceDayStatus(eventId: number, raceId: number, options?: QueryOptions) {
-  const { store } = usePrototypeContext();
-  if (options?.query?.enabled === false) return { data: undefined, isLoading: false };
+  const { store, isStoreLoading } = usePrototypeContext();
+  if (options?.query?.enabled === false) return { data: undefined, isLoading: isStoreLoading };
   const race = store.races.find((entry) => entry.id === raceId && entry.eventId === eventId);
-  if (!race) return { data: null, isLoading: false };
+  if (!race) return { data: null, isLoading: isStoreLoading };
   const checkpoints = store.checkpoints.filter((checkpoint) => checkpoint.raceId === raceId).sort((a, b) => a.orderIndex - b.orderIndex);
   const participants = store.participants.filter((participant) => participant.raceId === raceId);
   const scans = store.scans.filter((scan) => scan.raceId === raceId);
@@ -359,16 +520,16 @@ export function useGetRaceDayStatus(eventId: number, raceId: number, options?: Q
         lastScanAt: scans.filter((scan) => scan.checkpointId === checkpoint.id).sort((a, b) => b.scannedAt.localeCompare(a.scannedAt))[0]?.scannedAt ?? null
       }))
     } satisfies RaceDayStatus,
-    isLoading: false
+    isLoading: isStoreLoading
   };
 }
 
 export function useListScans(eventId: number, raceId: number, options?: QueryOptions) {
-  const { store } = usePrototypeContext();
+  const { store, isStoreLoading } = usePrototypeContext();
   const exists = store.races.some((race) => race.id === raceId && race.eventId === eventId);
   return {
     data: exists && options?.query?.enabled !== false ? store.scans.filter((scan) => scan.raceId === raceId).sort((a, b) => b.scannedAt.localeCompare(a.scannedAt)) : [],
-    isLoading: false
+    isLoading: isStoreLoading
   };
 }
 

@@ -7,19 +7,23 @@ import {
   scanSubmissionSchema,
   withdrawalSubmissionSchema
 } from "./contracts.js";
-import { requireAuth, requireRole } from "./auth.js";
+import { requireAuth, requireOrganizerWorkspaceAuth, requireRole } from "./auth.js";
 import { sql } from "./db.js";
 import {
   ensureDefaultCheckpoints,
+  ensureOrganizerWorkspaceTable,
   getCheckpointLeaderboard,
   getDuplicateAuditLog,
   getLiveLeaderboard,
   getNotificationFeed,
+  getOrganizerWorkspace,
+  type JsonValue,
   getOverallLeaderboard,
   getRecentPassings,
   getRunnerDetail,
   processSingleScan,
   processSingleWithdrawal,
+  saveOrganizerWorkspace,
   searchRunners,
   syncOfflineScans,
   syncOfflineWithdrawals
@@ -34,7 +38,14 @@ const syncOfflineWithdrawalsSchema = z.object({
   withdrawals: z.array(withdrawalSubmissionSchema).min(1)
 });
 
+const organizerWorkspacePayloadSchema = z.object({
+  payload: z.unknown(),
+  username: z.string().trim().optional().nullable(),
+  displayName: z.string().trim().optional().nullable()
+});
+
 let checkpointBootstrapPromise: Promise<void> | null = null;
+let organizerWorkspaceBootstrapPromise: Promise<void> | null = null;
 
 function createHealthPayload() {
   return {
@@ -66,6 +77,14 @@ async function ensureCheckpointBootstrap() {
   }
 
   await checkpointBootstrapPromise;
+}
+
+async function ensureOrganizerWorkspaceBootstrap() {
+  if (!organizerWorkspaceBootstrapPromise) {
+    organizerWorkspaceBootstrapPromise = ensureOrganizerWorkspaceTable(sql);
+  }
+
+  await organizerWorkspaceBootstrapPromise;
 }
 
 export async function createServer() {
@@ -205,6 +224,30 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/events`, async (_request, reply) => {
     return reply.code(410).send({
       message: "Live stream SSE dinonaktifkan untuk deploy serverless. Gunakan polling snapshot dashboard."
+    });
+  });
+
+  server.get(`${config.apiPrefix}/organizer/workspace`, async (request) => {
+    const actor = await requireOrganizerWorkspaceAuth(request);
+    requireRole(actor, ["admin", "panitia", "observer"]);
+    await ensureOrganizerWorkspaceBootstrap();
+
+    return {
+      item: await getOrganizerWorkspace(sql, actor.userId)
+    };
+  });
+
+  server.put(`${config.apiPrefix}/organizer/workspace`, async (request) => {
+    const actor = await requireOrganizerWorkspaceAuth(request);
+    requireRole(actor, ["admin", "panitia", "observer"]);
+    await ensureOrganizerWorkspaceBootstrap();
+    const payload = organizerWorkspacePayloadSchema.parse(request.body);
+
+    return saveOrganizerWorkspace(sql, {
+      ownerUserId: actor.userId,
+      username: payload.username ?? actor.email,
+      displayName: payload.displayName ?? actor.displayName,
+      payload: payload.payload as JsonValue
     });
   });
 

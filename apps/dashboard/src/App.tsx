@@ -4060,7 +4060,9 @@ export default function App() {
           id: 1,
           username: (profile?.email ?? "admin").split("@")[0] ?? "admin",
           name: profile?.displayName ?? profile?.email ?? profile?.role ?? "Organizer",
-          role: profile?.role ?? "organizer"
+          role: profile?.role ?? "organizer",
+          workspaceOwnerId: profile?.userId ?? "local-admin",
+          isLocalAuth: isLocalOrganizerAuth
         }}
       />
     );
