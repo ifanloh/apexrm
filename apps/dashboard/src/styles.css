@@ -7844,8 +7844,9 @@ body {
 }
 
 .live-main > .edition-home-shell.cards-only .race-card-grid {
+  align-items: start;
   grid-template-columns: repeat(auto-fit, minmax(280px, 360px));
-  justify-content: start;
+  justify-content: center;
   max-width: 100%;
 }
 
