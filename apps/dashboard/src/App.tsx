@@ -4492,42 +4492,43 @@ export default function App() {
           <section className="panel organizer-home-shell">
             <div className="organizer-home-hero">
               <div className="organizer-home-copy">
-                <span className="detail-label">Organizer portal</span>
+                <span className="detail-label">Organizer dashboard</span>
                 <h2>Organizer Home</h2>
                 <p>
-                  Masuk sebagai organizer, buat event draft, publish kategori sebagai Upcoming saat halaman publiknya siap, lalu lanjutkan GPX, peserta, dan scanner crew sampai race siap Live.
+                  Kelola draft, lihat event yang perlu perhatian, lalu lanjutkan setup dengan alur yang lebih tenang dari publish `Upcoming` sampai `Live`.
                 </p>
                 <div className="organizer-home-actions">
-                  <span className="organizer-flow-pill secondary">{organizerDraftStatusLabel}</span>
-                  <span className="organizer-home-note">All setup changes stay private until you publish a race category.</span>
-                </div>
-                <div className="organizer-home-flow">
-                  <span className="organizer-flow-pill">1. Login organizer</span>
-                  <span className="organizer-flow-pill">2. Create event draft</span>
-                  <span className="organizer-flow-pill">3. Finish course & checkpoints</span>
-                  <span className="organizer-flow-pill">4. Import participants</span>
-                  <span className="organizer-flow-pill">5. Set up scanner crew</span>
-                  <span className="organizer-flow-pill">6. Review & publish</span>
+                  <button className="toolbar-link organizer-primary-action organizer-home-primary" onClick={handleCreateOrganizerFirstEvent} type="button">
+                    {organizerHasEvents ? "Create new event" : "Create your first event"}
+                  </button>
+                  {organizerActiveEvent ? (
+                    <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(organizerActiveEvent.id)} type="button">
+                      Open active event
+                    </button>
+                  ) : null}
+                  <button className="toolbar-link organizer-secondary-action" onClick={openActiveSpectatorPreview} type="button">
+                    Open spectator preview
+                  </button>
                 </div>
               </div>
 
-              <div className="organizer-home-actions">
-                <button className="auth-trigger" onClick={handleCreateOrganizerFirstEvent} type="button">
-                  {organizerHasEvents ? "Create new event" : "Create your first event"}
-                </button>
-                {organizerActiveEvent ? (
-                  <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(organizerActiveEvent.id)} type="button">
-                    Open active event
-                  </button>
-                ) : null}
-                <button className="toolbar-link organizer-secondary-action" onClick={openActiveSpectatorPreview} type="button">
-                  Open spectator preview
-                </button>
-              </div>
+              <aside className="organizer-home-command">
+                <span className="organizer-flow-pill secondary">{organizerDraftStatusLabel}</span>
+                <p className="organizer-home-note">All setup changes stay private until you publish a race category.</p>
+                <div className="organizer-home-flow">
+                  <span className="organizer-flow-pill">1. Create draft</span>
+                  <span className="organizer-flow-pill">2. Finish course</span>
+                  <span className="organizer-flow-pill">3. Import participants</span>
+                  <span className="organizer-flow-pill">4. Set scanner crew</span>
+                  <span className="organizer-flow-pill">5. Publish Upcoming</span>
+                  <span className="organizer-flow-pill">6. Unlock Live</span>
+                </div>
+              </aside>
             </div>
 
             {organizerHasEvents ? (
-              <div className="organizer-home-grid">
+              <>
+                <div className="organizer-home-grid organizer-home-summary-grid">
                 <article className="organizer-home-card">
                   <span className="detail-label">Events</span>
                   <strong>{organizerEventCount}</strong>
@@ -4539,13 +4540,19 @@ export default function App() {
                   <p>{organizerPublishedCount} published and {organizerDraftCount} draft across all events.</p>
                 </article>
                 <article className="organizer-home-card">
-                  <span className="detail-label">Active event</span>
+                  <span className="detail-label">Current workspace</span>
                   <h3>{organizerActiveEvent?.title ?? "No active event"}</h3>
                   <p>{organizerActivePublishedCount} published and {organizerActiveDraftCount} draft in the current workspace.</p>
                   <span className={`organizer-status-pill ${organizerActiveEventPhase}`}>{organizerActiveEventPhaseLabel}</span>
                 </article>
-                <article className="organizer-home-card organizer-home-card-wide">
-                  <span className="detail-label">Your events</span>
+                </div>
+                <section className="organizer-home-events-shell">
+                  <div className="organizer-home-events-head">
+                    <div>
+                      <span className="detail-label">Your events</span>
+                      <h3>Open the next event that needs attention</h3>
+                      <p>Drafts stay private, published categories appear online, and live events float to the top naturally.</p>
+                    </div>
                   <div className="organizer-home-actions organizer-home-filters">
                     <button
                       className={`organizer-flow-pill ${organizerHomeFilter === "active" ? "" : "secondary"}`}
@@ -4569,7 +4576,8 @@ export default function App() {
                       Archived
                     </button>
                   </div>
-                  <div className="organizer-home-race-list organizer-event-list">
+                  </div>
+                  <div className="organizer-event-card-grid">
                     {organizerHomeEvents.map((event) => {
                       const publishedCount = event.setup.races.filter((race) => race.isPublished).length;
                       const draftCount = event.setup.races.length - publishedCount;
@@ -4586,15 +4594,38 @@ export default function App() {
                               ? "Public Finished"
                               : "Private";
                       const isArchived = Boolean(event.archivedAt);
+                      const nextActionLabel = isArchived
+                        ? "Restore this archived event if you want to reuse it."
+                        : publishedCount === 0
+                          ? "Finish setup and publish your first race category."
+                          : publicStatus === "live"
+                            ? "Monitor Race Day Ops and official standings."
+                            : publicStatus === "upcoming"
+                              ? "Clear the remaining live blockers before race day."
+                              : "Review the finished edition or duplicate it for the next year.";
 
                       return (
-                        <div className="organizer-home-race-row organizer-event-row" key={event.id}>
-                          <div className="organizer-event-main">
-                            <div>
+                        <article className={`organizer-event-card ${isActive ? "active" : ""} ${isArchived ? "archived" : ""}`} key={event.id}>
+                          <div
+                            className="organizer-event-main organizer-event-card-media"
+                            style={
+                              event.setup.branding.heroBackgroundImageDataUrl
+                                ? { backgroundImage: `linear-gradient(180deg, rgba(14, 30, 22, 0.14), rgba(14, 30, 22, 0.38)), url(${event.setup.branding.heroBackgroundImageDataUrl})` }
+                                : undefined
+                            }
+                          >
+                            <div className="organizer-event-card-head">
+                              <span className="detail-label">{isArchived ? "Archived event" : isActive ? "Current workspace" : "Organizer event"}</span>
                               <strong>{event.title}</strong>
-                              <p>
+                              {/*
+                              <p>{event.setup.branding.locationRibbon} · {event.setup.branding.dateRibbon}</p>
+                              {/*
+                              <p>{event.setup.branding.locationRibbon} · {event.setup.branding.dateRibbon}</p>
                                 {event.setup.races.length} categories · {publishedCount} published · {draftCount} draft
-                              </p>
+                              */}{/*
+                              <p>{event.setup.branding.locationRibbon}{" · "}{event.setup.branding.dateRibbon}</p>
+                              */}
+                              <p>{event.setup.branding.locationRibbon} / {event.setup.branding.dateRibbon}</p>
                             </div>
                             <div className="organizer-event-badges">
                               <span className={`organizer-status-pill ${isArchived ? "draft" : phase}`}>{isArchived ? "Archived" : phaseLabel}</span>
@@ -4606,30 +4637,38 @@ export default function App() {
                               ) : null}
                             </div>
                           </div>
-                          <div className="organizer-event-actions">
-                            {isArchived ? (
-                              <button className="toolbar-link organizer-secondary-action" onClick={() => restoreOrganizerEvent(event.id)} type="button">
-                                Restore
-                              </button>
-                            ) : (
-                              <>
-                                <button className="toolbar-link organizer-secondary-action" onClick={() => openOrganizerEvent(event.id)} type="button">
-                                  Open
+                          <div className="organizer-event-card-body">
+                            <div className="organizer-event-card-meta">
+                              <span>{event.setup.races.length} categories</span>
+                              <span>{publishedCount} published</span>
+                              <span>{draftCount} draft</span>
+                            </div>
+                            <p className="organizer-event-card-next">{nextActionLabel}</p>
+                            <div className="organizer-event-actions">
+                              {isArchived ? (
+                                <button className="toolbar-link organizer-secondary-action" onClick={() => restoreOrganizerEvent(event.id)} type="button">
+                                  Restore event
                                 </button>
-                                <button className="toolbar-link organizer-secondary-action" onClick={() => duplicateOrganizerEvent(event.id)} type="button">
-                                  Duplicate
-                                </button>
-                                <button className="toolbar-link organizer-secondary-action" onClick={() => archiveOrganizerEvent(event.id)} type="button">
-                                  Archive
-                                </button>
-                              </>
-                            )}
+                              ) : (
+                                <>
+                                  <button className="toolbar-link organizer-primary-action organizer-event-open" onClick={() => openOrganizerEvent(event.id)} type="button">
+                                    {isActive ? "Continue setup" : "Open event"}
+                                  </button>
+                                  <button className="toolbar-link organizer-secondary-action" onClick={() => duplicateOrganizerEvent(event.id)} type="button">
+                                    Duplicate
+                                  </button>
+                                  <button className="toolbar-link organizer-secondary-action" onClick={() => archiveOrganizerEvent(event.id)} type="button">
+                                    Archive
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        </article>
                       );
                     })}
                     {!organizerHomeEvents.length ? (
-                      <div className="empty-compact">
+                      <div className="empty-compact organizer-home-empty-inline">
                         {organizerHomeFilter === "archived"
                           ? "No archived events yet."
                           : organizerHomeFilter === "all"
@@ -4638,8 +4677,8 @@ export default function App() {
                       </div>
                     ) : null}
                   </div>
-                </article>
-              </div>
+                </section>
+              </>
             ) : (
               <>
         {!organizerWizardOpen ? (
@@ -4716,7 +4755,7 @@ export default function App() {
                           />
                         </label>
                         <div className="organizer-step-actions">
-                          <button className="auth-trigger" disabled={!organizerWizardBasicsReady} onClick={() => setOrganizerWizardStep("branding")} type="button">
+                          <button className="toolbar-link organizer-primary-action" disabled={!organizerWizardBasicsReady} onClick={() => setOrganizerWizardStep("branding")} type="button">
                             Continue to branding
                           </button>
                         </div>
@@ -4758,7 +4797,7 @@ export default function App() {
                           <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWizardStep("basics")} type="button">
                             Back to basics
                           </button>
-                          <button className="auth-trigger" disabled={!organizerWizardBrandingReady} onClick={() => setOrganizerWizardStep("race")} type="button">
+                          <button className="toolbar-link organizer-primary-action" disabled={!organizerWizardBrandingReady} onClick={() => setOrganizerWizardStep("race")} type="button">
                             Continue to first race
                           </button>
                         </div>
@@ -4851,7 +4890,7 @@ export default function App() {
                           <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWizardStep("branding")} type="button">
                             Back to branding
                           </button>
-                          <button className="auth-trigger" disabled={!organizerWizardRaceReady} onClick={() => setOrganizerWizardStep("review")} type="button">
+                          <button className="toolbar-link organizer-primary-action" disabled={!organizerWizardRaceReady} onClick={() => setOrganizerWizardStep("review")} type="button">
                             Continue to save draft
                           </button>
                         </div>
@@ -4888,7 +4927,7 @@ export default function App() {
                           <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWizardStep("race")} type="button">
                             Back to race category
                           </button>
-                          <button className="auth-trigger" onClick={finalizeOrganizerWizard} type="button">
+                          <button className="toolbar-link organizer-primary-action" onClick={finalizeOrganizerWizard} type="button">
                             Create draft and open race setup
                           </button>
                         </div>

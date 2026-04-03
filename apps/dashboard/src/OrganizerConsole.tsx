@@ -651,9 +651,9 @@ export function OrganizerConsole({
       <div className="organizer-console-header">
         <div>
           <p className="section-label">Organizer setup</p>
-          <h2>Set up your event step by step</h2>
+          <h2>Set up your event in one calm flow</h2>
           <p className="organizer-console-copy">
-            Lanjutkan dari langkah yang belum lengkap: rapikan identitas event, selesaikan race setup, import peserta, atur scanner crew, lalu publish dari review.
+            Mulai dari identitas event, lanjutkan kategori race, peserta, dan scanner crew, lalu publish dari review. Race Day Ops tetap terpisah untuk hari lomba.
           </p>
           <p className="organizer-console-meta">
             {eventTitle} · {eventPhaseLabel} · Signed in as {profileLabel}
@@ -669,8 +669,8 @@ export function OrganizerConsole({
             <div className="organizer-console-flow-meta">
               <span className="organizer-flow-pill secondary">Operations</span>
               <span className="organizer-flow-pill secondary">{draftSavedLabel}</span>
-              <strong>Race day operations</strong>
-              <span>Use this after setup to monitor live activity and exceptions.</span>
+              <strong>Race Day Ops</strong>
+              <span>Use this only after setup is ready and you need live monitoring.</span>
             </div>
           )}
         </div>
@@ -692,7 +692,7 @@ export function OrganizerConsole({
           </button>
         ))}
         <button className={`organizer-console-nav-button organizer-console-nav-secondary ${activeView === "operations" ? "active" : ""}`} onClick={() => setActiveView("operations")} type="button">
-          Race day (later)
+          Race Day Ops
         </button>
       </nav>
 
