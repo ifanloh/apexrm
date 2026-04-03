@@ -4165,143 +4165,146 @@ export default function App() {
       <div className={`dashboard-main dashboard-main-scroll live-main ${showPlatformHome ? "platform-home-main" : ""}`}>
         {showPlatformHome ? (
           <section className="platform-home-shell" id="platform-home">
-            <div className="platform-home-topline">
-              {platformHeroTickerEvents.length ? (
-                platformHeroTickerEvents.map((event) => (
-                  <button className="platform-home-topline-pill" key={`platform-topline-${event.id}`} onClick={() => openPublicEvent(event.id)} type="button">
-                    <span className={`platform-home-topline-dot status-${event.publicStatus}`} aria-hidden="true" />
-                    <span>{event.title}</span>
-                  </button>
-                ))
-              ) : (
-                <span className="platform-home-topline-copy">Public events will appear here as soon as organizers publish their races.</span>
-              )}
-            </div>
-
-            <div className="platform-home-commandbar">
-              <div className="platform-home-commandbrand">
-                <img alt="Trailnesia" src={trailnesiaLogo} />
-                <span>Trailnesia Platform</span>
-              </div>
-              <div className="platform-home-commandcenter">
-                <div className="platform-home-commandnav" role="navigation" aria-label="Platform home sections">
-                  <button className="platform-home-commandlink active" onClick={() => jumpToSection("platform-home")} type="button">
-                    Events
-                  </button>
-                  <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-discovery")} type="button">
-                    Indonesia Map
-                  </button>
-                  <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-home-events")} type="button">
-                    Event Catalog
-                  </button>
-                  <button className="platform-home-commandlink" onClick={() => jumpToSection("runtime-footer")} type="button">
-                    Contact
-                  </button>
-                </div>
-              </div>
-              <div className="platform-home-commandactions">
-                {organizerSessionActive ? (
-                  <button className="platform-home-action-pill" onClick={openOrganizerHome} type="button">
-                    Organizer
-                  </button>
-                ) : (
-                  <button
-                    className="platform-home-action-pill"
-                    onClick={() => {
-                      setLoginError(null);
-                      setIsLoginModalOpen(true);
-                    }}
-                    type="button"
-                  >
-                    Login
-                  </button>
-                )}
-                <button className="platform-home-locale" type="button">
-                  EN <span aria-hidden="true">v</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="platform-home-hero">
+            <div className="platform-home-hero-shell">
               {platformHeroEvent?.heroBackgroundImageDataUrl ? (
                 <img alt="" className="platform-home-hero-image" src={platformHeroEvent.heroBackgroundImageDataUrl} />
               ) : null}
               <div className="platform-home-hero-overlay" />
-              <div className="platform-home-hero-copy">
-                <div className="platform-home-brand">
-                  <img alt="Trailnesia" src={trailnesiaLogo} />
-                  <span className="detail-label">Trailnesia platform</span>
-                </div>
-                <h2>Find your next trail event in Indonesia</h2>
-                <p>Discover live, upcoming, and finished events from organizers across the platform, then open each event hub to follow race categories, rankings, and live updates.</p>
-                <div className="platform-home-search">
-                  <input
-                    aria-label="Search public events"
-                    onChange={(event) => setPlatformEventQuery(event.target.value)}
-                    placeholder="Find an event, an organizer, a location..."
-                    type="search"
-                    value={platformEventQuery}
-                  />
-                  <button className="platform-home-search-button" type="button">
-                    Search
-                  </button>
-                </div>
-                <div className="platform-home-kpis">
-                  <span>{filteredPublicEventCards.length} public events</span>
-                  <span>{platformPublishedRaceCount} published races</span>
-                  <span>{livePlatformEvents.length} live now</span>
-                  <span>{upcomingPlatformEvents.length} upcoming</span>
-                </div>
-              </div>
-              <div className="platform-home-hero-stage">
-                <div className="platform-home-stage-dashboard">
-                  <span className="platform-home-stage-badge">Live dashboard</span>
-                  <div className="platform-home-stage-grid">
-                    {platformHeroShowcaseCards.slice(0, 2).map((event) => (
-                      <article className="platform-home-stage-panel" key={`platform-stage-panel-${event.id}`}>
-                        <span className={`organizer-status-pill ${event.publicStatus}`}>{getPublicEventStatusLabel(event.publicStatus)}</span>
-                        <strong>{event.title}</strong>
-                        <small>{event.locationRibbon}</small>
-                      </article>
-                    ))}
-                  </div>
-                  <div className="platform-home-stage-chart" aria-hidden="true">
-                    <span />
-                    <span />
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
-                <div className="platform-home-stage-phone">
-                  <div className="platform-home-stage-phone-header">
-                    <img alt="Trailnesia" src={trailnesiaLogo} />
-                    <strong>Trailnesia</strong>
-                  </div>
-                  <div className="platform-home-stage-phone-card">
-                    <span className="platform-home-stage-phone-kicker">Mobile race feed</span>
-                    <strong>Live ranking</strong>
-                    <small>Follow public races on the go</small>
-                  </div>
-                  {platformHeroShowcaseCards.map((event, index) => (
-                    <button
-                      className={`platform-home-preview-card preview-${index + 1}`}
-                      key={`platform-preview-${event.id}`}
-                      onClick={() => {
-                        if (!publicEventCards.length) {
-                          return;
-                        }
 
-                        openPublicEvent(event.id);
+              <div className="platform-home-topline">
+                {platformHeroTickerEvents.length ? (
+                  platformHeroTickerEvents.map((event) => (
+                    <button className="platform-home-topline-pill" key={`platform-topline-${event.id}`} onClick={() => openPublicEvent(event.id)} type="button">
+                      <span className={`platform-home-topline-dot status-${event.publicStatus}`} aria-hidden="true" />
+                      <span>{event.title}</span>
+                    </button>
+                  ))
+                ) : (
+                  <span className="platform-home-topline-copy">Public events will appear here as soon as organizers publish their races.</span>
+                )}
+              </div>
+
+              <div className="platform-home-commandbar">
+                <div className="platform-home-commandbrand">
+                  <img alt="Trailnesia" src={trailnesiaLogo} />
+                  <span>Trailnesia Platform</span>
+                </div>
+                <div className="platform-home-commandcenter">
+                  <div className="platform-home-commandnav" role="navigation" aria-label="Platform home sections">
+                    <button className="platform-home-commandlink active" onClick={() => jumpToSection("platform-home")} type="button">
+                      Events
+                    </button>
+                    <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-discovery")} type="button">
+                      Indonesia Map
+                    </button>
+                    <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-home-events")} type="button">
+                      Event Catalog
+                    </button>
+                    <button className="platform-home-commandlink" onClick={() => jumpToSection("runtime-footer")} type="button">
+                      Contact
+                    </button>
+                  </div>
+                </div>
+                <div className="platform-home-commandactions">
+                  {organizerSessionActive ? (
+                    <button className="platform-home-action-pill" onClick={openOrganizerHome} type="button">
+                      Organizer
+                    </button>
+                  ) : (
+                    <button
+                      className="platform-home-action-pill"
+                      onClick={() => {
+                        setLoginError(null);
+                        setIsLoginModalOpen(true);
                       }}
                       type="button"
                     >
-                      <span className={`organizer-status-pill ${event.publicStatus}`}>{getPublicEventStatusLabel(event.publicStatus)}</span>
-                      <strong>{event.title}</strong>
-                      <p>{event.locationRibbon}</p>
-                      <span>{event.dateRibbon}</span>
+                      Login
                     </button>
-                  ))}
+                  )}
+                  <button className="platform-home-locale" type="button">
+                    EN <span aria-hidden="true">v</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="platform-home-hero">
+                <div className="platform-home-hero-copy">
+                  <div className="platform-home-brand">
+                    <img alt="Trailnesia" src={trailnesiaLogo} />
+                    <span className="detail-label">Trailnesia platform</span>
+                  </div>
+                  <h2>Find your next trail event in Indonesia</h2>
+                  <p>Discover live, upcoming, and finished events from organizers across the platform, then open each event hub to follow race categories, rankings, and live updates.</p>
+                  <div className="platform-home-search">
+                    <input
+                      aria-label="Search public events"
+                      onChange={(event) => setPlatformEventQuery(event.target.value)}
+                      placeholder="Find an event, an organizer, a location..."
+                      type="search"
+                      value={platformEventQuery}
+                    />
+                    <button className="platform-home-search-button" type="button">
+                      Search
+                    </button>
+                  </div>
+                  <div className="platform-home-kpis">
+                    <span>{filteredPublicEventCards.length} public events</span>
+                    <span>{platformPublishedRaceCount} published races</span>
+                    <span>{livePlatformEvents.length} live now</span>
+                    <span>{upcomingPlatformEvents.length} upcoming</span>
+                  </div>
+                </div>
+                <div className="platform-home-hero-stage">
+                  <div className="platform-home-stage-dashboard">
+                    <span className="platform-home-stage-badge">Live dashboard</span>
+                    <div className="platform-home-stage-grid">
+                      {platformHeroShowcaseCards.slice(0, 2).map((event) => (
+                        <article className="platform-home-stage-panel" key={`platform-stage-panel-${event.id}`}>
+                          <span className={`organizer-status-pill ${event.publicStatus}`}>{getPublicEventStatusLabel(event.publicStatus)}</span>
+                          <strong>{event.title}</strong>
+                          <small>{event.locationRibbon}</small>
+                        </article>
+                      ))}
+                    </div>
+                    <div className="platform-home-stage-chart" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  </div>
+                  <div className="platform-home-stage-phone">
+                    <div className="platform-home-stage-phone-header">
+                      <img alt="Trailnesia" src={trailnesiaLogo} />
+                      <strong>Trailnesia</strong>
+                    </div>
+                    <div className="platform-home-stage-phone-card">
+                      <span className="platform-home-stage-phone-kicker">Mobile race feed</span>
+                      <strong>Live ranking</strong>
+                      <small>Follow public races on the go</small>
+                    </div>
+                    {platformHeroShowcaseCards.map((event, index) => (
+                      <button
+                        className={`platform-home-preview-card preview-${index + 1}`}
+                        key={`platform-preview-${event.id}`}
+                        onClick={() => {
+                          if (!publicEventCards.length) {
+                            return;
+                          }
+
+                          openPublicEvent(event.id);
+                        }}
+                        type="button"
+                      >
+                        <span className={`organizer-status-pill ${event.publicStatus}`}>{getPublicEventStatusLabel(event.publicStatus)}</span>
+                        <strong>{event.title}</strong>
+                        <p>{event.locationRibbon}</p>
+                        <span>{event.dateRibbon}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
