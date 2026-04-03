@@ -8481,6 +8481,17 @@ body {
   justify-content: space-between;
 }
 
+.platform-home-section-head-centered {
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.platform-home-section-head-centered p {
+  max-width: 46rem;
+}
+
 .platform-home-section-head h3,
 .platform-home-section-head p {
   margin: 0;
@@ -8603,73 +8614,19 @@ body {
   top: 31%;
 }
 
-.platform-event-quicklist {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-}
-
-.platform-event-quicklink {
-  align-items: center;
-  background: #fffdf9;
-  border: 1px solid rgba(20, 22, 24, 0.08);
-  border-radius: 999px;
-  color: #1f1d19;
-  display: inline-flex;
-  gap: 0.7rem;
-  min-height: 48px;
-  padding: 0.35rem 0.45rem 0.35rem 0.9rem;
-  text-align: left;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-}
-
-.platform-event-quicklink:hover {
-  border-color: rgba(183, 53, 33, 0.2);
-  box-shadow: 0 14px 24px rgba(71, 34, 18, 0.1);
-  transform: translateY(-1px);
-}
-
-.platform-event-quicklink strong {
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
-
-.platform-event-quicklink-date,
-.platform-event-quicklink-country {
-  align-items: center;
-  border-radius: 999px;
-  display: inline-flex;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  min-height: 30px;
-  padding: 0 0.8rem;
-  text-transform: uppercase;
-}
-
-.platform-event-quicklink-date {
-  background: rgba(183, 53, 33, 0.12);
-  color: #8f2f1e;
-}
-
-.platform-event-quicklink-country {
-  background: rgba(24, 72, 63, 0.08);
-  color: #14483f;
-}
-
 .platform-event-directory {
   display: grid;
-  gap: 1.2rem;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 260px));
+  justify-content: center;
 }
 
 .platform-event-directory-card {
   background:
     linear-gradient(180deg, rgba(255, 253, 249, 0.98), rgba(250, 246, 238, 0.98));
   border: 1px solid rgba(20, 22, 24, 0.08);
-  border-radius: 28px;
-  box-shadow: 0 24px 42px rgba(35, 27, 19, 0.12);
+  border-radius: 22px;
+  box-shadow: 0 18px 32px rgba(35, 27, 19, 0.1);
   color: #1f1d19;
   display: grid;
   gap: 0;
@@ -8681,12 +8638,12 @@ body {
 
 .platform-event-directory-card:hover {
   border-color: rgba(183, 53, 33, 0.18);
-  box-shadow: 0 30px 52px rgba(35, 27, 19, 0.18);
-  transform: translateY(-4px);
+  box-shadow: 0 24px 40px rgba(35, 27, 19, 0.16);
+  transform: translateY(-3px);
 }
 
 .platform-event-directory-poster {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 5;
   background:
     linear-gradient(135deg, rgba(97, 25, 15, 0.9), rgba(16, 54, 49, 0.82)),
     radial-gradient(circle at top right, rgba(226, 179, 79, 0.34), transparent 54%);
@@ -8752,7 +8709,7 @@ body {
   backdrop-filter: blur(16px);
   background: rgba(255, 248, 238, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.44);
-  border-radius: 22px;
+  border-radius: 18px;
   bottom: 1rem;
   box-shadow: 0 18px 28px rgba(16, 18, 19, 0.2);
   display: grid;
@@ -8760,7 +8717,7 @@ body {
   justify-items: center;
   left: 1rem;
   min-width: 86px;
-  padding: 0.8rem 0.75rem;
+  padding: 0.7rem 0.65rem;
   position: absolute;
   z-index: 1;
 }
@@ -8790,8 +8747,8 @@ body {
 
 .platform-event-directory-body {
   display: grid;
-  gap: 1rem;
-  padding: 1.1rem 1.1rem 1.2rem;
+  gap: 0.75rem;
+  padding: 0.95rem 0.95rem 1rem;
 }
 
 .platform-event-directory-kicker {
@@ -8832,7 +8789,6 @@ body {
 .platform-event-directory-head strong,
 .platform-event-directory-head p,
 .platform-event-directory-meta,
-.platform-event-directory-description p,
 .platform-event-directory-stats {
   margin: 0;
 }
@@ -8840,18 +8796,18 @@ body {
 .platform-event-directory-head strong {
   color: #181613;
   display: block;
-  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  font-size: clamp(1rem, 1.4vw, 1.28rem);
   letter-spacing: -0.04em;
-  line-height: 0.95;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 .platform-event-directory-head p {
   color: rgba(31, 29, 25, 0.58);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.12em;
-  margin-top: 0.35rem;
+  margin-top: 0.25rem;
   text-transform: uppercase;
 }
 
@@ -8881,8 +8837,8 @@ body {
   color: rgba(31, 29, 25, 0.66);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem 0.8rem;
-  font-size: 0.82rem;
+  gap: 0.3rem 0.65rem;
+  font-size: 0.76rem;
 }
 
 .platform-event-directory-meta span::before {
@@ -8894,12 +8850,6 @@ body {
 .platform-event-directory-meta span:first-child::before {
   content: none;
   margin-right: 0;
-}
-
-.platform-event-directory-description p {
-  color: rgba(31, 29, 25, 0.74);
-  font-size: 0.92rem;
-  line-height: 1.55;
 }
 
 .platform-event-directory-stats {
@@ -8914,10 +8864,10 @@ body {
   border-radius: 999px;
   color: #8f2f1e;
   display: inline-flex;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  min-height: 30px;
-  padding: 0 0.72rem;
+  min-height: 28px;
+  padding: 0 0.68rem;
   transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
 }
 
@@ -9052,16 +9002,6 @@ body {
 
   .platform-home-commandnav {
     flex-wrap: wrap;
-  }
-
-  .platform-event-quicklist {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .platform-event-quicklink {
-    justify-content: space-between;
-    width: 100%;
   }
 
   .platform-event-directory-card {

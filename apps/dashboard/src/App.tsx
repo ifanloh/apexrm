@@ -28,7 +28,6 @@ import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
 import trailnesiaLogo from "./assets/trailnesia.png";
-import indonesiaMapSvg from "./assets/indonesia-map.svg";
 import platformHomeHeroPhoto from "./assets/platform-home-hero-photo.jpg";
 import worldMapSvgRaw from "./assets/world-map-detailed.svg?raw";
 import { getDemoCourseForRace, type DemoCourse } from "./demoCourseVariants";
@@ -3235,19 +3234,6 @@ export default function App() {
   const upcomingPlatformEvents = filteredPublicEventCards.filter((event) => event.publicStatus === "upcoming");
   const finishedPlatformEvents = filteredPublicEventCards.filter((event) => event.publicStatus === "finished");
   const platformPublishedRaceCount = filteredPublicEventCards.reduce((sum, event) => sum + event.publishedRaceCount, 0);
-  const platformRegionSummary = useMemo(() => {
-    const counts = new Map<PlatformRegionKey, number>();
-
-    filteredPublicEventCards.forEach((event) => {
-      const regionKey = getPlatformRegionKey(event.locationRibbon);
-      counts.set(regionKey, (counts.get(regionKey) ?? 0) + 1);
-    });
-
-    return PLATFORM_HOME_REGIONS.map((region) => ({
-      ...region,
-      count: counts.get(region.key) ?? 0
-    })).filter((region) => region.count > 0);
-  }, [filteredPublicEventCards]);
   const platformHeroTickerEvents = filteredPublicEventCards.slice(0, 5);
   const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0 && organizerWizardDraft.eventDateAt.trim().length > 0;
   const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
@@ -4638,27 +4624,8 @@ export default function App() {
               </article>
             ) : (
               <>
-                <section className="platform-discovery-panel" id="platform-discovery">
-                  <div className="platform-discovery-heading">
-                    <span className="detail-label">Find</span>
-                    <h3>Your next challenge</h3>
-                  </div>
-
-                  <div className="platform-discovery-grid">
-                    <div className="platform-indonesia-map-card">
-                      <img alt="Map of Indonesia" className="platform-indonesia-map" src={indonesiaMapSvg} />
-                      {platformRegionSummary.map((region) => (
-                        <div className={`platform-region-badge region-${region.key}`} key={region.key}>
-                          <strong>{region.count}</strong>
-                          <span>{region.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
                 <section className="platform-home-section" id="platform-home-events">
-                  <div className="platform-home-section-head">
+                  <div className="platform-home-section-head platform-home-section-head-centered">
                     <div>
                       <span className="detail-label">Next events</span>
                       <h3>Find your next challenge</h3>
@@ -4671,81 +4638,60 @@ export default function App() {
                   </div>
 
                   {filteredPublicEventCards.length ? (
-                    <>
-                      <div className="platform-event-quicklist" role="list" aria-label="Upcoming events quick links">
-                        {filteredPublicEventCards.slice(0, 8).map((event) => (
-                          <button
-                            className={`platform-event-quicklink status-${event.publicStatus}`}
-                            key={`quick-${event.id}`}
-                            onClick={() => openPublicEvent(event.id)}
-                            role="listitem"
-                            type="button"
-                          >
-                            <span className="platform-event-quicklink-date">{event.dateDetails.chip}</span>
-                            <strong>{event.title}</strong>
-                            <span className="platform-event-quicklink-country">{event.countryCode}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="platform-event-directory" role="list" aria-label="Public events">
-                        {filteredPublicEventCards.map((event) => (
-                          <button
-                            className={`platform-event-directory-card status-${event.publicStatus}`}
-                            key={event.id}
-                            onClick={() => openPublicEvent(event.id)}
-                            role="listitem"
-                            type="button"
-                          >
-                            <div className="platform-event-directory-poster">
-                              {event.heroBackgroundImageDataUrl ? <img alt="" src={event.heroBackgroundImageDataUrl} /> : null}
-                              <div className="platform-event-directory-scrim" />
-                              <div className="platform-event-directory-topline">
-                                <span className={`organizer-status-pill ${event.publicStatus}`}>
-                                  {event.publicStatus === "live" ? "Live" : event.publicStatus === "upcoming" ? "Upcoming" : "Finished"}
+                    <div className="platform-event-directory" role="list" aria-label="Public events">
+                      {filteredPublicEventCards.map((event) => (
+                        <button
+                          className={`platform-event-directory-card status-${event.publicStatus}`}
+                          key={event.id}
+                          onClick={() => openPublicEvent(event.id)}
+                          role="listitem"
+                          type="button"
+                        >
+                          <div className="platform-event-directory-poster">
+                            {event.heroBackgroundImageDataUrl ? <img alt="" src={event.heroBackgroundImageDataUrl} /> : null}
+                            <div className="platform-event-directory-scrim" />
+                            <div className="platform-event-directory-topline">
+                              <span className={`organizer-status-pill ${event.publicStatus}`}>
+                                {event.publicStatus === "live" ? "Live" : event.publicStatus === "upcoming" ? "Upcoming" : "Finished"}
+                              </span>
+                              <span className="platform-event-country-pill">{event.countryCode}</span>
+                            </div>
+                            <div className="platform-event-date-block" aria-label={`Event date ${event.dateDetails.full}`}>
+                              <strong>{event.dateDetails.day}</strong>
+                              <span>{event.dateDetails.month}</span>
+                              <small>{event.dateDetails.year}</small>
+                            </div>
+                          </div>
+                          <div className="platform-event-directory-body">
+                            <div className="platform-event-directory-kicker">
+                              <span className="platform-event-region-pill">{event.regionLabel}</span>
+                              <span className="platform-event-directory-organizer">{event.organizerName}</span>
+                            </div>
+                            <div className="platform-event-directory-head">
+                              {event.eventLogoDataUrl ? (
+                                <span className="platform-event-logo">
+                                  <img alt="" src={event.eventLogoDataUrl} />
                                 </span>
-                                <span className="platform-event-country-pill">{event.countryCode}</span>
-                              </div>
-                              <div className="platform-event-date-block" aria-label={`Event date ${event.dateDetails.full}`}>
-                                <strong>{event.dateDetails.day}</strong>
-                                <span>{event.dateDetails.month}</span>
-                                <small>{event.dateDetails.year}</small>
+                              ) : null}
+                              <div>
+                                <strong>{event.title}</strong>
+                                <p>{event.bannerTagline || event.homeSubtitle}</p>
                               </div>
                             </div>
-                            <div className="platform-event-directory-body">
-                              <div className="platform-event-directory-kicker">
-                                <span className="platform-event-region-pill">{event.regionLabel}</span>
-                                <span className="platform-event-directory-organizer">{event.organizerName}</span>
-                              </div>
-                              <div className="platform-event-directory-head">
-                                {event.eventLogoDataUrl ? (
-                                  <span className="platform-event-logo">
-                                    <img alt="" src={event.eventLogoDataUrl} />
-                                  </span>
-                                ) : null}
-                                <div>
-                                  <strong>{event.title}</strong>
-                                  <p>{event.bannerTagline || event.homeSubtitle}</p>
-                                </div>
-                              </div>
-                              <div className="platform-event-directory-meta">
-                                <span>{event.locationRibbon}</span>
-                                <span>{event.dateDetails.full}</span>
-                              </div>
-                              <div className="platform-event-directory-description">
-                                <p>{event.homeSubtitle}</p>
-                              </div>
-                              <div className="platform-event-directory-stats">
-                                <span>{event.publishedRaceCount} races</span>
-                                {event.liveCount ? <span>{event.liveCount} live</span> : null}
-                                {!event.liveCount && event.upcomingCount ? <span>{event.upcomingCount} upcoming</span> : null}
-                                {!event.liveCount && !event.upcomingCount && event.finishedCount ? <span>{event.finishedCount} finished</span> : null}
-                              </div>
+                            <div className="platform-event-directory-meta">
+                              <span>{event.locationRibbon}</span>
+                              <span>{event.dateDetails.full}</span>
                             </div>
-                          </button>
-                        ))}
-                      </div>
-                    </>
+                            <div className="platform-event-directory-stats">
+                              <span>{event.publishedRaceCount} races</span>
+                              {event.liveCount ? <span>{event.liveCount} live</span> : null}
+                              {!event.liveCount && event.upcomingCount ? <span>{event.upcomingCount} upcoming</span> : null}
+                              {!event.liveCount && !event.upcomingCount && event.finishedCount ? <span>{event.finishedCount} finished</span> : null}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   ) : (
                     <article className="platform-home-empty">
                       <span className="detail-label">No matching events</span>
