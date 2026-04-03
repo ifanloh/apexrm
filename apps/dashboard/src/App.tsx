@@ -2901,6 +2901,43 @@ export default function App() {
   }, [filteredPublicEventCards]);
   const platformHeroTickerEvents = filteredPublicEventCards.slice(0, 5);
   const platformHeroPreviewEvents = filteredPublicEventCards.slice(0, 3);
+  const platformHeroShowcaseCards: Array<{
+    id: string;
+    title: string;
+    locationRibbon: string;
+    dateRibbon: string;
+    publicStatus: OrganizerPublicEventStatus;
+  }> = platformHeroPreviewEvents.length
+    ? platformHeroPreviewEvents.map((event) => ({
+        id: event.id,
+        title: event.title,
+        locationRibbon: event.locationRibbon,
+        dateRibbon: event.dateRibbon,
+        publicStatus: event.publicStatus
+      }))
+    : [
+        {
+          id: "platform-showcase-live",
+          title: "Live timing dashboard",
+          locationRibbon: "Realtime leaderboards and race tracking",
+          dateRibbon: "Platform spectator view",
+          publicStatus: "live"
+        },
+        {
+          id: "platform-showcase-upcoming",
+          title: "Upcoming event hub",
+          locationRibbon: "Published race categories before go-live",
+          dateRibbon: "Organizer controlled publishing",
+          publicStatus: "upcoming"
+        },
+        {
+          id: "platform-showcase-finished",
+          title: "Results archive",
+          locationRibbon: "Finished races and historical results",
+          dateRibbon: "Ready for event replay",
+          publicStatus: "finished"
+        }
+      ];
   const organizerWizardBasicsReady = organizerWizardDraft.brandName.trim().length > 0 && organizerWizardDraft.eventDateAt.trim().length > 0;
   const organizerWizardBrandingReady = organizerWizardDraft.homeTitle.trim().length > 0 && organizerWizardDraft.locationRibbon.trim().length > 0;
   const organizerWizardModeReady =
@@ -3905,6 +3942,7 @@ export default function App() {
     <main
       className={`dashboard-shell dashboard-hub-shell live-trail-shell ${isEditionHome ? "edition-home-mode" : "race-detail-mode"} ${showSidebarRail ? "with-sidebar-rail" : "no-sidebar-rail"}`}
     >
+      {!showPlatformHome ? (
       <header className="topbar topbar-hub live-topbar">
         <div className="topbar-left-cluster">
           <div className="topbar-race-lockup">
@@ -4025,8 +4063,9 @@ export default function App() {
           </button>
         </div>
       </header>
+      ) : null}
 
-      {showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
+      {!showPlatformHome && showAccessNotice ? <div className={`notice-banner ${organizerSessionActive ? "success" : "info"}`}>{accessNotice}</div> : null}
 
       {showEditionHome ? (
         <div className="live-shell-banner">
@@ -4144,15 +4183,41 @@ export default function App() {
                 <img alt="Trailnesia" src={trailnesiaLogo} />
                 <span>Trailnesia Platform</span>
               </div>
-              <div className="platform-home-commandnav" role="navigation" aria-label="Platform home sections">
-                <button className="platform-home-commandlink active" onClick={() => jumpToSection("platform-home")} type="button">
-                  Events
-                </button>
-                <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-discovery")} type="button">
-                  Indonesia Map
-                </button>
-                <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-home-events")} type="button">
-                  Event Catalog
+              <div className="platform-home-commandcenter">
+                <div className="platform-home-commandnav" role="navigation" aria-label="Platform home sections">
+                  <button className="platform-home-commandlink active" onClick={() => jumpToSection("platform-home")} type="button">
+                    Events
+                  </button>
+                  <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-discovery")} type="button">
+                    Indonesia Map
+                  </button>
+                  <button className="platform-home-commandlink" onClick={() => jumpToSection("platform-home-events")} type="button">
+                    Event Catalog
+                  </button>
+                  <button className="platform-home-commandlink" onClick={() => jumpToSection("runtime-footer")} type="button">
+                    Contact
+                  </button>
+                </div>
+              </div>
+              <div className="platform-home-commandactions">
+                {organizerSessionActive ? (
+                  <button className="platform-home-action-pill" onClick={openOrganizerHome} type="button">
+                    Organizer
+                  </button>
+                ) : (
+                  <button
+                    className="platform-home-action-pill"
+                    onClick={() => {
+                      setLoginError(null);
+                      setIsLoginModalOpen(true);
+                    }}
+                    type="button"
+                  >
+                    Login
+                  </button>
+                )}
+                <button className="platform-home-locale" type="button">
+                  EN <span aria-hidden="true">v</span>
                 </button>
               </div>
             </div>
@@ -4188,20 +4253,56 @@ export default function App() {
                   <span>{upcomingPlatformEvents.length} upcoming</span>
                 </div>
               </div>
-              <div className="platform-home-hero-preview">
-                {platformHeroPreviewEvents.map((event, index) => (
-                  <button
-                    className={`platform-home-preview-card preview-${index + 1}`}
-                    key={`platform-preview-${event.id}`}
-                    onClick={() => openPublicEvent(event.id)}
-                    type="button"
-                  >
-                    <span className={`organizer-status-pill ${event.publicStatus}`}>{getPublicEventStatusLabel(event.publicStatus)}</span>
-                    <strong>{event.title}</strong>
-                    <p>{event.locationRibbon}</p>
-                    <span>{event.dateRibbon}</span>
-                  </button>
-                ))}
+              <div className="platform-home-hero-stage">
+                <div className="platform-home-stage-dashboard">
+                  <span className="platform-home-stage-badge">Live dashboard</span>
+                  <div className="platform-home-stage-grid">
+                    {platformHeroShowcaseCards.slice(0, 2).map((event) => (
+                      <article className="platform-home-stage-panel" key={`platform-stage-panel-${event.id}`}>
+                        <span className={`organizer-status-pill ${event.publicStatus}`}>{getPublicEventStatusLabel(event.publicStatus)}</span>
+                        <strong>{event.title}</strong>
+                        <small>{event.locationRibbon}</small>
+                      </article>
+                    ))}
+                  </div>
+                  <div className="platform-home-stage-chart" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+                <div className="platform-home-stage-phone">
+                  <div className="platform-home-stage-phone-header">
+                    <img alt="Trailnesia" src={trailnesiaLogo} />
+                    <strong>Trailnesia</strong>
+                  </div>
+                  <div className="platform-home-stage-phone-card">
+                    <span className="platform-home-stage-phone-kicker">Mobile race feed</span>
+                    <strong>Live ranking</strong>
+                    <small>Follow public races on the go</small>
+                  </div>
+                  {platformHeroShowcaseCards.map((event, index) => (
+                    <button
+                      className={`platform-home-preview-card preview-${index + 1}`}
+                      key={`platform-preview-${event.id}`}
+                      onClick={() => {
+                        if (!publicEventCards.length) {
+                          return;
+                        }
+
+                        openPublicEvent(event.id);
+                      }}
+                      type="button"
+                    >
+                      <span className={`organizer-status-pill ${event.publicStatus}`}>{getPublicEventStatusLabel(event.publicStatus)}</span>
+                      <strong>{event.title}</strong>
+                      <p>{event.locationRibbon}</p>
+                      <span>{event.dateRibbon}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -4214,12 +4315,9 @@ export default function App() {
             ) : (
               <>
                 <section className="platform-discovery-panel" id="platform-discovery">
-                  <div className="platform-home-section-head">
-                    <div>
-                      <span className="detail-label">Find events in Indonesia</span>
-                      <h3>Explore the platform by event hub</h3>
-                    </div>
-                    <p>Every card below is one event. Open it to see its edition hub, race categories, rankings, and live tracking tools.</p>
+                  <div className="platform-discovery-heading">
+                    <span className="detail-label">Find</span>
+                    <h3>Your next challenge</h3>
                   </div>
 
                   <div className="platform-discovery-grid">
@@ -4238,7 +4336,7 @@ export default function App() {
                 <section className="platform-home-section" id="platform-home-events">
                   <div className="platform-home-section-head">
                     <div>
-                      <span className="detail-label">Registered events</span>
+                      <span className="detail-label">Event catalog</span>
                       <h3>Choose an event to open</h3>
                     </div>
                     <p>
