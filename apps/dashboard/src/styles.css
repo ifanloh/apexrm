@@ -8890,25 +8890,23 @@ body {
 .organizer-home-shell,
 .organizer-wizard-shell,
 .organizer-console-shell {
-  --organizer-forest-950: #18352c;
-  --organizer-forest-900: #214838;
-  --organizer-forest-700: #3f6b58;
-  --organizer-sand-50: #f7f4ec;
-  --organizer-sand-100: #f0eadf;
-  --organizer-sand-200: #e5dac9;
-  --organizer-ink: #23342d;
-  --organizer-muted: #64746a;
-  --organizer-olive: #6f8067;
-  --organizer-gold: #ad8f4b;
+  --organizer-red-rgb: 255, 16, 20;
+  --organizer-gold-rgb: 226, 184, 77;
+  --organizer-ink-rgb: 31, 20, 16;
+  --organizer-red: var(--brand-red);
+  --organizer-gold: var(--brand-gold);
+  --organizer-ink: var(--ink);
+  --organizer-ink-soft: var(--ink-soft);
 }
 
 .organizer-home-shell {
   background:
-    radial-gradient(circle at top right, rgba(111, 128, 103, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(247, 244, 236, 0.98), rgba(244, 239, 229, 0.98));
-  border: 1px solid rgba(24, 53, 44, 0.08);
+    radial-gradient(circle at top right, rgba(226, 184, 77, 0.14), transparent 28%),
+    radial-gradient(circle at top left, rgba(255, 16, 20, 0.08), transparent 22%),
+    linear-gradient(180deg, rgba(251, 247, 239, 0.98), rgba(248, 240, 220, 0.98));
+  border: 1px solid rgba(224, 181, 77, 0.22);
   border-radius: 30px;
-  box-shadow: 0 28px 56px rgba(17, 34, 28, 0.08);
+  box-shadow: 0 28px 56px rgba(112, 66, 26, 0.12);
   gap: 1.35rem;
   padding: 1.4rem;
 }
@@ -8925,13 +8923,13 @@ body {
 }
 
 .organizer-home-copy h2 {
-  color: var(--organizer-forest-950);
+  color: var(--organizer-ink);
   font-size: clamp(2rem, 3vw, 2.9rem);
   letter-spacing: -0.04em;
 }
 
 .organizer-home-copy p {
-  color: #5d6b62;
+  color: var(--organizer-ink-soft);
   font-size: 0.98rem;
   line-height: 1.65;
 }
@@ -8943,11 +8941,13 @@ body {
 
 .organizer-home-command {
   align-content: start;
-  background: linear-gradient(160deg, rgba(24, 53, 44, 0.98), rgba(33, 72, 56, 0.94));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(226, 184, 77, 0.18), transparent 28%),
+    linear-gradient(160deg, rgba(31, 20, 16, 0.98), rgba(210, 58, 49, 0.88));
+  border: 1px solid rgba(255, 241, 209, 0.12);
   border-radius: 26px;
-  box-shadow: 0 24px 44px rgba(17, 34, 28, 0.2);
-  color: #f6f1e5;
+  box-shadow: 0 24px 44px rgba(112, 66, 26, 0.2);
+  color: #fff6df;
   display: grid;
   gap: 0.8rem;
   min-width: min(100%, 320px);
@@ -8955,31 +8955,31 @@ body {
 }
 
 .organizer-home-command .organizer-home-note {
-  color: rgba(246, 241, 229, 0.78);
+  color: rgba(255, 246, 223, 0.78);
 }
 
 .organizer-home-command .organizer-flow-pill {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.12);
-  color: #f6f1e5;
+  border-color: rgba(255, 241, 209, 0.16);
+  color: #fff6df;
 }
 
 .organizer-home-command .organizer-flow-pill.secondary {
-  background: rgba(173, 143, 75, 0.14);
-  border-color: rgba(173, 143, 75, 0.22);
-  color: #f0d9a3;
+  background: rgba(226, 184, 77, 0.16);
+  border-color: rgba(226, 184, 77, 0.24);
+  color: #fff1c8;
 }
 
 .organizer-home-shell .organizer-flow-pill {
-  background: rgba(24, 53, 44, 0.08);
-  border-color: rgba(24, 53, 44, 0.12);
-  color: var(--organizer-forest-900);
+  background: rgba(255, 16, 20, 0.08);
+  border-color: rgba(255, 16, 20, 0.12);
+  color: #b1191c;
 }
 
 .organizer-home-shell .organizer-flow-pill.secondary {
-  background: rgba(111, 128, 103, 0.08);
-  border-color: rgba(111, 128, 103, 0.16);
-  color: #586b54;
+  background: rgba(226, 184, 77, 0.16);
+  border-color: rgba(226, 184, 77, 0.22);
+  color: #8a6211;
 }
 
 .organizer-home-summary-grid {
@@ -8994,9 +8994,9 @@ body {
 .organizer-step-guide,
 .organizer-console-panel {
   background: rgba(255, 253, 248, 0.96);
-  border: 1px solid rgba(24, 53, 44, 0.08);
+  border: 1px solid rgba(224, 181, 77, 0.22);
   border-radius: 28px;
-  box-shadow: 0 18px 40px rgba(17, 34, 28, 0.06);
+  box-shadow: 0 18px 40px rgba(112, 66, 26, 0.08);
 }
 
 .organizer-home-card {
@@ -9005,7 +9005,7 @@ body {
 }
 
 .organizer-home-card strong {
-  color: var(--organizer-forest-950);
+  color: var(--organizer-ink);
   font-size: 2rem;
 }
 
@@ -9013,14 +9013,14 @@ body {
 .organizer-home-events-head h3,
 .organizer-wizard-head h3,
 .organizer-empty-state h3 {
-  color: var(--organizer-forest-950);
+  color: var(--organizer-ink);
 }
 
 .organizer-home-card p,
 .organizer-home-events-head p,
 .organizer-empty-state p,
 .organizer-wizard-head p {
-  color: #617168;
+  color: var(--organizer-ink-soft);
 }
 
 .organizer-home-events-shell {
@@ -9045,16 +9045,16 @@ body {
 
 .organizer-event-card {
   background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(24, 53, 44, 0.08);
+  border: 1px solid rgba(224, 181, 77, 0.22);
   border-radius: 26px;
-  box-shadow: 0 16px 34px rgba(17, 34, 28, 0.06);
+  box-shadow: 0 16px 34px rgba(112, 66, 26, 0.08);
   display: grid;
   overflow: hidden;
 }
 
 .organizer-event-card.active {
-  border-color: rgba(24, 53, 44, 0.24);
-  box-shadow: 0 20px 38px rgba(24, 53, 44, 0.14);
+  border-color: rgba(255, 16, 20, 0.22);
+  box-shadow: 0 20px 38px rgba(210, 58, 49, 0.14);
 }
 
 .organizer-event-card.archived {
@@ -9064,11 +9064,12 @@ body {
 .organizer-event-card-media {
   align-items: flex-start;
   background:
-    linear-gradient(180deg, rgba(24, 53, 44, 0.96), rgba(50, 87, 69, 0.84)),
-    linear-gradient(135deg, rgba(111, 128, 103, 0.24), rgba(173, 143, 75, 0.08));
+    radial-gradient(circle at top right, rgba(226, 184, 77, 0.18), transparent 26%),
+    linear-gradient(180deg, rgba(31, 20, 16, 0.94), rgba(115, 27, 30, 0.86)),
+    linear-gradient(135deg, rgba(255, 16, 20, 0.18), rgba(226, 184, 77, 0.08));
   background-position: center;
   background-size: cover;
-  color: #f6f1e5;
+  color: #fff6df;
   min-height: 172px;
   padding: 1.1rem 1.15rem;
 }
@@ -9080,7 +9081,7 @@ body {
 }
 
 .organizer-event-card-head .detail-label {
-  color: rgba(246, 241, 229, 0.72);
+  color: rgba(255, 241, 209, 0.76);
 }
 
 .organizer-event-card-head strong {
@@ -9090,7 +9091,7 @@ body {
 }
 
 .organizer-event-card-head p {
-  color: rgba(246, 241, 229, 0.82);
+  color: rgba(255, 246, 223, 0.82);
   line-height: 1.45;
 }
 
@@ -9112,10 +9113,10 @@ body {
 
 .organizer-event-card-meta span {
   align-items: center;
-  background: rgba(24, 53, 44, 0.06);
-  border: 1px solid rgba(24, 53, 44, 0.08);
+  background: rgba(226, 184, 77, 0.12);
+  border: 1px solid rgba(226, 184, 77, 0.16);
   border-radius: 999px;
-  color: #4f5f57;
+  color: #8a6211;
   display: inline-flex;
   font-size: 0.78rem;
   font-weight: 700;
@@ -9124,7 +9125,7 @@ body {
 }
 
 .organizer-event-card-next {
-  color: #5d6b62;
+  color: var(--organizer-ink-soft);
   font-size: 0.9rem;
   line-height: 1.55;
   margin: 0;
@@ -9149,16 +9150,18 @@ body {
 
 .organizer-empty-state {
   background:
-    radial-gradient(circle at top right, rgba(111, 128, 103, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(246, 241, 229, 0.98));
+    radial-gradient(circle at top right, rgba(226, 184, 77, 0.16), transparent 32%),
+    radial-gradient(circle at top left, rgba(255, 16, 20, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(248, 240, 220, 0.98));
   min-height: 250px;
   padding: 1.5rem;
 }
 
 .organizer-wizard-shell {
   background:
-    radial-gradient(circle at top right, rgba(111, 128, 103, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(246, 241, 229, 0.98));
+    radial-gradient(circle at top right, rgba(226, 184, 77, 0.16), transparent 32%),
+    radial-gradient(circle at top left, rgba(255, 16, 20, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 253, 248, 0.98), rgba(248, 240, 220, 0.98));
   gap: 1.1rem;
   padding: 1.35rem;
 }
@@ -9179,20 +9182,20 @@ body {
 
 .organizer-wizard-step {
   background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(24, 53, 44, 0.08);
+  border: 1px solid rgba(224, 181, 77, 0.18);
   border-radius: 18px;
   gap: 0.75rem;
   padding: 0.9rem 0.95rem;
 }
 
 .organizer-wizard-step span {
-  background: rgba(24, 53, 44, 0.1);
-  color: var(--organizer-forest-900);
+  background: rgba(226, 184, 77, 0.18);
+  color: #8a6211;
 }
 
 .organizer-wizard-step.active {
-  background: rgba(24, 53, 44, 0.08);
-  border-color: rgba(24, 53, 44, 0.16);
+  background: rgba(226, 184, 77, 0.12);
+  border-color: rgba(226, 184, 77, 0.28);
   box-shadow: none;
 }
 
@@ -9209,11 +9212,11 @@ body {
 
 .organizer-console-header {
   background:
-    radial-gradient(circle at top right, rgba(173, 143, 75, 0.18), transparent 28%),
-    linear-gradient(135deg, rgba(24, 53, 44, 0.98), rgba(39, 73, 58, 0.94));
-  border: 1px solid rgba(255, 255, 255, 0.06);
+    radial-gradient(circle at top right, rgba(226, 184, 77, 0.22), transparent 28%),
+    linear-gradient(135deg, rgba(31, 20, 16, 0.98), rgba(210, 58, 49, 0.88));
+  border: 1px solid rgba(255, 241, 209, 0.08);
   border-radius: 30px;
-  box-shadow: 0 28px 58px rgba(17, 34, 28, 0.18);
+  box-shadow: 0 28px 58px rgba(112, 66, 26, 0.18);
   grid-column: 1 / -1;
   padding: 1.5rem;
 }
@@ -9241,7 +9244,7 @@ body {
   background: transparent;
   border: none;
   border-radius: 18px;
-  color: #5a6c60;
+  color: rgba(31, 20, 16, 0.72);
   justify-content: flex-start;
   min-height: 48px;
   padding: 0.75rem 0.9rem;
@@ -9249,23 +9252,23 @@ body {
 }
 
 .organizer-console-nav-button:hover {
-  background: rgba(24, 53, 44, 0.05);
+  background: rgba(226, 184, 77, 0.1);
   border-color: transparent;
-  color: var(--organizer-forest-900);
+  color: var(--organizer-ink);
 }
 
 .organizer-console-nav-button.active {
-  background: linear-gradient(135deg, rgba(24, 53, 44, 0.96), rgba(39, 73, 58, 0.92));
+  background: linear-gradient(135deg, rgba(255, 191, 110, 0.98), rgba(255, 165, 80, 0.92));
   border-color: transparent;
-  color: #f6f1e5;
+  color: #19120c;
 }
 
 .organizer-console-nav-step {
-  background: rgba(24, 53, 44, 0.08);
+  background: rgba(255, 16, 20, 0.08);
 }
 
 .organizer-console-nav-button.active .organizer-console-nav-step {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(25, 18, 12, 0.1);
 }
 
 .organizer-console-nav-secondary {
@@ -9276,7 +9279,7 @@ body {
 }
 
 .organizer-console-nav-secondary::before {
-  background: rgba(24, 53, 44, 0.1);
+  background: rgba(224, 181, 77, 0.2);
   content: "";
   height: 1px;
   left: 0;
@@ -9310,12 +9313,12 @@ body {
 .organizer-logo-preview,
 .organizer-gpx-panel {
   background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(24, 53, 44, 0.08);
+  border-color: rgba(224, 181, 77, 0.18);
   box-shadow: none;
 }
 
 .organizer-field {
-  color: #46564d;
+  color: rgba(31, 20, 16, 0.72);
 }
 
 .organizer-field span,
@@ -9328,14 +9331,14 @@ body {
 .organizer-ops-row p,
 .organizer-ops-row small,
 .organizer-launch-copy {
-  color: #67776e;
+  color: rgba(31, 20, 16, 0.58);
 }
 
 .organizer-field input,
 .organizer-field select,
 .organizer-field textarea {
   background: rgba(255, 255, 255, 0.98);
-  border-color: rgba(24, 53, 44, 0.12);
+  border-color: rgba(224, 181, 77, 0.24);
   border-radius: 16px;
   color: var(--organizer-ink);
 }
@@ -9343,8 +9346,8 @@ body {
 .organizer-field input:focus,
 .organizer-field select:focus,
 .organizer-field textarea:focus {
-  border-color: rgba(33, 72, 56, 0.42);
-  box-shadow: 0 0 0 4px rgba(33, 72, 56, 0.08);
+  border-color: rgba(255, 16, 20, 0.3);
+  box-shadow: 0 0 0 4px rgba(226, 184, 77, 0.16);
   outline: none;
 }
 
@@ -9353,10 +9356,10 @@ body {
 .organizer-primary-action,
 .organizer-step-next,
 .organizer-console-save {
-  background: linear-gradient(135deg, rgba(24, 53, 44, 0.98), rgba(39, 73, 58, 0.94));
-  border-color: rgba(24, 53, 44, 0.94);
-  box-shadow: 0 14px 28px rgba(17, 34, 28, 0.16);
-  color: #f9f4e9;
+  background: linear-gradient(135deg, rgba(255, 191, 110, 0.98), rgba(255, 165, 80, 0.92));
+  border-color: transparent;
+  box-shadow: 0 14px 28px rgba(255, 165, 80, 0.18);
+  color: #19120c;
 }
 
 .organizer-file-trigger:hover,
@@ -9364,42 +9367,62 @@ body {
 .organizer-primary-action:hover,
 .organizer-step-next:hover,
 .organizer-console-save:hover {
-  background: linear-gradient(135deg, rgba(28, 61, 49, 1), rgba(48, 87, 69, 0.96));
-  border-color: rgba(28, 61, 49, 1);
-  box-shadow: 0 16px 30px rgba(17, 34, 28, 0.2);
+  background: linear-gradient(135deg, rgba(255, 201, 132, 1), rgba(255, 175, 95, 0.96));
+  border-color: transparent;
+  box-shadow: 0 16px 30px rgba(255, 165, 80, 0.22);
 }
 
 .organizer-secondary-action,
 .organizer-console-back {
   background: rgba(255, 255, 255, 0.94);
-  border-color: rgba(24, 53, 44, 0.12);
-  color: var(--organizer-forest-900);
+  border-color: rgba(224, 181, 77, 0.24);
+  color: #8a6211;
 }
 
 .organizer-validation-tag {
-  background: rgba(24, 53, 44, 0.08);
-  color: var(--organizer-forest-900);
+  background: rgba(255, 16, 20, 0.08);
+  color: #b1191c;
 }
 
 .organizer-validation-tag.success,
 .organizer-readiness-card.ready .organizer-readiness-pill.ready {
-  background: rgba(63, 107, 88, 0.12);
-  color: #24503f;
+  background: rgba(226, 184, 77, 0.16);
+  color: #8a6211;
 }
 
 .organizer-readiness-pill.draft {
-  background: rgba(111, 128, 103, 0.12);
-  color: #5f6e58;
+  background: rgba(255, 16, 20, 0.08);
+  color: #b1191c;
 }
 
 .organizer-readiness-pill.published {
-  background: rgba(173, 143, 75, 0.14);
-  color: #7a6432;
+  background: rgba(226, 184, 77, 0.16);
+  color: #8a6211;
 }
 
 .organizer-readiness-pill.ready {
-  background: rgba(39, 102, 76, 0.14);
-  color: #24503f;
+  background: rgba(226, 184, 77, 0.16);
+  color: #8a6211;
+}
+
+.organizer-home-shell .organizer-status-pill.ready,
+.organizer-home-shell .organizer-status-pill.finished,
+.organizer-home-shell .organizer-status-pill.upcoming,
+.organizer-home-shell .organizer-status-pill.published,
+.organizer-console-shell .organizer-status-pill.ready,
+.organizer-console-shell .organizer-status-pill.finished,
+.organizer-console-shell .organizer-status-pill.upcoming,
+.organizer-console-shell .organizer-status-pill.published {
+  background: rgba(226, 184, 77, 0.16);
+  color: #8a6211;
+}
+
+.organizer-home-shell .organizer-status-pill.live,
+.organizer-home-shell .organizer-status-pill.draft,
+.organizer-console-shell .organizer-status-pill.live,
+.organizer-console-shell .organizer-status-pill.draft {
+  background: rgba(255, 16, 20, 0.08);
+  color: #b1191c;
 }
 
 @media (min-width: 1081px) {
