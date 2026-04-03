@@ -250,7 +250,6 @@ type OrganizerWizardDraft = {
   firstRaceStartTown: string;
   firstRaceScheduleLabel: string;
   firstRaceStartAt: string;
-  firstRaceEditionLabel: OrganizerRaceState;
   firstRaceMode: OrganizerRaceMode;
   firstRaceLoopTargetLaps: string;
   firstRaceLoopTimeLimitHours: string;
@@ -422,7 +421,6 @@ function buildOrganizerWizardDraft(): OrganizerWizardDraft {
     firstRaceStartTown: "Start Town",
     firstRaceScheduleLabel: formatOrganizerScheduleLabel(firstRaceStartAt),
     firstRaceStartAt,
-    firstRaceEditionLabel: "Upcoming",
     firstRaceMode: "standard",
     firstRaceLoopTargetLaps: "6",
     firstRaceLoopTimeLimitHours: "12",
@@ -3144,10 +3142,6 @@ export default function App() {
         next.firstRaceScheduleLabel = formatOrganizerScheduleLabel(next.firstRaceStartAt);
       }
 
-      if ("firstRaceEditionLabel" in patch) {
-        next.firstRaceEditionLabel = normalizeOrganizerRaceStateLabel(patch.firstRaceEditionLabel);
-      }
-
       return next;
     });
   }
@@ -3292,7 +3286,7 @@ export default function App() {
       ...template,
       slug,
       title: organizerWizardDraft.firstRaceTitle.trim() || template.title,
-      editionLabel: normalizeOrganizerRaceStateLabel(organizerWizardDraft.firstRaceEditionLabel),
+      editionLabel: "Upcoming",
       raceMode,
       scheduleLabel: formatOrganizerScheduleLabel(organizerWizardDraft.firstRaceStartAt) || template.scheduleLabel,
       startAt: normalizeOrganizerDateTimeInputValue(organizerWizardDraft.firstRaceStartAt, template.startAt),
@@ -4500,12 +4494,12 @@ export default function App() {
               </div>
             ) : (
               <>
-                {!organizerWizardOpen ? (
+        {!organizerWizardOpen ? (
                   <section className="organizer-empty-state">
                     <span className="detail-label">First-time organizer</span>
                     <h3>You have no events yet</h3>
                     <p>
-                      Use the login credentials sent by Trailnesia, then create your first event, define race categories, set up crew accounts,
+                      Use the login credentials sent by Trailnesia, then create your event, add race categories, set up scanner crew accounts,
                       and keep everything in draft until it is ready to publish.
                     </p>
                     <div className="organizer-home-actions">
@@ -4518,9 +4512,9 @@ export default function App() {
                   <section className="organizer-wizard-shell">
                     <div className="organizer-wizard-head">
                       <div>
-                        <span className="detail-label">Create event wizard</span>
-                        <h3>Build your first event draft</h3>
-                        <p>Isi section satu per satu. Semua hasil wizard akan disimpan sebagai draft private.</p>
+                        <span className="detail-label">Create event</span>
+                        <h3>Start your event draft</h3>
+                        <p>Isi data event dulu, lalu buat kategori race pertama. Setelah wizard selesai, kamu bisa tambah kategori lain di setup console.</p>
                       </div>
                       <div className="organizer-home-actions">
                         <span className="organizer-flow-pill">Step {organizerWizardStep === "basics" ? 1 : organizerWizardStep === "branding" ? 2 : organizerWizardStep === "race" ? 3 : 4} of 4</span>
@@ -4534,8 +4528,8 @@ export default function App() {
                       {[
                         ["basics", "Event basics"],
                         ["branding", "Branding"],
-                        ["race", "First race"],
-                        ["review", "Review draft"]
+                        ["race", "First race category"],
+                        ["review", "Save draft"]
                       ].map(([stepId, label], index) => (
                         <div
                           className={`organizer-wizard-step ${organizerWizardStep === stepId ? "active" : ""}`}
@@ -4623,7 +4617,7 @@ export default function App() {
                             Back to basics
                           </button>
                           <button className="auth-trigger" disabled={!organizerWizardBrandingReady} onClick={() => setOrganizerWizardStep("race")} type="button">
-                            Continue to first race
+                            Continue to race category
                           </button>
                         </div>
                       </div>
@@ -4684,21 +4678,6 @@ export default function App() {
                             <option value="relay">Relay</option>
                           </select>
                         </label>
-                        <label className="organizer-field">
-                          <span>Race state</span>
-                          <select
-                            onChange={(event) =>
-                              updateOrganizerWizardDraft({
-                                firstRaceEditionLabel: normalizeOrganizerRaceStateLabel(event.target.value)
-                              })
-                            }
-                            value={organizerWizardDraft.firstRaceEditionLabel}
-                          >
-                            <option value="Upcoming">Upcoming</option>
-                            <option value="Live">Live</option>
-                            <option value="Finished">Finished</option>
-                          </select>
-                        </label>
                         {organizerWizardDraft.firstRaceMode === "loop-fixed-laps" ? (
                           <label className="organizer-field">
                             <span>Target laps</span>
@@ -4731,7 +4710,7 @@ export default function App() {
                             Back to branding
                           </button>
                           <button className="auth-trigger" disabled={!organizerWizardRaceReady} onClick={() => setOrganizerWizardStep("review")} type="button">
-                            Continue to review
+                            Continue to save draft
                           </button>
                         </div>
                       </div>
@@ -4759,16 +4738,16 @@ export default function App() {
                         <div className="organizer-import-note">
                           <strong>Draft only.</strong>
                           <p>
-                            Wizard ini hanya membuat event draft pertama. Setelah masuk console, organizer masih bisa upload logo,
-                            GPX, participants, dan crew sebelum publish.
+                            Wizard ini membuat event draft dan satu kategori race pertama dengan status Upcoming. Setelah masuk setup console,
+                            kamu bisa tambah kategori lain, upload GPX, import participants, dan set up scanner crew sebelum publish.
                           </p>
                         </div>
                         <div className="organizer-step-actions">
                           <button className="toolbar-link organizer-secondary-action" onClick={() => setOrganizerWizardStep("race")} type="button">
-                            Back to first race
+                            Back to race category
                           </button>
                           <button className="auth-trigger" onClick={finalizeOrganizerWizard} type="button">
-                            Create event draft
+                            Create draft and continue
                           </button>
                         </div>
                       </div>

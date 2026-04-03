@@ -133,39 +133,110 @@ export function OrganizerConsole({
   const setupSteps: Array<{ view: OrganizerSetupStepView; title: string; shortLabel: string; description: string }> = [
     {
       view: "branding",
-      title: "Set event identity",
+      title: "Fill event basics",
       shortLabel: "Event",
-      description: "Complete event basics, branding, and the organizer-facing edition identity."
+      description: "Isi nama event, tanggal, logo, dan hero image lebih dulu."
     },
     {
       view: "races",
-      title: "Create race categories",
+      title: "Add race categories",
       shortLabel: "Races",
-      description: "Create each race category, upload course assets, and organize checkpoints."
+      description: "Tambah semua kategori race, lalu rapikan GPX dan checkpoint untuk tiap race."
     },
     {
       view: "participants",
-      title: "Import participants",
+      title: "Upload participants",
       shortLabel: "Participants",
-      description: "Upload roster files for the selected race and choose how to apply them."
+      description: "Pilih race, download template, lalu upload roster peserta untuk race tersebut."
     },
     {
       view: "crew",
-      title: "Set up crew accounts",
-      shortLabel: "Crew",
-      description: "Assign scan crew to checkpoints, activate their accounts, and provision devices."
+      title: "Set up scanner crew",
+      shortLabel: "Scanner crew",
+      description: "Tambah akun crew scanner, pilih checkpoint mereka, lalu aktifkan device saat siap."
     },
     {
       view: "overview",
       title: "Save draft & publish",
       shortLabel: "Review",
-      description: "Validate readiness, fix blockers, and publish categories."
+      description: "Simpan draft, publish sebagai Upcoming, lalu lengkapi semua readiness sebelum Live."
     }
   ];
   const draftSavedLabel = draftSavedAt
     ? `Draft saved ${new Date(draftSavedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
     : "Draft ready";
+  const stepGuides: Record<
+    OrganizerSetupStepView | "operations",
+    {
+      label: string;
+      title: string;
+      summary: string;
+      bullets: string[];
+    }
+  > = {
+    branding: {
+      label: "Do this first",
+      title: "Lengkapi identitas event dulu",
+      summary: "Mulai dari nama event, tanggal, logo, dan hero image supaya draft punya konteks yang jelas.",
+      bullets: [
+        "Isi nama organizer, nama event, dan edition label.",
+        "Set event date & time dengan format kalender yang sudah seragam.",
+        "Upload logo dan hero image kalau asetnya sudah siap."
+      ]
+    },
+    races: {
+      label: "Next step",
+      title: "Tambah semua kategori race",
+      summary: "Buat semua kategori lebih dulu supaya alur event utuh sebelum peserta dan crew dimasukkan.",
+      bullets: [
+        "Tambah tiap kategori race yang akan tayang di event ini.",
+        "Isi mode race, jarak, ascent, dan start time.",
+        "Rapikan GPX dan checkpoint untuk race yang sedang dipilih."
+      ]
+    },
+    participants: {
+      label: "Import roster",
+      title: "Masukkan peserta per race",
+      summary: "Pilih satu race, download template, lalu upload roster khusus untuk race itu.",
+      bullets: [
+        "Pastikan selected race sudah benar sebelum upload.",
+        "Gunakan template CSV atau Excel agar kolomnya tidak salah.",
+        "Pakai mode import yang sesuai: add, update, merge, atau replace."
+      ]
+    },
+    crew: {
+      label: "Scanner setup",
+      title: "Atur akun scanner crew",
+      summary: "Race bisa dipublish sebagai Upcoming walau crew belum lengkap, tapi status Live butuh crew dan device yang sudah siap.",
+      bullets: [
+        "Tambah crew scanner satu per satu beserta email dan checkpoint.",
+        "Kirim invite lalu tandai crew yang sudah accepted.",
+        "Isi device label sebelum crew diaktifkan."
+      ]
+    },
+    overview: {
+      label: "Review before publish",
+      title: "Simpan draft lalu publish race",
+      summary: "Published race boleh tetap Upcoming walau crew belum lengkap. Status Live baru terbuka saat semua readiness hijau.",
+      bullets: [
+        "Cek kategori race yang masih draft.",
+        "Publish kategori yang sudah siap tampil ke publik.",
+        "Selesaikan blocker crew dan device sebelum race diubah ke Live."
+      ]
+    },
+    operations: {
+      label: "Use later",
+      title: "Race day ops dipakai saat hari lomba",
+      summary: "Bagian ini bukan langkah setup awal. Gunakan setelah event dan race sudah selesai disiapkan.",
+      bullets: [
+        "Pakai trial simulator hanya untuk rehearsal internal.",
+        "Pantau duplicate scan, checkpoint feed, dan broadcast di sini.",
+        "Kembali ke setup steps kalau masih ada data event yang belum lengkap."
+      ]
+    }
+  };
   const selectedRace = races.find((race) => race.slug === selectedRaceSlug) ?? null;
+  const activeGuide = stepGuides[activeView];
   const importModeCopy: Record<OrganizerParticipantImportMode, { label: string; description: string; applyLabel: string }> = {
     merge: {
       label: "Add + update by BIB",
@@ -571,10 +642,10 @@ export function OrganizerConsole({
     <section className="organizer-console-shell" id="organizer-console">
       <div className="organizer-console-header">
         <div>
-          <p className="section-label">Organizer Platform</p>
-          <h2>Event Setup Console</h2>
+          <p className="section-label">Organizer setup</p>
+          <h2>Set up your event step by step</h2>
           <p className="organizer-console-copy">
-            Follow the setup flow one section at a time: event identity, race categories, crew accounts, then save draft and publish.
+            Kerjakan satu langkah pada satu waktu: isi event, tambah race, upload peserta, atur scanner crew, lalu simpan draft dan publish.
           </p>
           <p className="organizer-console-meta">
             {eventTitle} · {eventPhaseLabel} · Signed in as {profileLabel}
@@ -613,17 +684,32 @@ export function OrganizerConsole({
           </button>
         ))}
         <button className={`organizer-console-nav-button organizer-console-nav-secondary ${activeView === "operations" ? "active" : ""}`} onClick={() => setActiveView("operations")} type="button">
-          Race Day Ops
+          Race day (later)
         </button>
       </nav>
+
+      <section className="organizer-step-guide" aria-label="Setup guide">
+        <div>
+          <p className="section-label">{activeGuide.label}</p>
+          <h3>{activeGuide.title}</h3>
+          <p>{activeGuide.summary}</p>
+        </div>
+        <div className="organizer-step-guide-list">
+          {activeGuide.bullets.map((bullet) => (
+            <span className="organizer-validation-tag" key={bullet}>
+              {bullet}
+            </span>
+          ))}
+        </div>
+      </section>
 
       <div className="organizer-console-grid">
         <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "overview"}>
           <div className="panel-head compact">
             <div>
               <p className="organizer-step-label">Step 5 of 5</p>
-              <p className="section-label">Launch Summary</p>
-              <h3>Edition go-live status</h3>
+              <p className="section-label">Review & publish</p>
+              <h3>Check what is ready to publish</h3>
             </div>
             <span className={`organizer-readiness-pill ${blockedRaceReadiness.length === 0 && publishedRaceCount > 0 ? "ready" : "draft"}`}>
               {launchSummaryLabel}
@@ -697,7 +783,7 @@ export function OrganizerConsole({
           <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "operations"}>
             <div className="panel-head compact">
               <div>
-                <p className="section-label">Race Day Ops</p>
+                <p className="section-label">Race day ops</p>
                 <h3>Live operations snapshot</h3>
             </div>
           </div>
@@ -922,7 +1008,7 @@ export function OrganizerConsole({
                   <li>Complete Branding, Races, Participants, and Crew for the selected category.</li>
                   <li>Load the sample scenario to seed realistic checkpoint activity.</li>
                   <li>Open spectator view and confirm Event Home, Race Detail, and sidebar state look correct.</li>
-                  <li>Return to Race Day Ops, record manual scans, then simulate a checkpoint wave.</li>
+                  <li>Return to Race day ops, record manual scans, then simulate a checkpoint wave.</li>
                   <li>Inject one duplicate and confirm it appears in duplicate audit without breaking the live board.</li>
                   <li>Reset trial scans and repeat until the team is comfortable with the race-day flow.</li>
                 </ol>
@@ -1179,8 +1265,8 @@ export function OrganizerConsole({
         <article className="panel organizer-console-panel organizer-console-wide" hidden={activeView !== "overview"}>
           <div className="panel-head compact">
             <div>
-              <p className="section-label">Go-live Validation</p>
-              <h3>Categories that still block Live</h3>
+              <p className="section-label">What still blocks Live</p>
+              <h3>Categories that still need work</h3>
             </div>
             <div className="panel-badge compact-badge">
               <span>Need attention</span>
@@ -1539,8 +1625,8 @@ export function OrganizerConsole({
           <div className="panel-head compact">
             <div>
               <p className="organizer-step-label">Step 4 of 5</p>
-              <p className="section-label">Crew & Accounts</p>
-              <h3>Field operations setup</h3>
+              <p className="section-label">Scanner crew</p>
+              <h3>Add crew and assign checkpoints</h3>
             </div>
             <button className="toolbar-link organizer-apply-button" onClick={onAddCrewAssignment} type="button">
               Add crew
@@ -1763,7 +1849,7 @@ export function OrganizerConsole({
           <div className="panel-head compact">
             <div>
               <p className="organizer-step-label">Step 3 of 5</p>
-              <p className="section-label">Participant Import</p>
+              <p className="section-label">Participants</p>
               <h3>Upload CSV or Excel roster</h3>
               <span className="organizer-inline-meta">Import participants for: {selectedRace?.title ?? "No race selected"}</span>
             </div>
@@ -1909,7 +1995,7 @@ export function OrganizerConsole({
               Back to races & checkpoints
             </button>
             <button className="toolbar-link organizer-secondary-action" onClick={goToNextStep} type="button">
-              Continue to crew & accounts
+              Continue to scanner crew
             </button>
           </div>
         </article>

@@ -6300,6 +6300,42 @@ body {
   gap: 0.65rem;
 }
 
+.organizer-step-guide {
+  align-items: start;
+  background: rgba(255, 251, 242, 0.96);
+  border: 1px solid rgba(225, 183, 76, 0.22);
+  border-radius: 16px;
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  padding: 1rem 1.1rem;
+}
+
+.organizer-step-guide h3,
+.organizer-step-guide p {
+  margin: 0;
+}
+
+.organizer-step-guide p {
+  color: #6f6258;
+  margin-top: 0.35rem;
+  max-width: 44rem;
+}
+
+.organizer-step-guide-list {
+  align-content: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-start;
+}
+
+@media (max-width: 980px) {
+  .organizer-step-guide {
+    grid-template-columns: 1fr;
+  }
+}
+
 .organizer-console-nav-button {
   align-items: center;
   display: inline-flex;
