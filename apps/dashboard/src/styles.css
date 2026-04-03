@@ -7971,9 +7971,11 @@ body {
 
 .live-trail-shell.platform-home-mode {
   display: block;
+  height: auto;
   max-width: none;
+  min-height: 100dvh;
+  overflow: visible;
   overflow-x: hidden;
-  overflow-y: auto;
 }
 
 .live-trail-shell.platform-home-mode .live-shell-body {
@@ -7984,6 +7986,9 @@ body {
 
 .live-shell-body.platform-home-body .dashboard-main.dashboard-main-scroll {
   background: linear-gradient(180deg, #f8f4ea, #fbf8f1);
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
   padding: 0 0 40px;
 }
 
