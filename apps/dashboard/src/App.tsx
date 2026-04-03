@@ -788,6 +788,8 @@ const RUNNER_DIRECTORY_EXTRA_PROFILES = [
   { name: "Rangga Kautsar", category: "men" as const, state: "DNS" as const },
   { name: "Salsa Nirmala", category: "women" as const, state: "Withdrawn" as const }
 ];
+const LOCAL_ORGANIZER_USERNAME = "admin";
+const LOCAL_ORGANIZER_PASSWORD = "admin";
 
 function buildPreviewLeaderboard(race: DemoRaceCard, category?: "women" | "men"): OverallLeaderboard {
   const source = race.rankingPreview.filter((entry) => {
@@ -1142,6 +1144,7 @@ export default function App() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isLocalOrganizerAuth, setIsLocalOrganizerAuth] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1204,7 +1207,7 @@ export default function App() {
   const [platformEventQuery, setPlatformEventQuery] = useState("");
   const topbarMenuRef = useRef<HTMLDivElement | null>(null);
   const hasDashboardAccess = profile ? ORGANIZER_ROLES.includes(profile.role as (typeof ORGANIZER_ROLES)[number]) : false;
-  const organizerSessionActive = Boolean(accessToken && hasDashboardAccess);
+  const organizerSessionActive = Boolean((accessToken || isLocalOrganizerAuth) && hasDashboardAccess);
   const organizerVisibleEvents = useMemo(
     () => organizerWorkspace.events.filter((event) => !event.archivedAt),
     [organizerWorkspace.events]
@@ -2927,10 +2930,14 @@ export default function App() {
   }
 
   function handleLogout() {
-    if (supabase) {
+    if (supabase && !isLocalOrganizerAuth) {
       void supabase.auth.signOut();
     }
 
+    setIsLocalOrganizerAuth(false);
+    setIsAuthenticated(false);
+    setAccessToken(null);
+    setProfile(null);
     setLoginError(null);
     setLoginPassword("");
     setIsLoginModalOpen(false);
@@ -3747,6 +3754,28 @@ export default function App() {
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const normalizedLogin = loginEmail.trim().toLowerCase();
+
+    if (normalizedLogin === LOCAL_ORGANIZER_USERNAME && loginPassword === LOCAL_ORGANIZER_PASSWORD) {
+      setProfile(
+        authProfileSchema.parse({
+          userId: "local-admin",
+          email: LOCAL_ORGANIZER_USERNAME,
+          role: "admin",
+          crewCode: null,
+          displayName: "Admin"
+        })
+      );
+      setIsAuthenticated(true);
+      setAccessToken(null);
+      setIsLocalOrganizerAuth(true);
+      setLoginError(null);
+      setLoginPassword("");
+      setIsLoginModalOpen(false);
+      setOrganizerWorkspaceView("home");
+      return;
+    }
 
     if (!supabase) {
       setLoginError("Supabase auth belum terhubung di environment ini.");
@@ -6693,6 +6722,7 @@ export default function App() {
             <div className="auth-modal-copy">
               <strong>Dear Organiser, please identify yourself to access Trailnesia&apos;s tools.</strong>
               <span>Dear spectators, the live following is free and you do not need to register to follow the race.</span>
+              <span>Trial shortcut: username `admin`, password `admin`.</span>
             </div>
 
             <form className="auth-modal-form" onSubmit={handleLogin}>
@@ -6700,7 +6730,7 @@ export default function App() {
                 Username
                 <input
                   autoComplete="username"
-                  placeholder="admin1@arm.local"
+                  placeholder="admin or admin1@arm.local"
                   value={loginEmail}
                   onChange={(event) => setLoginEmail(event.target.value)}
                 />
