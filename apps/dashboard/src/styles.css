@@ -1075,7 +1075,7 @@ a {
   box-shadow: 0 8px 18px rgba(32, 29, 21, 0.08);
   display: grid;
   gap: 12px;
-  min-height: 488px;
+  min-height: 0;
   padding: 14px 14px 16px;
 }
 
@@ -1199,7 +1199,8 @@ a {
 
 .race-card-profile-svg {
   display: block;
-  min-height: 64px;
+  height: 112px;
+  max-height: 112px;
   width: 100%;
 }
 
@@ -7843,7 +7844,19 @@ body {
 }
 
 .live-main > .edition-home-shell.cards-only .race-card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 360px));
+  justify-content: start;
+  max-width: 100%;
+}
+
+.live-main > .edition-home-shell.cards-only .race-card {
+  gap: 10px;
+  min-height: 0;
+}
+
+.live-main > .edition-home-shell.cards-only .race-card-profile-svg {
+  height: 96px;
+  max-height: 96px;
 }
 
 .topbar-left-cluster {
