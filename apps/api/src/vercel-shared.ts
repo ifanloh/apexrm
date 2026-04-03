@@ -7,8 +7,8 @@ export function getAllowedOrigin(request: IncomingMessage) {
 export function applyCorsHeaders(request: IncomingMessage, response: ServerResponse) {
   response.setHeader("Access-Control-Allow-Origin", getAllowedOrigin(request));
   response.setHeader("Vary", "Origin");
-  response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+  response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
+  response.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Organizer-Demo-User");
 }
 
 export function handlePreflight(request: IncomingMessage, response: ServerResponse) {
