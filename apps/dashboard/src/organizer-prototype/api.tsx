@@ -323,6 +323,11 @@ export function OrganizerPrototypeProvider({ children, user, onLogout }: { child
   const [store, setStore] = useState<Store>(() => loadStore(user));
   const [isStoreLoading, setIsStoreLoading] = useState(false);
   const hasHydratedRemoteRef = useRef(false);
+  const latestStoreRef = useRef(store);
+
+  useEffect(() => {
+    latestStoreRef.current = store;
+  }, [store]);
 
   useEffect(() => {
     let isActive = true;
@@ -344,8 +349,14 @@ export function OrganizerPrototypeProvider({ children, user, onLogout }: { child
           const nextStore = hydratePersistedStore(user, remoteStore);
           setStore(nextStore);
           saveStore(nextStore);
-        } else if (hasWorkspaceContent(localStore)) {
-          await saveRemoteWorkspace(user, localStore);
+        } else {
+          const currentStore = latestStoreRef.current;
+
+          if (hasWorkspaceContent(currentStore)) {
+            await saveRemoteWorkspace(user, currentStore);
+          } else if (hasWorkspaceContent(localStore)) {
+            await saveRemoteWorkspace(user, localStore);
+          }
         }
       } catch (error) {
         console.error("Organizer workspace sync failed.", error);
