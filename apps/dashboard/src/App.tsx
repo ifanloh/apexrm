@@ -29,7 +29,7 @@ import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
 import trailnesiaLogo from "./assets/trailnesia.png";
 import indonesiaMapSvg from "./assets/indonesia-map.svg";
-import platformTrailRunnerHero from "./assets/platform-trail-runner-hero.svg";
+import platformHomeHeroPhoto from "./assets/platform-home-hero-photo.jpg";
 import worldMapSvgRaw from "./assets/world-map-detailed.svg?raw";
 import { getDemoCourseForRace, type DemoCourse } from "./demoCourseVariants";
 import { type DemoRaceCard, type DemoRaceRankingPreview } from "./demoRaceFestival";
@@ -4127,6 +4127,7 @@ export default function App() {
         {showPlatformHome ? (
           <section className="platform-home-shell" id="platform-home">
             <div className="platform-home-hero-shell">
+              <img alt="" className="platform-home-hero-image" src={platformHomeHeroPhoto} />
               <div className="platform-home-hero-overlay" />
 
               <div className="platform-home-topline">
@@ -4200,9 +4201,6 @@ export default function App() {
                     <span>{livePlatformEvents.length} live now</span>
                     <span>{upcomingPlatformEvents.length} upcoming</span>
                   </div>
-                </div>
-                <div className="platform-home-hero-visual" aria-hidden="true">
-                  <img alt="" className="platform-home-hero-illustration" src={platformTrailRunnerHero} />
                 </div>
               </div>
             </div>
