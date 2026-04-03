@@ -120,6 +120,38 @@ export async function saveOrganizerWorkspace(
   };
 }
 
+export async function listOrganizerWorkspaces(
+  sql: Sql
+): Promise<
+  Array<{
+    ownerUserId: string;
+    username: string | null;
+    displayName: string | null;
+    payload: unknown;
+    updatedAt: string;
+  }>
+> {
+  const rows = await sql<{
+    owner_user_id: string;
+    username: string | null;
+    display_name: string | null;
+    payload: unknown;
+    updated_at: string | Date;
+  }[]>`
+    select owner_user_id, username, display_name, payload, updated_at
+    from public.organizer_workspaces
+    order by updated_at desc
+  `;
+
+  return rows.map((row) => ({
+    ownerUserId: row.owner_user_id,
+    username: row.username,
+    displayName: row.display_name,
+    payload: row.payload,
+    updatedAt: toIsoString(row.updated_at)
+  }));
+}
+
 export type ScanProcessResult =
   | {
       status: "accepted";

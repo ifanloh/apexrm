@@ -214,6 +214,46 @@ type OrganizerConsoleEntryTarget = {
   view: OrganizerConsoleLandingView;
   raceSlug: string;
 };
+type PrototypePublicFeedItem = {
+  ownerUserId: string;
+  username: string | null;
+  displayName: string | null;
+  updatedAt: string;
+  event: {
+    id: number;
+    name: string;
+    location: string;
+    description: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    logoUrl: string | null;
+    bannerUrl: string | null;
+    status: "upcoming" | "live" | "finished";
+    createdAt: string;
+    updatedAt: string;
+  };
+  races: Array<{
+    id: number;
+    name: string;
+    distance: number | null;
+    elevationGain: number | null;
+    maxParticipants: number | null;
+    cutoffTime: string | null;
+    gpxFileName: string | null;
+    status: "upcoming" | "live" | "finished";
+    participantCount: number;
+    checkpointCount: number;
+    crewCount: number;
+    checkpoints: Array<{
+      id: number;
+      name: string;
+      orderIndex: number;
+      distanceFromStart: number | null;
+      isStartLine: boolean;
+      isFinishLine: boolean;
+    }>;
+  }>;
+};
 
 type CountryCode = (typeof COUNTRY_CODES)[number];
 
@@ -388,6 +428,10 @@ function getApiHost() {
   }
 }
 
+function getApiBaseUrl() {
+  return (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
+}
+
 function getStableIndex(value: string, size: number) {
   let hash = 0;
 
@@ -404,6 +448,98 @@ function slugifyOrganizerValue(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
+}
+
+function mapPrototypeRaceStatus(status: PrototypePublicFeedItem["races"][number]["status"]): OrganizerRaceState {
+  if (status === "live") {
+    return "Live";
+  }
+
+  if (status === "finished") {
+    return "Finished";
+  }
+
+  return "Upcoming";
+}
+
+function buildPrototypePublicOrganizerEvent(item: PrototypePublicFeedItem): OrganizerEventRecord {
+  const fallbackSetup = createDefaultOrganizerSetup();
+  const brandName = item.event.name.trim() || fallbackSetup.branding.brandName;
+  const brandWords = brandName.split(/\s+/).filter(Boolean);
+  const eventDateAt = normalizeOrganizerDateTimeInputValue(item.event.startDate ?? item.updatedAt, fallbackSetup.branding.eventDateAt);
+  const races = item.races.map((race, index) => {
+    const template = createOrganizerRaceTemplate(index + 1);
+    const startAt = normalizeOrganizerDateTimeInputValue(item.event.startDate ?? item.updatedAt, template.startAt);
+    const checkpointList =
+      race.checkpoints.length > 0
+        ? race.checkpoints
+            .slice()
+            .sort((left, right) => left.orderIndex - right.orderIndex)
+            .map((checkpoint, checkpointIndex) => ({
+              id: checkpoint.isStartLine ? "cp-start" : checkpoint.isFinishLine ? "finish" : `cp-${checkpointIndex + 1}`,
+              code: checkpoint.isStartLine ? "START" : checkpoint.isFinishLine ? "FIN" : `CP${checkpointIndex}`,
+              name: checkpoint.name,
+              kmMarker: checkpoint.distanceFromStart ?? template.checkpoints[Math.min(checkpointIndex, template.checkpoints.length - 1)]?.kmMarker ?? 0,
+              order: checkpointIndex
+            }))
+        : template.checkpoints;
+    const fallbackHighlights = [
+      race.distance !== null ? `${race.distance} km category` : null,
+      race.elevationGain !== null ? `${race.elevationGain} m+ elevation gain` : null,
+      item.event.location.trim() ? `Based in ${item.event.location}` : null
+    ].filter((value): value is string => Boolean(value));
+
+    return {
+      ...template,
+      slug: slugifyOrganizerValue(`${item.ownerUserId}-${item.event.id}-${race.id}-${race.name}`) || `prototype-race-${race.id}`,
+      title: race.name,
+      isPublished: true,
+      editionLabel: mapPrototypeRaceStatus(race.status),
+      scheduleLabel: formatOrganizerScheduleLabel(startAt),
+      startAt,
+      startTown: item.event.location.trim() || template.startTown,
+      courseDescription: item.event.description?.trim() || `${race.name} category for ${brandName}.`,
+      courseHighlights: fallbackHighlights.length >= 2 ? fallbackHighlights : template.courseHighlights,
+      distanceKm: race.distance ?? template.distanceKm,
+      ascentM: race.elevationGain ?? template.ascentM,
+      finishers: race.status === "finished" ? race.participantCount : 0,
+      dnf: 0,
+      gpxFileName: race.gpxFileName ?? null,
+      checkpoints: checkpointList,
+      participants: [],
+      crewAssignments: [],
+      simulatedScans: []
+    } satisfies OrganizerRaceDraft;
+  });
+
+  return {
+    id: `prototype:${item.ownerUserId}:${item.event.id}`,
+    title: brandName,
+    createdAt: item.event.createdAt,
+    updatedAt: item.event.updatedAt,
+    archivedAt: null,
+    setup: {
+      branding: {
+        ...fallbackSetup.branding,
+        organizerName: item.displayName ?? item.username ?? fallbackSetup.branding.organizerName,
+        brandStackTop: brandWords[0]?.toUpperCase() ?? fallbackSetup.branding.brandStackTop,
+        brandStackBottom: brandWords.slice(1).join(" ").toUpperCase() || fallbackSetup.branding.brandStackBottom,
+        brandName,
+        editionLabel: item.event.status === "live" ? "Live edition" : item.event.status === "finished" ? "Finished edition" : "Upcoming edition",
+        bannerTagline: item.event.location.trim() || fallbackSetup.branding.bannerTagline,
+        homeTitle: brandName,
+        homeSubtitle: item.event.description?.trim() || `Published race categories for ${brandName}.`,
+        eventDateAt,
+        dateRibbon: formatOrganizerDateRibbon(item.event.startDate ?? item.updatedAt),
+        locationRibbon: item.event.location.trim() || fallbackSetup.branding.locationRibbon,
+        eventLogoDataUrl: item.event.logoUrl,
+        heroBackgroundImageDataUrl: item.event.bannerUrl,
+        gpxFileName: races.find((race) => Boolean(race.gpxFileName))?.gpxFileName ?? null,
+        gpxFileSize: null
+      },
+      races
+    }
+  };
 }
 
 function buildOrganizerWizardDraft(): OrganizerWizardDraft {
@@ -1294,6 +1430,7 @@ export default function App() {
   const [organizerWizardOpen, setOrganizerWizardOpen] = useState(false);
   const [organizerWizardStep, setOrganizerWizardStep] = useState<OrganizerWizardStep>("basics");
   const [organizerWizardDraft, setOrganizerWizardDraft] = useState<OrganizerWizardDraft>(() => buildOrganizerWizardDraft());
+  const [prototypePublicFeed, setPrototypePublicFeed] = useState<PrototypePublicFeedItem[]>([]);
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
   const [isTopbarMenuOpen, setIsTopbarMenuOpen] = useState(false);
@@ -1309,10 +1446,26 @@ export default function App() {
     () => organizerWorkspace.events.filter((event) => Boolean(event.archivedAt)),
     [organizerWorkspace.events]
   );
-  const publicVisibleEvents = useMemo(
+  const legacyPublicVisibleEvents = useMemo(
     () => organizerVisibleEvents.filter((event) => deriveOrganizerPublicEventStatus(event) !== "hidden"),
     [organizerVisibleEvents]
   );
+  const prototypePublicVisibleEvents = useMemo(
+    () => prototypePublicFeed.map((item) => buildPrototypePublicOrganizerEvent(item)),
+    [prototypePublicFeed]
+  );
+  const publicVisibleEvents = useMemo(() => {
+    const merged = [...legacyPublicVisibleEvents, ...prototypePublicVisibleEvents];
+    const seen = new Set<string>();
+    return merged.filter((event) => {
+      if (seen.has(event.id)) {
+        return false;
+      }
+
+      seen.add(event.id);
+      return true;
+    });
+  }, [legacyPublicVisibleEvents, prototypePublicVisibleEvents]);
   const organizerActiveEvent =
     organizerVisibleEvents.find((event) => event.id === organizerWorkspace.activeEventId) ?? organizerVisibleEvents[0] ?? null;
   const spectatorEvent = publicVisibleEvents.find((event) => event.id === selectedPublicEventId) ?? null;
@@ -1448,6 +1601,49 @@ export default function App() {
     window.localStorage.setItem(ORGANIZER_WORKSPACE_STORAGE_KEY, JSON.stringify(organizerWorkspace));
     setOrganizerDraftSavedAt(new Date().toISOString());
   }, [organizerWorkspace]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    let isActive = true;
+    const apiBaseUrl = getApiBaseUrl();
+
+    async function loadPrototypePublicFeed() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/organizer/public-events`, {
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          throw new Error(`Public organizer feed failed (${response.status})`);
+        }
+
+        const payload = (await response.json()) as {
+          items?: PrototypePublicFeedItem[];
+        };
+
+        if (!isActive) {
+          return;
+        }
+
+        setPrototypePublicFeed(Array.isArray(payload.items) ? payload.items : []);
+      } catch (error) {
+        console.error("Failed to load organizer public events.", error);
+      }
+    }
+
+    void loadPrototypePublicFeed();
+    const intervalId = window.setInterval(() => {
+      void loadPrototypePublicFeed();
+    }, 15000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     if (!organizerSessionActive) {

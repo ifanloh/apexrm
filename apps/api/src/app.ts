@@ -21,6 +21,7 @@ import {
   getOverallLeaderboard,
   getRecentPassings,
   getRunnerDetail,
+  listOrganizerWorkspaces,
   processSingleScan,
   processSingleWithdrawal,
   saveOrganizerWorkspace,
@@ -29,6 +30,7 @@ import {
   syncOfflineWithdrawals
 } from "./repository.js";
 import { config } from "./config.js";
+import { extractOrganizerPrototypePublicEvents } from "./organizer-public-events.js";
 
 const syncOfflineSchema = z.object({
   scans: z.array(scanSubmissionSchema).min(1)
@@ -249,6 +251,23 @@ export async function createServer() {
       displayName: payload.displayName ?? actor.displayName,
       payload: payload.payload as JsonValue
     });
+  });
+
+  server.get(`${config.apiPrefix}/organizer/public-events`, async () => {
+    await ensureOrganizerWorkspaceBootstrap();
+    const workspaces = await listOrganizerWorkspaces(sql);
+
+    return {
+      items: workspaces.flatMap((workspace) =>
+        extractOrganizerPrototypePublicEvents(
+          workspace.payload,
+          workspace.ownerUserId,
+          workspace.username,
+          workspace.displayName,
+          workspace.updatedAt
+        )
+      )
+    };
   });
 
   server.get(`${config.apiPrefix}/snapshot`, async (request) => {
