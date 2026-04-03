@@ -24,7 +24,7 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen overflow-hidden flex flex-col bg-background">
       <header className="sticky top-0 z-50 w-full border-b bg-card">
         <div className="container flex h-16 items-center px-4 justify-between">
           <div className="flex items-center gap-6">
@@ -52,7 +52,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </header>
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 min-h-0 overflow-y-auto flex flex-col">
         {children}
       </main>
     </div>
