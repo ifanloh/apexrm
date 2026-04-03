@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronRight, ChevronLeft, Mountain, Flag, Image as ImageIcon, CheckCircle2 } from "lucide-react";
+import { ChevronRight, ChevronLeft, Mountain, Flag, Image as ImageIcon, CheckCircle2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { readImageAsDataUrl } from "@/lib/media-upload";
 
 export default function EventWizard() {
   const [step, setStep] = useState(1);
@@ -35,6 +36,24 @@ export default function EventWizard() {
       ...prev,
       [name]: type === 'number' ? Number(value) : value
     }));
+  };
+
+  const handleImageUpload = async (field: "logoUrl" | "bannerUrl", file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const dataUrl = await readImageAsDataUrl(file);
+      setFormData((current) => ({ ...current, [field]: dataUrl }));
+      toast({ title: field === "logoUrl" ? "Logo uploaded" : "Banner uploaded" });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Please try another image."
+      });
+    }
   };
 
   const handleNext = () => {
@@ -162,12 +181,51 @@ export default function EventWizard() {
           {step === 2 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
               <div className="space-y-2">
-                <Label htmlFor="logoUrl">Logo URL</Label>
-                <Input id="logoUrl" name="logoUrl" value={formData.logoUrl} onChange={handleChange} placeholder="https://..." />
+                <Label>Event Logo</Label>
+                <div className="flex items-center gap-3">
+                  <Button asChild variant="outline">
+                    <label className="cursor-pointer">
+                      <Upload className="h-4 w-4" />
+                      {formData.logoUrl ? "Replace Logo" : "Upload Logo"}
+                      <input
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          void handleImageUpload("logoUrl", event.target.files?.[0]);
+                          event.currentTarget.value = "";
+                        }}
+                        type="file"
+                      />
+                    </label>
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Upload your organizer logo image.</span>
+                </div>
+                {formData.logoUrl ? (
+                  <div className="mt-3 flex h-24 w-24 items-center justify-center rounded-md border bg-muted/40 p-3">
+                    <img alt="Event logo preview" className="max-h-full max-w-full object-contain" src={formData.logoUrl} />
+                  </div>
+                ) : null}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bannerUrl">Banner URL</Label>
-                <Input id="bannerUrl" name="bannerUrl" value={formData.bannerUrl} onChange={handleChange} placeholder="https://..." />
+                <Label>Event Banner</Label>
+                <div className="flex items-center gap-3">
+                  <Button asChild variant="outline">
+                    <label className="cursor-pointer">
+                      <Upload className="h-4 w-4" />
+                      {formData.bannerUrl ? "Replace Banner" : "Upload Banner"}
+                      <input
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          void handleImageUpload("bannerUrl", event.target.files?.[0]);
+                          event.currentTarget.value = "";
+                        }}
+                        type="file"
+                      />
+                    </label>
+                  </Button>
+                  <span className="text-xs text-muted-foreground">Upload a wide banner image for the event header.</span>
+                </div>
                 {formData.bannerUrl && (
                   <div className="mt-4 h-32 w-full rounded-md border bg-muted bg-cover bg-center" style={{ backgroundImage: `url(${formData.bannerUrl})` }} />
                 )}
