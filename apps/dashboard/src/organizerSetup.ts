@@ -690,22 +690,132 @@ export function getOrganizerRaceDistanceSummary(race: OrganizerRaceDraft) {
   }
 }
 
+function clampOrganizerCourseValue(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function interpolateOrganizerCoursePoint<T extends { km: number }>(
+  points: readonly T[],
+  targetKm: number,
+  interpolate: (left: T, right: T, ratio: number, km: number) => T
+) {
+  if (targetKm <= points[0].km) {
+    return points[0];
+  }
+
+  if (targetKm >= points[points.length - 1].km) {
+    return points[points.length - 1];
+  }
+
+  const nextIndex = points.findIndex((point) => point.km >= targetKm);
+  const right = points[nextIndex];
+  const left = points[Math.max(nextIndex - 1, 0)];
+  const span = Math.max(right.km - left.km, 0.001);
+  const ratio = clampOrganizerCourseValue((targetKm - left.km) / span, 0, 1);
+
+  return interpolate(left, right, ratio, targetKm);
+}
+
+function upsertCheckpointWaypoints(
+  waypoints: DemoCourse["waypoints"],
+  checkpoints: DemoCourseCheckpoint[],
+  distanceKm: number
+) {
+  if (!Array.isArray(waypoints) || waypoints.length < 2 || checkpoints.length === 0) {
+    return waypoints;
+  }
+
+  const toleranceKm = 0.15;
+  const seeded = [...waypoints].sort((left, right) => left.km - right.km);
+
+  return checkpoints.reduce<DemoCourse["waypoints"]>((current, checkpoint) => {
+    const kmMarker = Number(clampOrganizerCourseValue(checkpoint.kmMarker, 0, distanceKm).toFixed(1));
+    const nextPoint = interpolateOrganizerCoursePoint(current, kmMarker, (left, right, ratio, km) => ({
+      id: checkpoint.id,
+      name: checkpoint.name,
+      km,
+      ele: left.ele + (right.ele - left.ele) * ratio,
+      lat: left.lat + (right.lat - left.lat) * ratio,
+      lon: left.lon + (right.lon - left.lon) * ratio
+    }));
+    const hydratedPoint = {
+      ...nextPoint,
+      id: checkpoint.id,
+      name: checkpoint.name,
+      km: kmMarker,
+      ele: Math.round(nextPoint.ele),
+      lat: Number(nextPoint.lat.toFixed(6)),
+      lon: Number(nextPoint.lon.toFixed(6))
+    };
+    const existingIndex = current.findIndex((point) => Math.abs(point.km - kmMarker) <= toleranceKm);
+
+    if (existingIndex >= 0) {
+      return current
+        .map((point, index) => (index === existingIndex ? hydratedPoint : point))
+        .sort((left, right) => left.km - right.km);
+    }
+
+    return [...current, hydratedPoint].sort((left, right) => left.km - right.km);
+  }, seeded);
+}
+
+function upsertCheckpointProfilePoints(
+  profilePoints: DemoCourse["profilePoints"],
+  checkpoints: DemoCourseCheckpoint[],
+  distanceKm: number
+) {
+  if (!Array.isArray(profilePoints) || profilePoints.length < 2 || checkpoints.length === 0) {
+    return profilePoints;
+  }
+
+  const toleranceKm = 0.15;
+  const seeded = [...profilePoints].sort((left, right) => left.km - right.km);
+
+  return checkpoints.reduce<DemoCourse["profilePoints"]>((current, checkpoint) => {
+    const kmMarker = Number(clampOrganizerCourseValue(checkpoint.kmMarker, 0, distanceKm).toFixed(1));
+    const nextPoint = interpolateOrganizerCoursePoint(current, kmMarker, (left, right, ratio, km) => ({
+      km,
+      ele: left.ele + (right.ele - left.ele) * ratio
+    }));
+    const hydratedPoint = {
+      km: kmMarker,
+      ele: Math.round(nextPoint.ele)
+    };
+    const existingIndex = current.findIndex((point) => Math.abs(point.km - kmMarker) <= toleranceKm);
+
+    if (existingIndex >= 0) {
+      return current
+        .map((point, index) => (index === existingIndex ? hydratedPoint : point))
+        .sort((left, right) => left.km - right.km);
+    }
+
+    return [...current, hydratedPoint].sort((left, right) => left.km - right.km);
+  }, seeded);
+}
+
 export function buildOrganizerCourseFromRaceDraft(race: OrganizerRaceDraft): DemoCourse {
   const fallbackCourse = getDemoCourseForRace(race);
+  const checkpoints =
+    Array.isArray(race.checkpoints) && race.checkpoints.length
+      ? [...race.checkpoints].sort((left, right) => left.order - right.order)
+      : fallbackCourse.checkpoints;
+  const distanceKm = race.distanceKm || fallbackCourse.distanceKm;
+  const routeWaypoints =
+    Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : fallbackCourse.waypoints;
+  const routeProfilePoints =
+    Array.isArray(race.profilePoints) && race.profilePoints.length ? race.profilePoints : fallbackCourse.profilePoints;
+
   return {
     slug: race.slug,
     title: race.title,
     subtitle: race.courseDescription,
     location: race.startTown,
-    distanceKm: race.distanceKm,
+    distanceKm,
     ascentM: race.ascentM,
     descentM: race.descentM || fallbackCourse.descentM,
-    checkpoints:
-      Array.isArray(race.checkpoints) && race.checkpoints.length
-        ? [...race.checkpoints].sort((left, right) => left.order - right.order)
-        : fallbackCourse.checkpoints,
-    waypoints: Array.isArray(race.waypoints) && race.waypoints.length ? race.waypoints : fallbackCourse.waypoints,
-    profilePoints: Array.isArray(race.profilePoints) && race.profilePoints.length ? race.profilePoints : fallbackCourse.profilePoints
+    checkpoints,
+    waypoints: upsertCheckpointWaypoints(routeWaypoints, checkpoints, distanceKm),
+    profilePoints: upsertCheckpointProfilePoints(routeProfilePoints, checkpoints, distanceKm)
   };
 }
 

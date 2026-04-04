@@ -540,16 +540,26 @@ function buildPrototypePublicOrganizerEvent(item: PrototypePublicFeedItem): Orga
     const startAt = normalizeOrganizerDateTimeInputValue(item.event.startDate ?? item.updatedAt, template.startAt);
     const checkpointList =
       race.checkpoints.length > 0
-        ? race.checkpoints
-            .slice()
-            .sort((left, right) => left.orderIndex - right.orderIndex)
-            .map((checkpoint, checkpointIndex) => ({
-              id: checkpoint.isStartLine ? "cp-start" : checkpoint.isFinishLine ? "finish" : `cp-${checkpointIndex + 1}`,
-              code: checkpoint.isStartLine ? "START" : checkpoint.isFinishLine ? "FIN" : `CP${checkpointIndex}`,
-              name: checkpoint.name,
-              kmMarker: checkpoint.distanceFromStart ?? template.checkpoints[Math.min(checkpointIndex, template.checkpoints.length - 1)]?.kmMarker ?? 0,
-              order: checkpointIndex
-            }))
+        ? (() => {
+            let customCheckpointCount = 0;
+            return race.checkpoints
+              .slice()
+              .sort((left, right) => left.orderIndex - right.orderIndex)
+              .map((checkpoint, checkpointIndex) => {
+                const isCustomCheckpoint = !checkpoint.isStartLine && !checkpoint.isFinishLine;
+                if (isCustomCheckpoint) {
+                  customCheckpointCount += 1;
+                }
+
+                return {
+                  id: checkpoint.isStartLine ? "cp-start" : checkpoint.isFinishLine ? "finish" : `cp-${customCheckpointCount}`,
+                  code: checkpoint.isStartLine ? "START" : checkpoint.isFinishLine ? "FIN" : `CP${customCheckpointCount}`,
+                  name: checkpoint.name,
+                  kmMarker: checkpoint.distanceFromStart ?? template.checkpoints[Math.min(checkpointIndex, template.checkpoints.length - 1)]?.kmMarker ?? 0,
+                  order: checkpointIndex
+                };
+              });
+          })()
         : template.checkpoints;
     const fallbackHighlights = [
       race.distance !== null ? `${race.distance} km category` : null,

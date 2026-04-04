@@ -17,6 +17,10 @@ function findClosestWaypoint(course: DemoCourse, targetKm: number) {
   }, course.waypoints[0]);
 }
 
+function findCheckpointWaypoint(course: DemoCourse, checkpointId: string, targetKm: number) {
+  return course.waypoints.find((point) => point.id === checkpointId) ?? findClosestWaypoint(course, targetKm);
+}
+
 export function CourseInlineMap({ course, selectedCheckpointId, onSelectCheckpoint }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -57,7 +61,7 @@ export function CourseInlineMap({ course, selectedCheckpointId, onSelectCheckpoi
     }).addTo(map);
 
     course.checkpoints.forEach((checkpoint) => {
-      const waypoint = findClosestWaypoint(course, checkpoint.kmMarker);
+      const waypoint = findCheckpointWaypoint(course, checkpoint.id, checkpoint.kmMarker);
       const isSelected = checkpoint.id === selectedCheckpointId;
       const marker = L.circleMarker([waypoint.lat, waypoint.lon], {
         color: "#ffffff",
