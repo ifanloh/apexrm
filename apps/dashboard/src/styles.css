@@ -4658,11 +4658,11 @@ body {
 }
 
 .live-trail-shell.race-detail-mode .live-main > .detail-topline,
-.live-trail-shell.race-detail-mode .live-main > .panel.race-course-info-panel,
-.live-trail-shell.race-detail-mode .live-main > .spotlight-grid,
-.live-trail-shell.race-detail-mode .live-main > .spectator-promo-panel,
-.live-trail-shell.race-detail-mode .live-main > .spectator-footer {
-  max-width: 980px;
+.live-trail-shell.race-detail-mode .live-main > section {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 920px;
+  width: 100%;
 }
 
 .dashboard-rail-marker {
@@ -7862,8 +7862,8 @@ body {
 }
 
 .live-trail-shell.race-detail-mode .dashboard-main.dashboard-main-scroll {
-  padding-left: 18px;
-  padding-right: 18px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .live-main > .edition-home-shell.cards-only {
