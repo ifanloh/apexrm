@@ -4263,7 +4263,23 @@ export default function App() {
         return;
       }
 
-      const top = target.getBoundingClientRect().top + window.scrollY - (showPlatformHome ? 18 : 12);
+      if (showPlatformHome) {
+        const platformScrollContainer = document.querySelector(".live-trail-shell.platform-home-mode") as HTMLElement | null;
+
+        if (platformScrollContainer) {
+          const containerBounds = platformScrollContainer.getBoundingClientRect();
+          const targetBounds = target.getBoundingClientRect();
+          const top = targetBounds.top - containerBounds.top + platformScrollContainer.scrollTop - 18;
+
+          platformScrollContainer.scrollTo({
+            behavior: "smooth",
+            top: Math.max(0, top)
+          });
+          return;
+        }
+      }
+
+      const top = target.getBoundingClientRect().top + window.scrollY - 12;
 
       window.scrollTo({
         behavior: "smooth",

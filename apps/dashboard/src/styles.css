@@ -8082,16 +8082,17 @@ body {
 
 .live-trail-shell.platform-home-mode {
   display: block;
-  height: auto;
+  height: 100dvh;
   max-width: none;
   min-height: 100dvh;
-  overflow: visible;
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .live-trail-shell.platform-home-mode .live-shell-body {
   display: block;
-  min-height: 100dvh;
+  min-height: auto;
   overflow: visible;
 }
 
