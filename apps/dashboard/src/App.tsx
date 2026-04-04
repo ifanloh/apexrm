@@ -4772,7 +4772,6 @@ export default function App() {
                           <div className="platform-event-directory-body">
                             <div className="platform-event-directory-kicker">
                               <span className="platform-event-region-pill">{event.regionLabel}</span>
-                              <span className="platform-event-directory-organizer">{event.organizerName}</span>
                             </div>
                             <div className="platform-event-directory-head">
                               {event.eventLogoDataUrl ? (
