@@ -5,9 +5,14 @@ import type { DemoCourse } from "./demoCourseVariants";
 
 type Props = {
   course: DemoCourse;
+  hoveredKm: number | null;
   selectedCheckpointId: string;
   onSelectCheckpoint: (checkpointId: string) => void;
 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function findClosestWaypoint(course: DemoCourse, targetKm: number) {
   return course.waypoints.reduce((closest, point) => {
@@ -17,13 +22,56 @@ function findClosestWaypoint(course: DemoCourse, targetKm: number) {
   }, course.waypoints[0]);
 }
 
+function interpolateWaypoint(course: DemoCourse, targetKm: number) {
+  if (!course.waypoints.length) {
+    return null;
+  }
+
+  if (targetKm <= course.waypoints[0].km) {
+    return course.waypoints[0];
+  }
+
+  if (targetKm >= course.waypoints[course.waypoints.length - 1].km) {
+    return course.waypoints[course.waypoints.length - 1];
+  }
+
+  const nextIndex = course.waypoints.findIndex((point) => point.km >= targetKm);
+
+  if (nextIndex <= 0) {
+    return course.waypoints[0];
+  }
+
+  const right = course.waypoints[nextIndex];
+  const left = course.waypoints[nextIndex - 1];
+  const distance = Math.max(right.km - left.km, 0.001);
+  const ratio = clamp((targetKm - left.km) / distance, 0, 1);
+
+  if (ratio <= 0.02) {
+    return left;
+  }
+
+  if (ratio >= 0.98) {
+    return right;
+  }
+
+  return {
+    id: `hover-${targetKm.toFixed(1)}`,
+    name: "Hovered point",
+    km: Number(targetKm.toFixed(1)),
+    ele: left.ele + (right.ele - left.ele) * ratio,
+    lat: left.lat + (right.lat - left.lat) * ratio,
+    lon: left.lon + (right.lon - left.lon) * ratio
+  };
+}
+
 function findCheckpointWaypoint(course: DemoCourse, checkpointId: string, targetKm: number) {
   return course.waypoints.find((point) => point.id === checkpointId) ?? findClosestWaypoint(course, targetKm);
 }
 
-export function CourseInlineMap({ course, selectedCheckpointId, onSelectCheckpoint }: Props) {
+export function CourseInlineMap({ course, hoveredKm, selectedCheckpointId, onSelectCheckpoint }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const hoverMarkerRef = useRef<L.CircleMarker | null>(null);
 
   const routeLatLngs = useMemo(
     () => course.waypoints.map((point) => [point.lat, point.lon] as [number, number]),
@@ -97,10 +145,57 @@ export function CourseInlineMap({ course, selectedCheckpointId, onSelectCheckpoi
 
     return () => {
       resizeObserver.disconnect();
+      hoverMarkerRef.current = null;
       mapRef.current = null;
       map.remove();
     };
   }, [course, onSelectCheckpoint, routeLatLngs, selectedCheckpointId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+
+    if (!map) {
+      return;
+    }
+
+    if (hoveredKm === null) {
+      hoverMarkerRef.current?.remove();
+      hoverMarkerRef.current = null;
+      return;
+    }
+
+    const hoveredWaypoint = interpolateWaypoint(course, hoveredKm);
+
+    if (!hoveredWaypoint) {
+      return;
+    }
+
+    const hoveredLatLng = L.latLng(hoveredWaypoint.lat, hoveredWaypoint.lon);
+
+    if (!hoverMarkerRef.current) {
+      const marker = L.circleMarker(hoveredLatLng, {
+        color: "#ffffff",
+        fillColor: "#ef3f2f",
+        fillOpacity: 1,
+        radius: 8,
+        weight: 3
+      }).addTo(map);
+
+      marker.bindTooltip(`${hoveredWaypoint.km.toFixed(1)} km`, {
+        className: "course-map-hover-tooltip",
+        direction: "top",
+        offset: L.point(0, -14),
+        opacity: 0.98
+      });
+
+      hoverMarkerRef.current = marker;
+    }
+
+    hoverMarkerRef.current.setLatLng(hoveredLatLng);
+    hoverMarkerRef.current.setTooltipContent(`${hoveredWaypoint.km.toFixed(1)} km`);
+    hoverMarkerRef.current.openTooltip();
+    hoverMarkerRef.current.bringToFront();
+  }, [course, hoveredKm]);
 
   return <div className="course-inline-map" ref={containerRef} role="img" aria-label={`${course.title} map`} />;
 }

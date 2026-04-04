@@ -5987,6 +5987,24 @@ body {
   background: rgba(18, 124, 85, 0.95);
 }
 
+.course-map-hover-tooltip {
+  background: rgba(255, 253, 249, 0.96);
+  border: 1px solid rgba(239, 63, 47, 0.16);
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(20, 22, 24, 0.14);
+  color: #ef3f2f;
+  font-family: "Red Hat Display", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 6px 10px;
+  text-transform: uppercase;
+}
+
+.course-map-hover-tooltip::before {
+  display: none;
+}
+
 .event-logo-placeholder {
   display: inline-flex;
   align-items: center;

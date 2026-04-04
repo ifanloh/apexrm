@@ -238,7 +238,12 @@ export function CourseProfilePanel({ course, courseStops, selectedCheckpointId, 
           <strong>{course.title}</strong>
           <small>{course.location}</small>
         </div>
-        <CourseInlineMap course={course} onSelectCheckpoint={onSelectCheckpoint} selectedCheckpointId={selectedCheckpointId} />
+        <CourseInlineMap
+          course={course}
+          hoveredKm={hoveredPoint?.km ?? null}
+          onSelectCheckpoint={onSelectCheckpoint}
+          selectedCheckpointId={selectedCheckpointId}
+        />
       </article>
     </>
   );
