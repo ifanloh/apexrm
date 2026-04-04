@@ -5995,6 +5995,9 @@ body {
   justify-content: flex-start;
   background: transparent;
   border-color: transparent;
+  max-width: 168px;
+  min-width: 0;
+  width: auto;
 }
 
 .event-logo-placeholder img {
@@ -6004,6 +6007,12 @@ body {
   object-position: left center;
   display: block;
   padding: 0;
+}
+
+.event-logo-placeholder.has-uploaded-logo img {
+  height: 64px;
+  max-width: 168px;
+  width: auto;
 }
 
 .organizer-console-shell {
@@ -7758,11 +7767,11 @@ body {
 }
 
 .live-shell-body.with-sidebar-rail {
-  grid-template-columns: 142px minmax(0, 1fr) 228px;
+  grid-template-columns: 156px minmax(0, 1fr) 228px;
 }
 
 .live-shell-body.no-sidebar-rail {
-  grid-template-columns: 142px minmax(0, 1fr);
+  grid-template-columns: 156px minmax(0, 1fr);
 }
 
 .live-shell-body.platform-home-body {
@@ -7806,13 +7815,13 @@ body {
   align-items: center;
   display: flex;
   flex: 0 1 auto;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 }
 
 .topbar-race-lockup {
-  flex: 0 0 176px;
-  max-width: 176px;
+  flex: 0 0 auto;
+  max-width: none;
 }
 
 .topbar-center {
