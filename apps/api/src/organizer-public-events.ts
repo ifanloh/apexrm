@@ -12,6 +12,7 @@ export type PrototypePublicRace = {
   name: string;
   distance: number | null;
   elevationGain: number | null;
+  descentM: number | null;
   maxParticipants: number | null;
   cutoffTime: string | null;
   gpxFileName: string | null;
@@ -19,6 +20,18 @@ export type PrototypePublicRace = {
   participantCount: number;
   checkpointCount: number;
   crewCount: number;
+  waypoints: Array<{
+    id: string;
+    name: string;
+    km: number;
+    ele: number;
+    lat: number;
+    lon: number;
+  }>;
+  profilePoints: Array<{
+    km: number;
+    ele: number;
+  }>;
   checkpoints: PrototypePublicCheckpoint[];
 };
 
@@ -53,6 +66,56 @@ function getString(value: unknown) {
 
 function getNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function getRouteWaypoints(value: unknown): PrototypePublicRace["waypoints"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((point) => {
+      if (!isObject(point)) {
+        return null;
+      }
+
+      const id = getString(point.id);
+      const name = getString(point.name);
+      const km = getNumber(point.km);
+      const ele = getNumber(point.ele);
+      const lat = getNumber(point.lat);
+      const lon = getNumber(point.lon);
+
+      if (!id || !name || km === null || ele === null || lat === null || lon === null) {
+        return null;
+      }
+
+      return { id, name, km, ele, lat, lon };
+    })
+    .filter((point): point is PrototypePublicRace["waypoints"][number] => Boolean(point));
+}
+
+function getProfilePoints(value: unknown): PrototypePublicRace["profilePoints"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((point) => {
+      if (!isObject(point)) {
+        return null;
+      }
+
+      const km = getNumber(point.km);
+      const ele = getNumber(point.ele);
+
+      if (km === null || ele === null) {
+        return null;
+      }
+
+      return { km, ele };
+    })
+    .filter((point): point is PrototypePublicRace["profilePoints"][number] => Boolean(point));
 }
 
 function normalizeRaceStatus(value: unknown): PrototypePublicRace["status"] | null {
@@ -142,6 +205,7 @@ export function extractOrganizerPrototypePublicEvents(
           name: raceName,
           distance: getNumber(raceRecord.distance),
           elevationGain: getNumber(raceRecord.elevationGain),
+          descentM: getNumber(raceRecord.descentM),
           maxParticipants: getNumber(raceRecord.maxParticipants),
           cutoffTime: getString(raceRecord.cutoffTime),
           gpxFileName: getString(raceRecord.gpxFileName),
@@ -150,6 +214,8 @@ export function extractOrganizerPrototypePublicEvents(
             getNumber(raceRecord.participantCount) ?? participants.filter((participant) => getNumber(participant.raceId) === raceId).length,
           checkpointCount: getNumber(raceRecord.checkpointCount) ?? raceCheckpoints.length,
           crewCount: getNumber(raceRecord.crewCount) ?? crew.filter((member) => getNumber(member.eventId) === eventId).length,
+          waypoints: getRouteWaypoints(raceRecord.waypoints),
+          profilePoints: getProfilePoints(raceRecord.profilePoints),
           checkpoints: raceCheckpoints
         } satisfies PrototypePublicRace;
       })

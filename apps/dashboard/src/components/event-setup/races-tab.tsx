@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Trash2, Flag, Upload, Route } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
+import { parseOrganizerGpxRoute } from "@/organizerSetup";
 
 async function readUploadedText(file: File) {
   const text = await file.text();
@@ -83,15 +84,43 @@ export function RacesTab({ eventId }: { eventId: number }) {
     );
   };
 
-  const handleRaceGpxUpload = async (raceId: number, file: File | undefined) => {
+  const handleRaceGpxUpload = async (
+    race: {
+      id: number;
+      name: string;
+    },
+    file: File | undefined
+  ) => {
     if (!file) {
       return;
     }
 
     try {
       const gpxData = await readUploadedText(file);
+      const parsedRoute = parseOrganizerGpxRoute(gpxData, {
+        routeId: `prototype-race-${race.id}`,
+        routeTitle: race.name,
+        startLabel: race.name
+      });
+
+      if (!parsedRoute) {
+        throw new Error("The GPX file could not be parsed into route points.");
+      }
+
       updateRaceMutation.mutate(
-        { eventId, raceId, data: { gpxFileName: file.name, gpxData } },
+        {
+          eventId,
+          raceId: race.id,
+          data: {
+            gpxFileName: file.name,
+            gpxData,
+            distance: parsedRoute.distanceKm,
+            elevationGain: parsedRoute.ascentM,
+            descentM: parsedRoute.descentM,
+            waypoints: parsedRoute.waypoints,
+            profilePoints: parsedRoute.profilePoints
+          }
+        },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: getListRacesQueryKey(eventId) });
@@ -213,7 +242,7 @@ export function RacesTab({ eventId }: { eventId: number }) {
                               accept=".gpx,application/gpx+xml,application/xml,text/xml"
                               className="hidden"
                               onChange={(event) => {
-                                void handleRaceGpxUpload(race.id, event.target.files?.[0]);
+                                void handleRaceGpxUpload(race, event.target.files?.[0]);
                                 event.currentTarget.value = "";
                               }}
                               type="file"

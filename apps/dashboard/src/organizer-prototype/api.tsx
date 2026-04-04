@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/supabase";
+import type { DemoCourse } from "@/demoCourseVariants";
 
 export type EventStatus = "draft" | "upcoming" | "live" | "finished" | "archived";
 export type RaceStatus = "draft" | "upcoming" | "live" | "finished";
@@ -35,10 +36,13 @@ export interface Race {
   name: string;
   distance?: number | null;
   elevationGain?: number | null;
+  descentM?: number | null;
   maxParticipants?: number | null;
   cutoffTime?: string | null;
   gpxFileName?: string | null;
   gpxData?: string | null;
+  waypoints?: DemoCourse["waypoints"];
+  profilePoints?: DemoCourse["profilePoints"];
   status: RaceStatus;
   participantCount: number;
   checkpointCount: number;
@@ -584,12 +588,15 @@ export function useCreateEvent() {
         distance: data.firstRaceDistance,
         elevationGain: data.firstRaceElevationGain,
         maxParticipants: data.firstRaceMaxParticipants,
-        cutoffTime: null,
-        gpxFileName: null,
-        gpxData: null,
-        status: "draft",
-        participantCount: 0,
-        checkpointCount: 0,
+      cutoffTime: null,
+      gpxFileName: null,
+      gpxData: null,
+      descentM: null,
+      waypoints: [],
+      profilePoints: [],
+      status: "draft",
+      participantCount: 0,
+      checkpointCount: 0,
         crewCount: 0,
         createdAt: timestamp,
         updatedAt: timestamp

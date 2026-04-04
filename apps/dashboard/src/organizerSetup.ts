@@ -120,6 +120,7 @@ export type ParticipantImportPreview = {
 };
 
 export type OrganizerParticipantImportMode = "merge" | "add" | "update" | "replace";
+export type OrganizerParsedGpxRoute = Pick<OrganizerRaceDraft, "distanceKm" | "ascentM" | "descentM" | "waypoints" | "profilePoints">;
 
 const PARTICIPANT_TEMPLATE_HEADERS = ["bib", "name", "gender", "country", "club"];
 const PARTICIPANT_TEMPLATE_SAMPLE_ROWS = [
@@ -877,11 +878,14 @@ function sampleTrackPoints<T>(points: T[], maxPoints: number) {
   });
 }
 
-export function parseOrganizerGpxFile(
+export function parseOrganizerGpxRoute(
   xmlText: string,
-  fileMeta: { name: string; size: number },
-  race: OrganizerRaceDraft
-): Partial<OrganizerRaceDraft> | null {
+  metadata: {
+    routeId: string;
+    routeTitle: string;
+    startLabel: string;
+  }
+): OrganizerParsedGpxRoute | null {
   const parser = new DOMParser();
   const documentNode = parser.parseFromString(xmlText, "application/xml");
   const parserError = documentNode.querySelector("parsererror");
@@ -945,8 +949,13 @@ export function parseOrganizerGpxFile(
 
   const totalDistanceKm = Number(cumulativeKm.toFixed(1));
   const waypoints = sampleTrackPoints(enrichedPoints, 220).map((point, index, points) => ({
-    id: `${race.slug}-gpx-${index + 1}`,
-    name: index === 0 ? `${race.startTown} start` : index === points.length - 1 ? `${race.startTown} finish` : `${race.title} waypoint ${index + 1}`,
+    id: `${metadata.routeId}-gpx-${index + 1}`,
+    name:
+      index === 0
+        ? `${metadata.startLabel} start`
+        : index === points.length - 1
+          ? `${metadata.startLabel} finish`
+          : `${metadata.routeTitle} waypoint ${index + 1}`,
     km: Number(point.km.toFixed(1)),
     ele: Math.round(point.ele),
     lat: Number(point.lat.toFixed(6)),
@@ -956,19 +965,39 @@ export function parseOrganizerGpxFile(
     km: Number(point.km.toFixed(1)),
     ele: Math.round(point.ele)
   }));
-  const sourceCheckpoints = race.checkpoints?.length ? race.checkpoints : getDemoCourseForRace(race).checkpoints;
-  const currentMaxKm = Math.max(sourceCheckpoints[sourceCheckpoints.length - 1]?.kmMarker ?? race.distanceKm, 1);
-  const checkpoints = sourceCheckpoints.map((checkpoint) => ({
-    ...checkpoint,
-    kmMarker: Number(((checkpoint.kmMarker / currentMaxKm) * totalDistanceKm).toFixed(1))
-  }));
 
   return {
     distanceKm: totalDistanceKm,
     ascentM: Math.round(ascentM),
     descentM: Math.round(descentM),
     waypoints,
-    profilePoints,
+    profilePoints
+  };
+}
+
+export function parseOrganizerGpxFile(
+  xmlText: string,
+  fileMeta: { name: string; size: number },
+  race: OrganizerRaceDraft
+): Partial<OrganizerRaceDraft> | null {
+  const parsedRoute = parseOrganizerGpxRoute(xmlText, {
+    routeId: race.slug,
+    routeTitle: race.title,
+    startLabel: race.startTown
+  });
+
+  if (!parsedRoute) {
+    return null;
+  }
+  const sourceCheckpoints = race.checkpoints?.length ? race.checkpoints : getDemoCourseForRace(race).checkpoints;
+  const currentMaxKm = Math.max(sourceCheckpoints[sourceCheckpoints.length - 1]?.kmMarker ?? race.distanceKm, 1);
+  const checkpoints = sourceCheckpoints.map((checkpoint) => ({
+    ...checkpoint,
+    kmMarker: Number(((checkpoint.kmMarker / currentMaxKm) * parsedRoute.distanceKm).toFixed(1))
+  }));
+
+  return {
+    ...parsedRoute,
     checkpoints,
     gpxFileName: fileMeta.name,
     gpxFileSize: fileMeta.size

@@ -292,6 +292,7 @@ type PrototypePublicFeedItem = {
     name: string;
     distance: number | null;
     elevationGain: number | null;
+    descentM: number | null;
     maxParticipants: number | null;
     cutoffTime: string | null;
     gpxFileName: string | null;
@@ -299,6 +300,18 @@ type PrototypePublicFeedItem = {
     participantCount: number;
     checkpointCount: number;
     crewCount: number;
+    waypoints: Array<{
+      id: string;
+      name: string;
+      km: number;
+      ele: number;
+      lat: number;
+      lon: number;
+    }>;
+    profilePoints: Array<{
+      km: number;
+      ele: number;
+    }>;
     checkpoints: Array<{
       id: number;
       name: string;
@@ -557,9 +570,12 @@ function buildPrototypePublicOrganizerEvent(item: PrototypePublicFeedItem): Orga
       courseHighlights: fallbackHighlights.length >= 2 ? fallbackHighlights : template.courseHighlights,
       distanceKm: race.distance ?? template.distanceKm,
       ascentM: race.elevationGain ?? template.ascentM,
+      descentM: race.descentM ?? template.descentM,
       finishers: race.status === "finished" ? race.participantCount : 0,
       dnf: 0,
       gpxFileName: race.gpxFileName ?? null,
+      waypoints: race.waypoints.length ? race.waypoints : template.waypoints,
+      profilePoints: race.profilePoints.length ? race.profilePoints : template.profilePoints,
       checkpoints: checkpointList,
       participants: [],
       crewAssignments: [],
