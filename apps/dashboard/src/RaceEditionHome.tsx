@@ -59,6 +59,44 @@ function buildSparkline(seed: number) {
   };
 }
 
+function buildSparklineFromProfile(profilePoints: DemoRaceCard["profilePoints"], seed: number) {
+  if (!profilePoints || profilePoints.length < 2) {
+    return buildSparkline(seed);
+  }
+
+  const width = 280;
+  const height = 84;
+  const topPadding = 8;
+  const bottomPadding = 18;
+  const minKm = profilePoints[0]?.km ?? 0;
+  const maxKm = profilePoints[profilePoints.length - 1]?.km ?? minKm + 1;
+  const minEle = Math.min(...profilePoints.map((point) => point.ele));
+  const maxEle = Math.max(...profilePoints.map((point) => point.ele));
+  const kmSpan = Math.max(maxKm - minKm, 0.1);
+  const eleSpan = Math.max(maxEle - minEle, 1);
+  const drawableHeight = height - topPadding - bottomPadding;
+
+  const points = profilePoints.map((point) => {
+    const x = ((point.km - minKm) / kmSpan) * width;
+    const normalizedEle = (point.ele - minEle) / eleSpan;
+    const y = topPadding + (1 - normalizedEle) * drawableHeight;
+    return {
+      x: Number(x.toFixed(1)),
+      y: Number(clamp(y, topPadding, height - bottomPadding).toFixed(1))
+    };
+  });
+
+  const linePath = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+  const areaPath = `${linePath} L ${width} ${height} L 0 ${height} Z`;
+
+  return {
+    width,
+    height,
+    linePath,
+    areaPath
+  };
+}
+
 function parseClockDuration(value: string) {
   const normalized = value.trim().replace(/^\+/, "");
   const parts = normalized.split(":").map((part) => Number.parseInt(part, 10));
@@ -199,7 +237,7 @@ export function RaceEditionHome({
           const isLiveCard = cardStateTone === "live";
           const isFinishedCard = cardStateTone === "finished";
           const isUpcomingCard = isOrganizerRaceUpcomingState(card.editionLabel);
-          const sparkline = buildSparkline(card.profileSeed);
+          const sparkline = buildSparklineFromProfile(card.profilePoints, card.profileSeed);
           const cardStyle = {
             "--race-accent": card.accent,
             "--race-accent-soft": card.accentSoft

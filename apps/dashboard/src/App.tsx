@@ -3189,6 +3189,7 @@ export default function App() {
   const raceHomeCards = useMemo(() => {
     return visibleRaces.map((race) => {
       const raceDraft = spectatorSetup.races.find((item) => item.slug === race.slug) ?? null;
+      const cardCourse = raceDraft ? buildOrganizerCourseFromRaceDraft(raceDraft) : null;
       const raceSimulationSnapshot = spectatorSimulationSnapshots.get(race.slug);
       const hasSimulatedEntries = (raceSimulationSnapshot?.overallLeaderboard.topEntries.length ?? 0) > 0;
       const homeEntries = hasSimulatedEntries
@@ -3200,6 +3201,7 @@ export default function App() {
       if (!homeEntries) {
         return {
           ...race,
+          profilePoints: cardCourse?.profilePoints ?? race.profilePoints,
           modeLabel: raceDraft ? getOrganizerRaceModeLabel(raceDraft.raceMode) : undefined,
           modeSummary: raceDraft ? getOrganizerRaceModeSummary(raceDraft) : undefined,
           isLive: isOrganizerRaceLiveState(race.editionLabel),
@@ -3209,6 +3211,7 @@ export default function App() {
 
       return {
         ...race,
+        profilePoints: cardCourse?.profilePoints ?? race.profilePoints,
         modeLabel: raceDraft ? getOrganizerRaceModeLabel(raceDraft.raceMode) : undefined,
         modeSummary: raceDraft ? getOrganizerRaceModeSummary(raceDraft) : undefined,
         finishers: hasSimulatedEntries

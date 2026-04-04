@@ -30,6 +30,10 @@ export type DemoRaceCard = {
   accent: string;
   accentSoft: string;
   profileSeed: number;
+  profilePoints?: Array<{
+    km: number;
+    ele: number;
+  }>;
   rankingPreview: DemoRaceRankingPreview[];
 };
 
