@@ -3,8 +3,8 @@ import path from "node:path";
 import os from "node:os";
 
 const dashboardUrl = process.env.UAT_DASHBOARD_URL ?? "https://apexrm-dashboard.vercel.app";
-const organizerEmail = process.env.UAT_ORGANIZER_EMAIL ?? "";
-const organizerPassword = process.env.UAT_ORGANIZER_PASSWORD ?? "";
+const organizerEmail = process.env.UAT_ORGANIZER_EMAIL ?? "admin";
+const organizerPassword = process.env.UAT_ORGANIZER_PASSWORD ?? "admin";
 
 let passed = 0;
 let failed = 0;
@@ -70,7 +70,7 @@ async function createAuditFiles() {
   return {
     csvPath,
     gpxPath,
-    logoPath: path.resolve("C:/ARM/apps/dashboard/src/assets/trailnesia.png")
+    logoPath: path.resolve(process.cwd(), "apps/dashboard/src/assets/trailnesia.png")
   };
 }
 
@@ -83,7 +83,7 @@ async function withDownload(page, trigger) {
 
 async function loginOrganizer(page) {
   await page.goto(dashboardUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
-  await page.locator("header").getByRole("button", { name: "Login", exact: true }).click();
+  await page.getByRole("button", { name: "Login", exact: true }).first().click();
   const dialog = page.locator(".auth-modal");
   await dialog.getByLabel("Username").fill(organizerEmail);
   await dialog.getByLabel("Password").fill(organizerPassword);
@@ -132,11 +132,6 @@ async function runDeepOrganizerAudit() {
     return;
   }
 
-  if (!organizerEmail || !organizerPassword) {
-    skipStep("deep organizer browser audit", "UAT_ORGANIZER_EMAIL or UAT_ORGANIZER_PASSWORD is missing");
-    return;
-  }
-
   const files = await createAuditFiles();
   const { chromium } = playwright;
   const browser = await chromium.launch({ headless: true });
@@ -147,9 +142,9 @@ async function runDeepOrganizerAudit() {
   try {
     await runStep("organizer home first-time state and event wizard", async () => {
       await loginOrganizer(page);
-      await page.screenshot({ path: "C:/ARM/tmp-organizer-home-audit.png", fullPage: true });
+      await page.screenshot({ path: path.resolve(process.cwd(), "tmp-organizer-home-audit.png"), fullPage: true });
       await createFirstEventDraft(page, titleSeed);
-      await page.screenshot({ path: "C:/ARM/tmp-organizer-console-audit.png", fullPage: true });
+      await page.screenshot({ path: path.resolve(process.cwd(), "tmp-organizer-console-audit.png"), fullPage: true });
       return "Created a first-event draft through Organizer Home";
     });
 

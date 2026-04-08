@@ -42,6 +42,11 @@ export async function ensureOrganizerWorkspaceTable(sql: Sql) {
       updated_at timestamptz not null default now()
     )
   `;
+
+  await sql`
+    create index if not exists organizer_workspaces_updated_at_idx
+    on public.organizer_workspaces (updated_at desc)
+  `;
 }
 
 export async function getOrganizerWorkspace(
@@ -121,7 +126,8 @@ export async function saveOrganizerWorkspace(
 }
 
 export async function listOrganizerWorkspaces(
-  sql: Sql
+  sql: Sql,
+  limit?: number
 ): Promise<
   Array<{
     ownerUserId: string;
@@ -131,6 +137,7 @@ export async function listOrganizerWorkspaces(
     updatedAt: string;
   }>
 > {
+  const safeLimit = typeof limit === "number" && Number.isFinite(limit) ? Math.min(Math.max(Math.trunc(limit), 1), 100) : null;
   const rows = await sql<{
     owner_user_id: string;
     username: string | null;
@@ -141,6 +148,7 @@ export async function listOrganizerWorkspaces(
     select owner_user_id, username, display_name, payload, updated_at
     from public.organizer_workspaces
     order by updated_at desc
+    ${safeLimit ? sql`limit ${safeLimit}` : sql``}
   `;
 
   return rows.map((row) => ({

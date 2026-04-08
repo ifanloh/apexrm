@@ -19,7 +19,7 @@ export default async function handler(request: IncomingMessage, response: Server
 
   try {
     await ensureOrganizerWorkspaceTable(sql);
-    const workspaces = await listOrganizerWorkspaces(sql);
+    const workspaces = await listOrganizerWorkspaces(sql, 25);
 
     const items = workspaces.flatMap((workspace) =>
       extractOrganizerPrototypePublicEvents(

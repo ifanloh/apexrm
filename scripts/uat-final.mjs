@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 const dashboardUrl = process.env.UAT_DASHBOARD_URL ?? "https://apexrm-dashboard.vercel.app";
-const organizerEmail = process.env.UAT_ORGANIZER_EMAIL ?? "";
-const organizerPassword = process.env.UAT_ORGANIZER_PASSWORD ?? "";
+const organizerEmail = process.env.UAT_ORGANIZER_EMAIL ?? "admin";
+const organizerPassword = process.env.UAT_ORGANIZER_PASSWORD ?? "admin";
 
 let passed = 0;
 let failed = 0;
@@ -36,14 +36,12 @@ function assert(condition, message) {
   }
 }
 
-function runCommand(command, args, cwd = "C:\\ARM") {
+function runCommand(command, args, cwd = process.cwd()) {
   return new Promise((resolve, reject) => {
-    const isWindows = process.platform === "win32";
-    const escapedArgs = args.map((arg) => (/[\s"]/u.test(arg) ? `"${arg.replace(/"/g, '\\"')}"` : arg));
-    const child = spawn(isWindows ? "cmd.exe" : command, isWindows ? ["/d", "/s", "/c", [command, ...escapedArgs].join(" ")] : args, {
+    const child = spawn(command, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
-      shell: false
+      shell: process.platform === "win32"
     });
     let stdout = "";
     let stderr = "";
@@ -138,8 +136,9 @@ async function runOrganizerBrowserChecks() {
   try {
     await runStep("organizer browser login flow", async () => {
       await page.goto(dashboardUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
-      await page.locator("header").getByRole("button", { name: "Login", exact: true }).waitFor({ timeout: 15000 });
-      await page.locator("header").getByRole("button", { name: "Login", exact: true }).click();
+      const loginButton = page.getByRole("button", { name: "Login", exact: true }).first();
+      await loginButton.waitFor({ timeout: 15000 });
+      await loginButton.click();
       const loginDialog = page.locator(".auth-modal");
       await loginDialog.waitFor({ timeout: 10000 });
       await loginDialog.getByLabel("Username").fill(organizerEmail);

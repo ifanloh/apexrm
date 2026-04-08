@@ -1,13 +1,24 @@
 import {
+  authProfileSchema,
   checkpointSchema,
   ingestScanResponseSchema,
   ingestWithdrawalResponseSchema,
+  type AuthProfile,
   type Checkpoint,
   type ScanSubmission,
   type WithdrawalSubmission
 } from "@arm/contracts";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
+
+export type ScannerDemoLoginResponse = {
+  accessToken: string;
+  assignedCheckpointId: string | null;
+  checkpoints: Checkpoint[];
+  eventLabel: string;
+  profile: AuthProfile;
+  raceId: string;
+};
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -103,6 +114,46 @@ export async function fetchCheckpoints(): Promise<Checkpoint[]> {
       order: Number(item.order)
     })
   );
+}
+
+export async function loginDemoCrew(username: string, password: string): Promise<ScannerDemoLoginResponse> {
+  const payload = await requestJson<{
+    accessToken: string;
+    assignedCheckpointId: string | null;
+    checkpoints: Array<{
+      id: string;
+      code: string;
+      name: string;
+      kmMarker: number | string;
+      order: number | string;
+    }>;
+    eventLabel: string;
+    profile: unknown;
+    raceId: string;
+  }>("/scanner/demo-login", {
+    method: "POST",
+    body: {
+      username,
+      password
+    },
+    retries: 0,
+    timeoutMs: 12000
+  });
+
+  return {
+    accessToken: payload.accessToken,
+    assignedCheckpointId: payload.assignedCheckpointId,
+    checkpoints: payload.checkpoints.map((item) =>
+      checkpointSchema.parse({
+        ...item,
+        kmMarker: Number(item.kmMarker),
+        order: Number(item.order)
+      })
+    ),
+    eventLabel: payload.eventLabel,
+    profile: authProfileSchema.parse(payload.profile),
+    raceId: payload.raceId
+  };
 }
 
 export async function sendScan(scan: ScanSubmission, accessToken: string) {

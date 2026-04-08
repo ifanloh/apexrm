@@ -35,14 +35,12 @@ function assert(condition, message) {
   }
 }
 
-function runCommand(command, args, cwd = "C:\\ARM") {
+function runCommand(command, args, cwd = process.cwd()) {
   return new Promise((resolve, reject) => {
-    const isWindows = process.platform === "win32";
-    const escapedArgs = args.map((arg) => (/[\s"]/u.test(arg) ? `"${arg.replace(/"/g, '\\"')}"` : arg));
-    const child = spawn(isWindows ? "cmd.exe" : command, isWindows ? ["/d", "/s", "/c", [command, ...escapedArgs].join(" ")] : args, {
+    const child = spawn(command, args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
-      shell: false
+      shell: process.platform === "win32"
     });
 
     let stdout = "";
@@ -149,7 +147,7 @@ async function runBrowserChecks() {
   try {
     await runStep("scanner browser login flow", async () => {
       await page.goto(scannerUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
-      await page.getByLabel("Email").fill(scannerEmail);
+      await page.getByLabel(/Email atau username|Email/).fill(scannerEmail);
       await page.getByLabel("Password").fill(scannerPassword);
       await page.getByRole("button", { name: "Login", exact: true }).click();
       const nextState = await waitForPostLoginState();

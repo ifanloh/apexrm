@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
 import QrScanner from "qr-scanner";
 import {
   authProfileSchema,
+  checkpointSchema,
   defaultCheckpoints,
   formatCheckpointLabel,
   type AuthProfile,
@@ -12,7 +12,7 @@ import {
   type ScanSubmission,
   type WithdrawalSubmission
 } from "@arm/contracts";
-import { fetchCheckpoints, syncOffline, syncOfflineWithdrawals } from "./api";
+import { fetchCheckpoints, loginDemoCrew, syncOffline, syncOfflineWithdrawals } from "./api";
 import {
   getQueuedScans,
   getQueuedWithdrawals,
@@ -32,6 +32,7 @@ import "./styles.css";
 
 const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
 const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Grand Trail des Templiers Demo";
+const DEMO_SESSION_STORAGE_KEY = "arm:scannerDemoSession:v1";
 type ScannerScreen = "timing" | "checkpoint" | "history";
 type ScannerEntryMode = "timing" | "withdraw";
 type ScannerAlertTone = "warning" | "danger";
@@ -49,8 +50,121 @@ type WakeLockSentinelLike = EventTarget & {
   release: () => Promise<void>;
 };
 
+type ScannerSessionLike = {
+  access_token: string;
+  user: {
+    id: string;
+    email?: string | null;
+    app_metadata?: Record<string, unknown>;
+    user_metadata?: Record<string, unknown>;
+  };
+};
+
+type StoredDemoSession = {
+  accessToken: string;
+  assignedCheckpointId: string | null;
+  checkpoints: Checkpoint[];
+  eventLabel: string;
+  profile: AuthProfile;
+  raceId: string;
+};
+
 function getStoredValue(key: string, fallback: string) {
   return window.localStorage.getItem(key) ?? fallback;
+}
+
+function createDemoSessionLike(payload: StoredDemoSession): ScannerSessionLike {
+  return {
+    access_token: payload.accessToken,
+    user: {
+      id: payload.profile.userId,
+      email: payload.profile.email,
+      app_metadata: {
+        role: payload.profile.role,
+        crew_code: payload.profile.crewCode
+      },
+      user_metadata: {
+        full_name: payload.profile.displayName ?? undefined,
+        name: payload.profile.displayName ?? undefined
+      }
+    }
+  };
+}
+
+function toScannerSessionLike(
+  session: {
+    access_token: string;
+    user: {
+      id: string;
+      email?: string | null;
+      app_metadata?: unknown;
+      user_metadata?: unknown;
+    };
+  } | null
+) {
+  if (!session) {
+    return null;
+  }
+
+  return {
+    access_token: session.access_token,
+    user: {
+      id: session.user.id,
+      email: session.user.email ?? null,
+      app_metadata: typeof session.user.app_metadata === "object" && session.user.app_metadata ? session.user.app_metadata as Record<string, unknown> : {},
+      user_metadata: typeof session.user.user_metadata === "object" && session.user.user_metadata ? session.user.user_metadata as Record<string, unknown> : {}
+    }
+  } satisfies ScannerSessionLike;
+}
+
+function loadStoredDemoSession() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.localStorage.getItem(DEMO_SESSION_STORAGE_KEY);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredDemoSession>;
+    const accessToken = typeof parsed.accessToken === "string" ? parsed.accessToken : "";
+    const eventLabel = typeof parsed.eventLabel === "string" ? parsed.eventLabel : "";
+    const raceId = typeof parsed.raceId === "string" ? parsed.raceId : "";
+    const assignedCheckpointId = typeof parsed.assignedCheckpointId === "string" ? parsed.assignedCheckpointId : null;
+    const profile = authProfileSchema.parse(parsed.profile);
+    const checkpoints = Array.isArray(parsed.checkpoints) ? parsed.checkpoints.map((checkpoint) => checkpointSchema.parse(checkpoint)) : [];
+
+    if (!accessToken || !eventLabel || !raceId || checkpoints.length === 0) {
+      return null;
+    }
+
+    return {
+      accessToken,
+      assignedCheckpointId,
+      checkpoints,
+      eventLabel,
+      profile,
+      raceId
+    } satisfies StoredDemoSession;
+  } catch {
+    return null;
+  }
+}
+
+function persistStoredDemoSession(payload: StoredDemoSession | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (!payload) {
+    window.localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(DEMO_SESSION_STORAGE_KEY, JSON.stringify(payload));
 }
 
 function getCheckpointSessionKey(userId: string) {
@@ -210,23 +324,34 @@ function createActivityEntry(
   };
 }
 
-function deriveProfileFromSession(session: Session, fallbackCrewCode: string): AuthProfile {
+function deriveProfileFromSession(session: ScannerSessionLike, fallbackCrewCode: string): AuthProfile {
   const appMetadata = session.user.app_metadata ?? {};
   const userMetadata = session.user.user_metadata ?? {};
-  const rawRole = appMetadata.role ?? appMetadata.roles?.[0] ?? "crew";
-  const crewCode = appMetadata.crew_code ?? appMetadata.crewCode ?? fallbackCrewCode;
+  const rawRole =
+    (typeof appMetadata.role === "string" ? appMetadata.role : null) ??
+    (Array.isArray(appMetadata.roles) && typeof appMetadata.roles[0] === "string" ? appMetadata.roles[0] : null) ??
+    "crew";
+  const crewCode =
+    (typeof appMetadata.crew_code === "string" ? appMetadata.crew_code : null) ??
+    (typeof appMetadata.crewCode === "string" ? appMetadata.crewCode : null) ??
+    fallbackCrewCode;
 
   return authProfileSchema.parse({
     userId: session.user.id,
     email: session.user.email ?? null,
     role: rawRole,
     crewCode,
-    displayName: userMetadata.full_name ?? userMetadata.name ?? session.user.email ?? fallbackCrewCode
+    displayName:
+      (typeof userMetadata.full_name === "string" ? userMetadata.full_name : null) ??
+      (typeof userMetadata.name === "string" ? userMetadata.name : null) ??
+      session.user.email ??
+      fallbackCrewCode
   });
 }
 
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [supabaseSession, setSupabaseSession] = useState<ScannerSessionLike | null>(null);
+  const [demoSession, setDemoSession] = useState<StoredDemoSession | null>(() => loadStoredDemoSession());
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -265,6 +390,10 @@ export default function App() {
   const qrScannerRef = useRef<QrScanner | null>(null);
   const cameraLockRef = useRef(false);
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
+  const session = demoSession ? createDemoSessionLike(demoSession) : supabaseSession;
+  const activeAccessToken = session?.access_token ?? null;
+  const activeRaceId = demoSession?.raceId ?? DEFAULT_RACE_ID;
+  const activeEventLabel = demoSession?.eventLabel ?? DEMO_EVENT_LABEL;
 
   const selectedCheckpoint = useMemo(
     () => checkpoints.find((checkpoint) => checkpoint.id === checkpointId) ?? null,
@@ -272,6 +401,10 @@ export default function App() {
   );
   const activeCheckpointLabel = selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : checkpointId;
   const effectiveProfile = useMemo(() => {
+    if (demoSession) {
+      return demoSession.profile;
+    }
+
     if (profile) {
       return profile;
     }
@@ -281,10 +414,10 @@ export default function App() {
     }
 
     return null;
-  }, [crewId, profile, session]);
+  }, [crewId, demoSession, profile, session]);
   const lastResultSummary = lastActionSummary;
   const canScan = Boolean(
-    session?.access_token &&
+    activeAccessToken &&
       effectiveProfile &&
       ["crew", "panitia", "admin"].includes(effectiveProfile.role) &&
       isCheckpointLocked &&
@@ -343,14 +476,14 @@ export default function App() {
     }
 
     void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+      setSupabaseSession(toScannerSessionLike(data.session));
       setIsBootstrapping(false);
     });
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
+      setSupabaseSession(toScannerSessionLike(nextSession));
       setIsBootstrapping(false);
     });
 
@@ -360,6 +493,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (demoSession) {
+      setProfile(demoSession.profile);
+      return;
+    }
+
     if (!session?.access_token) {
       setProfile(null);
       setCheckpointId("");
@@ -373,7 +511,7 @@ export default function App() {
     if (!["crew", "panitia", "admin"].includes(nextProfile.role)) {
       setStatusMessage("Akun ini tidak punya izin untuk mode scanner.");
     }
-  }, [crewId, session]);
+  }, [crewId, demoSession, session]);
 
   useEffect(() => {
     window.localStorage.setItem("arm:crewId", crewId);
@@ -384,12 +522,18 @@ export default function App() {
   }, [deviceId]);
 
   useEffect(() => {
+    if (!demoSession) {
+      return;
+    }
+
+    setStatusMessage(`Scanner siap untuk ${demoSession.eventLabel}. Login crew demo aktif.`);
+  }, [demoSession]);
+
+  useEffect(() => {
     async function bootstrap() {
-      const [remoteCheckpoints, pendingScans, pendingWithdrawals] = await Promise.all([
-        fetchCheckpoints(),
-        getQueuedScans(),
-        getQueuedWithdrawals()
-      ]);
+      const [pendingScans, pendingWithdrawals] = await Promise.all([getQueuedScans(), getQueuedWithdrawals()]);
+      const remoteCheckpoints =
+        demoSession?.checkpoints && demoSession.checkpoints.length > 0 ? demoSession.checkpoints : await fetchCheckpoints();
       const nextCheckpoints = remoteCheckpoints.length > 0 ? remoteCheckpoints : [...defaultCheckpoints];
       setCheckpoints(nextCheckpoints);
       setQueue(pendingScans);
@@ -401,12 +545,14 @@ export default function App() {
     }
 
     bootstrap().catch(() => {
-      setCheckpoints([...defaultCheckpoints]);
+      const fallbackCheckpoints =
+        demoSession?.checkpoints && demoSession.checkpoints.length > 0 ? demoSession.checkpoints : [...defaultCheckpoints];
+      setCheckpoints(fallbackCheckpoints);
       setCheckpointId("");
       setStatusMessage("Metadata checkpoint dari API gagal dimuat. Login ulang lalu pilih checkpoint untuk shift ini.");
       setIsBootstrapping(false);
     });
-  }, []);
+  }, [demoSession]);
 
   useEffect(() => {
     if (!session?.user?.id || isBootstrapping || checkpoints.length === 0) {
@@ -422,11 +568,20 @@ export default function App() {
       return;
     }
 
+    if (demoSession?.assignedCheckpointId && checkpoints.some((checkpoint) => checkpoint.id === demoSession.assignedCheckpointId)) {
+      setLockedCheckpointForSession(session.user.id, demoSession.assignedCheckpointId);
+      setCheckpointId(demoSession.assignedCheckpointId);
+      setIsCheckpointLocked(true);
+      setScreen("timing");
+      setStatusMessage("Checkpoint tugas kamu sudah dikunci otomatis dari organizer.");
+      return;
+    }
+
     setCheckpointId("");
     setIsCheckpointLocked(false);
     setScreen("checkpoint");
     setStatusMessage("Pilih checkpoint sekali setelah login. Untuk mengganti checkpoint, logout lalu login lagi.");
-  }, [checkpoints, isBootstrapping, session?.user?.id]);
+  }, [checkpoints, demoSession?.assignedCheckpointId, isBootstrapping, session?.user?.id]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -517,7 +672,7 @@ export default function App() {
   }, [canScan, isCameraOpen, lastActionSummary, screen]);
 
   useEffect(() => {
-    if (!session?.access_token || !isCheckpointLocked) {
+    if (!activeAccessToken || !isCheckpointLocked) {
       setWakeLockState("idle");
       void wakeLockRef.current?.release().catch(() => {});
       wakeLockRef.current = null;
@@ -573,7 +728,7 @@ export default function App() {
       void wakeLockRef.current?.release().catch(() => {});
       wakeLockRef.current = null;
     };
-  }, [isCheckpointLocked, session?.access_token]);
+  }, [activeAccessToken, isCheckpointLocked]);
 
   useEffect(() => {
     if (!isCameraOpen || !videoRef.current) {
@@ -745,7 +900,7 @@ export default function App() {
   }
 
   async function syncQueue() {
-    if (!session?.access_token || syncLockRef.current) {
+    if (!activeAccessToken || syncLockRef.current) {
       return;
     }
 
@@ -763,7 +918,7 @@ export default function App() {
 
     try {
       if (pendingScans.length > 0) {
-        const scanResult = await syncOffline(pendingScans, session.access_token);
+        const scanResult = await syncOffline(pendingScans, activeAccessToken);
 
         for (const pendingScan of pendingScans) {
           await removeQueuedScan(pendingScan.clientScanId);
@@ -775,7 +930,7 @@ export default function App() {
       }
 
       if (pendingWithdrawals.length > 0) {
-        const withdrawalResult = await syncOfflineWithdrawals(pendingWithdrawals, session.access_token);
+        const withdrawalResult = await syncOfflineWithdrawals(pendingWithdrawals, activeAccessToken);
 
         for (const pendingWithdrawal of pendingWithdrawals) {
           await removeQueuedWithdrawal(pendingWithdrawal.clientWithdrawId);
@@ -811,7 +966,7 @@ export default function App() {
   }
 
   async function processScan(rawValue: string) {
-    if (!canScan || !session?.access_token) {
+    if (!canScan || !activeAccessToken) {
       setStatusMessage("Login crew diperlukan sebelum scan.");
       return;
     }
@@ -850,7 +1005,7 @@ export default function App() {
 
     const payload: ScanSubmission = {
       clientScanId: createClientId(),
-      raceId: DEFAULT_RACE_ID,
+      raceId: activeRaceId,
       checkpointId,
       bib: normalizedBib,
       crewId: crewId.trim() || "crew-unknown",
@@ -898,7 +1053,7 @@ export default function App() {
   }
 
   async function processWithdrawal(rawValue: string) {
-    if (!canScan || !session?.access_token) {
+    if (!canScan || !activeAccessToken) {
       setStatusMessage("Login crew diperlukan sebelum input withdraw.");
       return;
     }
@@ -926,7 +1081,7 @@ export default function App() {
       return;
     }
 
-    if (await hasLocalWithdrawalDuplicate(DEFAULT_RACE_ID, normalizedBib)) {
+    if (await hasLocalWithdrawalDuplicate(activeRaceId, normalizedBib)) {
       runHapticFeedback("duplicate");
       setStatusMessage(`BIB ${normalizedBib} sudah pernah dicatat withdraw untuk race ini.`);
       addActivityEntry(
@@ -937,7 +1092,7 @@ export default function App() {
 
     const payload: WithdrawalSubmission = {
       clientWithdrawId: createClientId(),
-      raceId: DEFAULT_RACE_ID,
+      raceId: activeRaceId,
       checkpointId,
       bib: normalizedBib,
       crewId: crewId.trim() || "crew-unknown",
@@ -951,7 +1106,7 @@ export default function App() {
 
     try {
       await queueWithdrawal(payload);
-      await markLocalWithdrawal(DEFAULT_RACE_ID, normalizedBib);
+      await markLocalWithdrawal(activeRaceId, normalizedBib);
       setBib("");
       setWithdrawNote("");
       setLastActionSummary(null);
@@ -1061,23 +1216,51 @@ export default function App() {
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const identifier = loginEmail.trim();
+    const password = loginPassword;
 
-    if (!supabase) {
-      setLoginError("Konfigurasi Supabase frontend belum diisi.");
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail,
-      password: loginPassword
-    });
-
-    if (error) {
-      setLoginError(error.message);
+    if (!identifier || !password) {
+      setLoginError("Username/email dan password wajib diisi.");
       return;
     }
 
     setLoginError(null);
+    let supabaseErrorMessage: string | null = null;
+
+    if (supabase && identifier.includes("@")) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: identifier,
+        password
+      });
+
+      if (!error) {
+        setDemoSession(null);
+        persistStoredDemoSession(null);
+        return;
+      }
+
+      supabaseErrorMessage = error.message;
+    }
+
+    try {
+      const result = await loginDemoCrew(identifier, password);
+      const nextDemoSession: StoredDemoSession = {
+        accessToken: result.accessToken,
+        assignedCheckpointId: result.assignedCheckpointId,
+        checkpoints: result.checkpoints,
+        eventLabel: result.eventLabel,
+        profile: result.profile,
+        raceId: result.raceId
+      };
+
+      setDemoSession(nextDemoSession);
+      persistStoredDemoSession(nextDemoSession);
+      setCrewId(result.profile.crewCode ?? result.profile.userId);
+      setStatusMessage(`Scanner siap untuk ${result.eventLabel}. Login crew demo aktif.`);
+      setLoginPassword("");
+    } catch (error) {
+      setLoginError(supabaseErrorMessage ?? (error instanceof Error ? error.message : "Login scanner gagal."));
+    }
   }
 
   async function handleLogout() {
@@ -1095,21 +1278,14 @@ export default function App() {
     setEntryMode("timing");
     setIsCameraOpen(false);
     setCameraDismissed(false);
+    setDemoSession(null);
+    setSupabaseSession(null);
+    persistStoredDemoSession(null);
+    setProfile(null);
 
     if (supabase) {
       await supabase.auth.signOut();
     }
-  }
-
-  if (!supabase) {
-    return (
-      <main className="scanner-shell">
-        <section className="scanner-panel">
-          <h1>Konfigurasi scanner belum lengkap</h1>
-          <p>Isi `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, dan `VITE_API_BASE_URL` untuk menjalankan flow sesuai arsitektur target.</p>
-        </section>
-      </main>
-    );
   }
 
   if (!session) {
@@ -1124,7 +1300,7 @@ export default function App() {
           </div>
           <form className="scanner-form" onSubmit={handleLogin}>
             <label>
-              Email
+              Email atau username
               <input value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} />
             </label>
             <label>
@@ -1138,6 +1314,9 @@ export default function App() {
             <button className="submit-button" type="submit">
               Login
             </button>
+            {!supabase ? (
+              <div className="placeholder-card">Mode demo aktif. Gunakan username/password crew dari organizer.</div>
+            ) : null}
             {loginError ? <div className="placeholder-card">{loginError}</div> : null}
           </form>
         </section>
@@ -1207,7 +1386,7 @@ export default function App() {
           </div>
 
           <div className="scanner-app-title">
-            <h1>{DEMO_EVENT_LABEL}</h1>
+            <h1>{activeEventLabel}</h1>
             <p>{selectedCheckpoint ? formatCheckpointLabel(selectedCheckpoint) : "Pilih checkpoint"}</p>
           </div>
         </header>

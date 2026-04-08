@@ -31,6 +31,7 @@ import {
 } from "./repository.js";
 import { config } from "./config.js";
 import { extractOrganizerPrototypePublicEvents } from "./organizer-public-events.js";
+import { createScannerDemoLogin } from "./scanner-demo-auth.js";
 
 const syncOfflineSchema = z.object({
   scans: z.array(scanSubmissionSchema).min(1)
@@ -44,6 +45,11 @@ const organizerWorkspacePayloadSchema = z.object({
   payload: z.unknown(),
   username: z.string().trim().optional().nullable(),
   displayName: z.string().trim().optional().nullable()
+});
+
+const scannerDemoLoginSchema = z.object({
+  username: z.string().trim().min(1),
+  password: z.string().min(1)
 });
 
 let checkpointBootstrapPromise: Promise<void> | null = null;
@@ -255,7 +261,7 @@ export async function createServer() {
 
   server.get(`${config.apiPrefix}/organizer/public-events`, async () => {
     await ensureOrganizerWorkspaceBootstrap();
-    const workspaces = await listOrganizerWorkspaces(sql);
+    const workspaces = await listOrganizerWorkspaces(sql, 25);
 
     return {
       items: workspaces.flatMap((workspace) =>
@@ -268,6 +274,12 @@ export async function createServer() {
         )
       )
     };
+  });
+
+  server.post(`${config.apiPrefix}/scanner/demo-login`, async (request) => {
+    await ensureOrganizerWorkspaceBootstrap();
+    const payload = scannerDemoLoginSchema.parse(request.body);
+    return createScannerDemoLogin(payload);
   });
 
   server.get(`${config.apiPrefix}/snapshot`, async (request) => {
