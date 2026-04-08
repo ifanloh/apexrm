@@ -7,7 +7,8 @@ import { config } from "./config.js";
 
 const issuer = `${config.supabaseUrl}/auth/v1`;
 const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
-const jwtKey = config.supabaseJwtSecret ? new TextEncoder().encode(config.supabaseJwtSecret) : null;
+const sharedSecret = config.supabaseJwtSecret || config.databaseUrl;
+const jwtKey = sharedSecret ? new TextEncoder().encode(sharedSecret) : null;
 const AUTH_CACHE_TTL_MS = 15 * 60 * 1000;
 const authCache = new Map<string, { user: AuthUser; expiresAt: number }>();
 

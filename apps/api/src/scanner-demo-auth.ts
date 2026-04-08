@@ -279,11 +279,13 @@ async function issueDemoCrewToken(payload: {
   userId: string;
   username: string;
 }) {
-  if (!config.supabaseJwtSecret) {
-    throw new Error("SUPABASE_JWT_SECRET is required for demo scanner login.");
+  const sharedSecret = config.supabaseJwtSecret || config.databaseUrl;
+
+  if (!sharedSecret) {
+    throw new Error("Server-side auth secret is required for demo scanner login.");
   }
 
-  const jwtKey = new TextEncoder().encode(config.supabaseJwtSecret);
+  const jwtKey = new TextEncoder().encode(sharedSecret);
   const issuer = `${config.supabaseUrl}/auth/v1`;
 
   return new SignJWT({
