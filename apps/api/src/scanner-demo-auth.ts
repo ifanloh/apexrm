@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { SignJWT } from "jose";
 import { checkpointSchema, defaultCheckpoints } from "./contracts.js";
 import { config } from "./config.js";
@@ -273,6 +274,20 @@ function buildRaceScopedId(ownerUserId: string, eventId: number, raceId: number)
   return `organizer:${ownerUserId}:${eventId}:${raceId}`;
 }
 
+function buildDemoCrewUserId(ownerUserId: string, eventId: number, memberId: number) {
+  const digest = createHash("sha256")
+    .update(`${ownerUserId}:${eventId}:${memberId}`)
+    .digest("hex");
+
+  return [
+    digest.slice(0, 8),
+    digest.slice(8, 12),
+    `4${digest.slice(13, 16)}`,
+    `${((Number.parseInt(digest.slice(16, 18), 16) & 0x3f) | 0x80).toString(16).padStart(2, "0")}${digest.slice(18, 20)}`,
+    digest.slice(20, 32)
+  ].join("-");
+}
+
 async function issueDemoCrewToken(payload: {
   crewCode: string;
   displayName: string;
@@ -359,7 +374,7 @@ export async function createScannerDemoLogin(input: ScannerDemoLoginInput): Prom
   const assignedCheckpointId =
     member.assignedCheckpointId !== null ? assignedCheckpointMap.get(member.assignedCheckpointId) ?? null : null;
   const crewCode = `crew-${workspace.ownerUserId}-${event.id}-${member.id}`;
-  const userId = `demo-crew:${workspace.ownerUserId}:${member.id}`;
+  const userId = buildDemoCrewUserId(workspace.ownerUserId, event.id, member.id);
 
   return {
     accessToken: await issueDemoCrewToken({
