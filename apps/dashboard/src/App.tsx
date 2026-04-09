@@ -5095,8 +5095,8 @@ export default function App() {
 
               <div className="platform-home-hero">
                 <div className="platform-home-hero-copy">
-                  <span className="detail-label">Discover Indonesia</span>
-                  <h2>Find your next trail event in Indonesia</h2>
+                  <span className="detail-label">Welcome!</span>
+                  <h2>Follow your favorite race in Indonesia</h2>
                   <p>Discover live, upcoming, and finished events from organizers across the platform, then open each event hub to follow race categories, rankings, and live updates.</p>
                   <div className="platform-home-search">
                     <input
