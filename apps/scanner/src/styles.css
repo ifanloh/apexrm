@@ -134,8 +134,35 @@ button {
   gap: 8px;
 }
 
+.scanner-header-status {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .scanner-connection-pill.offline {
   background: rgba(255, 64, 82, 0.12);
+  color: #bb2938;
+}
+
+.scanner-sync-pill {
+  align-items: center;
+  background: rgba(226, 184, 77, 0.16);
+  border: 1px solid rgba(226, 184, 77, 0.28);
+  border-radius: 999px;
+  color: rgba(31, 20, 16, 0.82);
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.scanner-sync-pill.warning {
+  background: rgba(255, 64, 82, 0.08);
+  border-color: rgba(255, 64, 82, 0.18);
   color: #bb2938;
 }
 
@@ -328,6 +355,33 @@ select {
   background: rgba(255, 16, 20, 0.08);
   border-color: rgba(255, 16, 20, 0.22);
   color: var(--brand-strong);
+}
+
+.scanner-sync-summary {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(112, 66, 26, 0.08);
+  color: rgba(31, 20, 16, 0.82);
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+}
+
+.scanner-sync-summary strong {
+  font-size: 0.92rem;
+}
+
+.scanner-sync-summary span,
+.scanner-sync-summary time {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.scanner-sync-summary.warning {
+  background: rgba(255, 64, 82, 0.08);
+  border-color: rgba(255, 64, 82, 0.18);
 }
 
 .scanner-camera-sheet {

@@ -184,6 +184,11 @@ type MutationCallbacks<TData> = {
   onError?: (error: Error) => void;
 };
 
+type OrganizerRequestOptions = {
+  retries?: number;
+  timeoutMs?: number;
+};
+
 const STORAGE_KEY = "trailnesia:organizer-prototype:v1";
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
@@ -304,6 +309,10 @@ function saveStore(store: Store) {
   if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersistedStore(store)));
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+}
+
 async function getWorkspaceAccessToken(user: User) {
   if (user.isLocalAuth || !supabase) {
     return null;
@@ -313,7 +322,7 @@ async function getWorkspaceAccessToken(user: User) {
   return data.session?.access_token ?? null;
 }
 
-async function requestOrganizerJson<T>(user: User, path: string, init?: RequestInit) {
+async function requestOrganizerJson<T>(user: User, path: string, init?: RequestInit, options?: OrganizerRequestOptions) {
   const headers = new Headers(init?.headers);
   const accessToken = await getWorkspaceAccessToken(user);
 
@@ -329,18 +338,52 @@ async function requestOrganizerJson<T>(user: User, path: string, init?: RequestI
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
-    cache: "no-store",
-    headers
-  });
+  const retries = Math.max(0, options?.retries ?? 0);
+  const timeoutMs = Math.max(1000, options?.timeoutMs ?? 10000);
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || `Workspace request failed (${response.status})`);
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        ...init,
+        cache: "no-store",
+        headers,
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        const errorMessage = text || `Workspace request failed (${response.status})`;
+        const shouldRetry = attempt < retries && response.status >= 500;
+
+        if (shouldRetry) {
+          await sleep(300 * (attempt + 1));
+          continue;
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      return (await response.json()) as T;
+    } catch (error) {
+      const shouldRetry =
+        attempt < retries &&
+        error instanceof Error &&
+        (error.name === "AbortError" || /(failed to fetch|networkerror|load failed|timeout|abort)/i.test(error.message));
+
+      if (!shouldRetry) {
+        throw error;
+      }
+
+      await sleep(300 * (attempt + 1));
+    } finally {
+      globalThis.clearTimeout(timeoutId);
+    }
   }
 
-  return (await response.json()) as T;
+  throw new Error("Organizer request exhausted retries.");
 }
 
 async function fetchRemoteWorkspace(user: User): Promise<PersistedStore | null> {
@@ -348,7 +391,10 @@ async function fetchRemoteWorkspace(user: User): Promise<PersistedStore | null> 
     item: {
       payload: PersistedStore | null;
     } | null;
-  }>(user, "/organizer/workspace");
+  }>(user, "/organizer/workspace", undefined, {
+    retries: 1,
+    timeoutMs: 10000
+  });
 
   return payload.item?.payload ?? null;
 }
@@ -361,6 +407,9 @@ async function saveRemoteWorkspace(user: User, store: Store) {
       displayName: user.name
     }),
     method: "PUT"
+  }, {
+    retries: 1,
+    timeoutMs: 15000
   });
 }
 
@@ -382,6 +431,9 @@ async function createRemoteScannerCrewMember(
   }>(user, "/organizer/scanner-crew", {
     body: JSON.stringify(input),
     method: "POST"
+  }, {
+    retries: 1,
+    timeoutMs: 15000
   });
 
   return payload.item;
@@ -405,6 +457,9 @@ async function updateRemoteScannerCrewMember(
   }>(user, "/organizer/scanner-crew", {
     body: JSON.stringify(input),
     method: "PUT"
+  }, {
+    retries: 1,
+    timeoutMs: 15000
   });
 
   return payload.item;
@@ -412,7 +467,7 @@ async function updateRemoteScannerCrewMember(
 
 function isUnavailableOrganizerScannerCrewRoute(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  return /404|not found|failed to fetch|networkerror/i.test(message);
+  return /404|not found|failed to fetch|networkerror|load failed|timeout|abort/i.test(message);
 }
 
 function normalizeBib(value: string | null | undefined) {
@@ -455,38 +510,59 @@ function mapScannerCheckpointIds(checkpoints: Checkpoint[]) {
 }
 
 async function fetchRecentOrganizerPassings(): Promise<OrganizerRecentPassing[]> {
-  const response = await fetch(`${API_BASE_URL}/passings/recent?limit=100`, {
-    cache: "no-store"
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(text || `Recent passings request failed (${response.status})`);
+  for (let attempt = 0; attempt <= 1; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = globalThis.setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/passings/recent?limit=100`, {
+        cache: "no-store",
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        throw new Error(text || `Recent passings request failed (${response.status})`);
+      }
+
+      const payload = (await response.json()) as {
+        items?: Array<{
+          bib?: string | null;
+          checkpointId?: string | null;
+          checkpointName?: string | null;
+          crewId?: string | null;
+          name?: string | null;
+          scannedAt?: string | null;
+        }>;
+      };
+
+      return Array.isArray(payload.items)
+        ? payload.items
+            .map((item) => ({
+              bib: normalizeBib(item.bib),
+              checkpointId: typeof item.checkpointId === "string" ? item.checkpointId : "",
+              checkpointName: typeof item.checkpointName === "string" ? item.checkpointName : null,
+              crewId: typeof item.crewId === "string" ? item.crewId : null,
+              name: typeof item.name === "string" ? item.name : null,
+              scannedAt: typeof item.scannedAt === "string" ? item.scannedAt : ""
+            }))
+            .filter((item) => item.bib && item.checkpointId && item.scannedAt)
+        : [];
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (attempt === 0) {
+        await sleep(300);
+        continue;
+      }
+    } finally {
+      globalThis.clearTimeout(timeoutId);
+    }
   }
 
-  const payload = (await response.json()) as {
-    items?: Array<{
-      bib?: string | null;
-      checkpointId?: string | null;
-      checkpointName?: string | null;
-      crewId?: string | null;
-      name?: string | null;
-      scannedAt?: string | null;
-    }>;
-  };
-
-  return Array.isArray(payload.items)
-    ? payload.items
-        .map((item) => ({
-          bib: normalizeBib(item.bib),
-          checkpointId: typeof item.checkpointId === "string" ? item.checkpointId : "",
-          checkpointName: typeof item.checkpointName === "string" ? item.checkpointName : null,
-          crewId: typeof item.crewId === "string" ? item.crewId : null,
-          name: typeof item.name === "string" ? item.name : null,
-          scannedAt: typeof item.scannedAt === "string" ? item.scannedAt : ""
-        }))
-        .filter((item) => item.bib && item.checkpointId && item.scannedAt)
-    : [];
+  throw lastError ?? new Error("Recent passings request exhausted retries.");
 }
 
 function buildOrganizerLiveRaceOpsFromWorkspace(user: User, store: PersistedStore, eventId: number, raceId: number, recentPassings: OrganizerRecentPassing[]): OrganizerLiveRaceOps | null {
@@ -712,14 +788,19 @@ export async function fetchOrganizerLiveRaceOps(user: User, eventId: number, rac
   try {
     const payload = await requestOrganizerJson<{ item: OrganizerLiveRaceOps | null }>(
       user,
-      `/organizer/live-race?${query.toString()}`
+      `/organizer/live-race?${query.toString()}`,
+      undefined,
+      {
+        retries: 1,
+        timeoutMs: 8000
+      }
     );
 
     return payload.item ? { ...payload.item, source: "server" } : null;
   } catch (error) {
     const shouldFallback =
       error instanceof Error &&
-      /(404|not found|workspace request failed \(404\)|failed to fetch|networkerror|load failed)/i.test(error.message);
+      /(404|not found|workspace request failed \(404\)|failed to fetch|networkerror|load failed|timeout|abort)/i.test(error.message);
 
     if (!shouldFallback) {
       throw error;

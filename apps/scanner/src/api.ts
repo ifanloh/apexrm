@@ -185,8 +185,8 @@ export async function syncOffline(scans: ScanSubmission[], accessToken: string) 
     method: "POST",
     accessToken,
     body: { scans },
-    retries: 0,
-    timeoutMs: 20000
+    retries: 1,
+    timeoutMs: 25000
   });
 }
 
@@ -212,7 +212,7 @@ export async function syncOfflineWithdrawals(withdrawals: WithdrawalSubmission[]
     method: "POST",
     accessToken,
     body: { withdrawals },
-    retries: 0,
-    timeoutMs: 20000
+    retries: 1,
+    timeoutMs: 25000
   });
 }

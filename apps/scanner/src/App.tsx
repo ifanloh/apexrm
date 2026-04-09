@@ -33,10 +33,13 @@ import "./styles.css";
 const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
 const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Grand Trail des Templiers Demo";
 const DEMO_SESSION_STORAGE_KEY = "arm:scannerDemoSession:v1";
+const SYNC_BATCH_SIZE = 25;
+const AUTO_SYNC_INTERVAL_MS = 15000;
 type ScannerScreen = "timing" | "checkpoint" | "history";
 type ScannerEntryMode = "timing" | "withdraw";
 type ScannerAlertTone = "warning" | "danger";
 type WakeLockState = "idle" | "active" | "unsupported" | "released";
+type ScannerSyncSummaryTone = "default" | "warning";
 
 type BatteryManagerLike = {
   level: number;
@@ -355,6 +358,22 @@ type ScannerActionSummary = {
   tone: ScannerActionSummaryTone;
 };
 
+type ScannerSyncSummary = {
+  label: string;
+  detail: string;
+  tone: ScannerSyncSummaryTone;
+};
+
+function chunkItems<TItem>(items: TItem[], size: number) {
+  const chunked: TItem[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunked.push(items.slice(index, index + size));
+  }
+
+  return chunked;
+}
+
 function createActivityEntry(
   bib: string,
   checkpointLabel: string,
@@ -418,6 +437,9 @@ export default function App() {
   );
   const [isBusy, setIsBusy] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncSummary, setLastSyncSummary] = useState<ScannerSyncSummary | null>(null);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [lastSyncFailedAt, setLastSyncFailedAt] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [recentActivity, setRecentActivity] = useState<ScannerActivity[]>([]);
   const [screen, setScreen] = useState<ScannerScreen>("timing");
@@ -478,8 +500,22 @@ export default function App() {
   const apiHost = getApiHost();
   const recentPreview = recentActivity.slice(0, 3);
   const queueCount = queue.length + withdrawalQueue.length;
+  const hasRecentSyncFailure = Boolean(lastSyncFailedAt && queueCount > 0);
   const showSyncAction = queueCount > 0 || isSyncing;
   const syncActionLabel = isSyncing ? `Syncing ${queueCount || ""}`.trim() : !isOnline ? `Queued ${queueCount}` : `Sync ${queueCount}`;
+  const syncIndicator = isSyncing
+    ? {
+        label: `Syncing ${queueCount || ""}`.trim(),
+        detail: "Queue lokal sedang dikirim ke server.",
+        tone: "default" as const
+      }
+    : queueCount > 0
+      ? {
+          label: `${queueCount} item queued`,
+          detail: hasRecentSyncFailure ? "Koneksi sempat gagal. Scanner akan retry otomatis." : "Scanner akan retry otomatis saat online.",
+          tone: hasRecentSyncFailure ? ("warning" as const) : ("default" as const)
+        }
+      : lastSyncSummary;
   const operationalAlert = useMemo(() => {
     if (!isOnline) {
       return {
@@ -489,6 +525,14 @@ export default function App() {
           queueCount > 0
             ? `${queueCount} item sedang menunggu sinkronisasi ke server.`
             : "Scan atau withdraw baru akan disimpan lokal sampai koneksi kembali."
+      };
+    }
+
+    if (hasRecentSyncFailure) {
+      return {
+        tone: "warning" as const,
+        title: "Sync retry in progress",
+        detail: `${queueCount} item masih di queue. Scanner akan retry otomatis sampai koneksi stabil kembali.`
       };
     }
 
@@ -517,7 +561,7 @@ export default function App() {
     }
 
     return null;
-  }, [batteryPercent, isCharging, isCheckpointLocked, isOnline, queueCount, wakeLockState]);
+  }, [batteryPercent, hasRecentSyncFailure, isCharging, isCheckpointLocked, isOnline, queueCount, wakeLockState]);
 
   useEffect(() => {
     if (!supabase) {
@@ -653,6 +697,7 @@ export default function App() {
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
+      setStatusMessage("Koneksi kembali. Scanner akan sinkron otomatis dari queue lokal.");
       void syncQueue();
     };
 
@@ -669,6 +714,19 @@ export default function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, [session]);
+
+  useEffect(() => {
+    if (!activeAccessToken || !isOnline || isBootstrapping || queueCount === 0) {
+      return;
+    }
+
+    void syncQueue();
+    const intervalId = window.setInterval(() => void syncQueue(), AUTO_SYNC_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [activeAccessToken, isBootstrapping, isOnline, queueCount]);
 
   useEffect(() => {
     const batteryApi = (navigator as Navigator & { getBattery?: () => Promise<BatteryManagerLike> }).getBattery;
@@ -967,56 +1025,94 @@ export default function App() {
   }
 
   async function syncQueue() {
-    if (!activeAccessToken || syncLockRef.current) {
+    if (!activeAccessToken || syncLockRef.current || !window.navigator.onLine) {
       return;
     }
 
     syncLockRef.current = true;
     setIsSyncing(true);
+    const syncStartedAt = new Date().toISOString();
     const [pendingScans, pendingWithdrawals] = await Promise.all([getQueuedScans(), getQueuedWithdrawals()]);
 
     if (pendingScans.length === 0 && pendingWithdrawals.length === 0) {
       syncLockRef.current = false;
       setIsSyncing(false);
+      setLastSyncAt(syncStartedAt);
+      setLastSyncFailedAt(null);
+      setLastSyncSummary({
+        label: "Queue clear",
+        detail: "Tidak ada item lokal yang perlu dikirim.",
+        tone: "default"
+      });
       return;
     }
 
     setStatusMessage(`Menyinkronkan ${pendingScans.length + pendingWithdrawals.length} item lokal...`);
 
     try {
+      let acceptedScans = 0;
+      let duplicateScans = 0;
+      let recordedWithdrawals = 0;
+      let duplicateWithdrawals = 0;
+      let lastSummary: ScannerActionSummary | null = null;
+
       if (pendingScans.length > 0) {
-        const scanResult = await syncOffline(pendingScans, activeAccessToken);
+        for (const scanBatch of chunkItems(pendingScans, SYNC_BATCH_SIZE)) {
+          const scanResult = await syncOffline(scanBatch, activeAccessToken);
 
-        for (const pendingScan of pendingScans) {
-          await removeQueuedScan(pendingScan.clientScanId);
+          for (const pendingScan of scanBatch) {
+            await removeQueuedScan(pendingScan.clientScanId);
+          }
+
+          acceptedScans += scanResult.accepted;
+          duplicateScans += scanResult.duplicates;
+          lastSummary = scanResult.results.length ? createScanActionSummary(scanResult.results[scanResult.results.length - 1]) : lastSummary;
+          addResultActivities(scanResult.results);
         }
-
-        setLastActionSummary(scanResult.results.length ? createScanActionSummary(scanResult.results[scanResult.results.length - 1]) : null);
-        addResultActivities(scanResult.results);
-        setStatusMessage(`Sync scan selesai. ${scanResult.accepted} scan baru, ${scanResult.duplicates} duplikat.`);
       }
 
       if (pendingWithdrawals.length > 0) {
-        const withdrawalResult = await syncOfflineWithdrawals(pendingWithdrawals, activeAccessToken);
+        for (const withdrawalBatch of chunkItems(pendingWithdrawals, SYNC_BATCH_SIZE)) {
+          const withdrawalResult = await syncOfflineWithdrawals(withdrawalBatch, activeAccessToken);
 
-        for (const pendingWithdrawal of pendingWithdrawals) {
-          await removeQueuedWithdrawal(pendingWithdrawal.clientWithdrawId);
+          for (const pendingWithdrawal of withdrawalBatch) {
+            await removeQueuedWithdrawal(pendingWithdrawal.clientWithdrawId);
+          }
+
+          recordedWithdrawals += withdrawalResult.recorded;
+          duplicateWithdrawals += withdrawalResult.duplicates;
+          lastSummary =
+            withdrawalResult.results.length
+              ? createWithdrawalActionSummary(withdrawalResult.results[withdrawalResult.results.length - 1])
+              : lastSummary;
+          addWithdrawalActivities(withdrawalResult.results);
         }
-
-        setLastActionSummary(
-          withdrawalResult.results.length
-            ? createWithdrawalActionSummary(withdrawalResult.results[withdrawalResult.results.length - 1])
-            : null
-        );
-        addWithdrawalActivities(withdrawalResult.results);
-        setStatusMessage(
-          `Sync withdraw selesai. ${withdrawalResult.recorded} tercatat, ${withdrawalResult.duplicates} sudah pernah withdraw.`
-        );
       }
 
+      setLastActionSummary(lastSummary);
+      setLastSyncAt(syncStartedAt);
+      setLastSyncFailedAt(null);
+      setLastSyncSummary({
+        label: "Sync completed",
+        detail: `${acceptedScans} scan baru, ${duplicateScans} duplikat, ${recordedWithdrawals} withdraw, ${duplicateWithdrawals} duplicate withdraw.`,
+        tone: "default"
+      });
+      setStatusMessage(
+        `Sync selesai. ${acceptedScans} scan baru, ${duplicateScans} duplikat, ${recordedWithdrawals} withdraw, ${duplicateWithdrawals} duplicate withdraw.`
+      );
       await refreshQueue();
-    } catch {
-      setStatusMessage("Sync offline gagal. Queue lokal tetap disimpan.");
+    } catch (error) {
+      const detail =
+        error instanceof Error && error.message.trim()
+          ? error.message.trim()
+          : "Queue lokal tetap disimpan sampai koneksi stabil kembali.";
+      setLastSyncFailedAt(syncStartedAt);
+      setLastSyncSummary({
+        label: "Sync tertunda",
+        detail,
+        tone: "warning"
+      });
+      setStatusMessage(`Sync offline gagal. ${detail}`);
       await refreshQueue();
     } finally {
       syncLockRef.current = false;
@@ -1455,9 +1551,17 @@ export default function App() {
       <section className="scanner-app">
         <header className={`scanner-app-header ${screen !== "timing" ? "subscreen" : ""}`}>
           <div className="scanner-app-header-row">
-            <div className={`scanner-connection-pill ${isOnline ? "online" : "offline"}`}>
-              <span className="status-dot" />
-              {isOnline ? "Live" : "Offline"}
+            <div className="scanner-header-status">
+              <div className={`scanner-connection-pill ${isOnline ? "online" : "offline"}`}>
+                <span className="status-dot" />
+                {isOnline ? "Live" : "Offline"}
+              </div>
+              {syncIndicator ? (
+                <div className={`scanner-sync-pill ${syncIndicator.tone === "warning" ? "warning" : ""}`}>
+                  <span className="status-dot" />
+                  {syncIndicator.label}
+                </div>
+              ) : null}
             </div>
             <div className="scanner-app-actions">
               {showSyncAction ? (
@@ -1492,6 +1596,13 @@ export default function App() {
               <div className={`scanner-alert-banner ${operationalAlert.tone}`}>
                 <strong>{operationalAlert.title}</strong>
                 <span>{operationalAlert.detail}</span>
+              </div>
+            ) : null}
+            {lastSyncSummary ? (
+              <div className={`scanner-sync-summary ${lastSyncSummary.tone === "warning" ? "warning" : ""}`}>
+                <strong>{lastSyncSummary.label}</strong>
+                <span>{lastSyncSummary.detail}</span>
+                <time>{formatDateTime((lastSyncSummary.tone === "warning" ? lastSyncFailedAt : lastSyncAt) ?? new Date().toISOString())}</time>
               </div>
             ) : null}
             <div className="scanner-display-card scanner-mode-card">
@@ -1758,6 +1869,14 @@ export default function App() {
             <div className="panel-copy">
               <h2>History & Queue</h2>
             </div>
+
+            {lastSyncSummary ? (
+              <div className={`scanner-sync-summary ${lastSyncSummary.tone === "warning" ? "warning" : ""}`}>
+                <strong>{lastSyncSummary.label}</strong>
+                <span>{lastSyncSummary.detail}</span>
+                <time>{formatDateTime((lastSyncSummary.tone === "warning" ? lastSyncFailedAt : lastSyncAt) ?? new Date().toISOString())}</time>
+              </div>
+            ) : null}
 
             <div className="scanner-history-list">
               {recentActivity.length ? (
