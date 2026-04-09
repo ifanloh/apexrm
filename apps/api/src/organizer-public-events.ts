@@ -53,6 +53,15 @@ export type PrototypePublicEventItem = {
     createdAt: string;
     updatedAt: string;
   };
+  participants: Array<{
+    id: number;
+    raceId: number;
+    bibNumber: string | null;
+    fullName: string;
+    gender: string | null;
+    countryCode: string | null;
+    status: string | null;
+  }>;
   races: PrototypePublicRace[];
 };
 
@@ -225,6 +234,32 @@ export function extractOrganizerPrototypePublicEvents(
       return [];
     }
 
+    const publicParticipants = participants
+      .filter((participantRecord) => {
+        const raceId = getNumber(participantRecord.raceId);
+        return raceId !== null && publicRaces.some((race) => race.id === raceId);
+      })
+      .map((participantRecord) => {
+        const participantId = getNumber(participantRecord.id);
+        const raceId = getNumber(participantRecord.raceId);
+        const fullName = getString(participantRecord.fullName);
+
+        if (participantId === null || raceId === null || !fullName) {
+          return null;
+        }
+
+        return {
+          id: participantId,
+          raceId,
+          bibNumber: getString(participantRecord.bibNumber),
+          fullName,
+          gender: getString(participantRecord.gender),
+          countryCode: getString(participantRecord.countryCode),
+          status: getString(participantRecord.status)
+        } satisfies PrototypePublicEventItem["participants"][number];
+      })
+      .filter((participant): participant is PrototypePublicEventItem["participants"][number] => Boolean(participant));
+
     return [
       {
         ownerUserId,
@@ -244,6 +279,7 @@ export function extractOrganizerPrototypePublicEvents(
           createdAt: getString(eventRecord.createdAt) ?? updatedAt,
           updatedAt: getString(eventRecord.updatedAt) ?? updatedAt
         },
+        participants: publicParticipants,
         races: publicRaces
       } satisfies PrototypePublicEventItem
     ];

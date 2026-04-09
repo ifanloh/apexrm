@@ -27,14 +27,15 @@ const PARTICIPANT_TEMPLATE_HEADERS = [
   "email",
   "phone",
   "gender",
+  "nationality",
   "ageCategory",
   "emergencyContact"
 ];
 
 const PARTICIPANT_TEMPLATE_ROWS = [
   PARTICIPANT_TEMPLATE_HEADERS.join(","),
-  "101,John Doe,john@example.com,08123456789,Male,Open,Jane Doe 081200000001",
-  "102,Siti Rahma,siti@example.com,08129876543,Female,Master,Ahmad 081200000002"
+  "101,John Doe,john@example.com,08123456789,Male,ID,Open,Jane Doe 081200000001",
+  "102,Siti Rahma,siti@example.com,08129876543,Female,MY,Master,Ahmad 081200000002"
 ];
 
 function downloadCsv(filename: string, rows: string[]) {
@@ -75,7 +76,7 @@ export function ParticipantsTab({ eventId }: { eventId: number }) {
     }
 
     return (participants ?? []).filter((participant) =>
-      [participant.bibNumber, participant.fullName, participant.email, participant.ageCategory, participant.gender]
+      [participant.bibNumber, participant.fullName, participant.email, participant.ageCategory, participant.gender, participant.countryCode]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(normalizedQuery))
     );
@@ -140,6 +141,7 @@ export function ParticipantsTab({ eventId }: { eventId: number }) {
             <TableRow>
               <TableHead>BIB</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Nationality</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -147,9 +149,9 @@ export function ParticipantsTab({ eventId }: { eventId: number }) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8">Loading...</TableCell></TableRow>
             ) : filteredParticipants.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-12 text-muted-foreground">No participants found in this race.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-12 text-muted-foreground">No participants found in this race.</TableCell></TableRow>
             ) : (
               filteredParticipants.map((participant) => (
                 <TableRow key={participant.id}>
@@ -157,6 +159,10 @@ export function ParticipantsTab({ eventId }: { eventId: number }) {
                   <TableCell>
                     <div className="font-medium">{participant.fullName}</div>
                     <div className="text-xs text-muted-foreground">{participant.email}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-mono text-sm">{participant.countryCode || "ID"}</div>
+                    <div className="text-xs text-muted-foreground">ISO-2 flag code</div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">{participant.gender || "-"}</div>
@@ -229,6 +235,7 @@ function ImportDialog({ eventId, raceId }: { eventId: number; raceId: number }) 
           <div className="rounded-md border bg-muted/20 p-3 text-xs text-muted-foreground">
             <p className="font-medium text-foreground mb-1">Required column order</p>
             <p>{PARTICIPANT_TEMPLATE_HEADERS.join(", ")}</p>
+            <p className="mt-2">Use <code>nationality</code> as a 2-letter ISO code like <code>ID</code>, <code>MY</code>, or <code>SG</code> so spectator flags render correctly.</p>
             <Button variant="link" className="px-0 h-auto mt-2" onClick={downloadParticipantTemplate}>
               Download template CSV
             </Button>
@@ -280,7 +287,7 @@ function ImportDialog({ eventId, raceId }: { eventId: number; raceId: number }) 
 
 function AddParticipantDialog({ eventId, raceId }: { eventId: number; raceId: number }) {
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({ bibNumber: "", fullName: "", email: "", phone: "", gender: "Male", ageCategory: "Open" });
+  const [formData, setFormData] = useState({ bibNumber: "", fullName: "", email: "", phone: "", gender: "Male", countryCode: "ID", ageCategory: "Open" });
   const createMutation = useCreateParticipant();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -293,7 +300,7 @@ function AddParticipantDialog({ eventId, raceId }: { eventId: number; raceId: nu
           queryClient.invalidateQueries({ queryKey: getListParticipantsQueryKey(eventId, raceId) });
           toast({ title: "Participant added" });
           setOpen(false);
-          setFormData({ bibNumber: "", fullName: "", email: "", phone: "", gender: "Male", ageCategory: "Open" });
+          setFormData({ bibNumber: "", fullName: "", email: "", phone: "", gender: "Male", countryCode: "ID", ageCategory: "Open" });
         },
         onError: (error: Error) => toast({ variant: "destructive", title: "Failed to add participant", description: error.message })
       }
@@ -328,6 +335,16 @@ function AddParticipantDialog({ eventId, raceId }: { eventId: number; raceId: nu
             <div className="space-y-2">
               <Label>Phone</Label>
               <Input value={formData.phone} onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Nationality (ISO-2)</Label>
+              <Input maxLength={2} value={formData.countryCode} onChange={(event) => setFormData((current) => ({ ...current, countryCode: event.target.value.toUpperCase() }))} placeholder="ID" />
+            </div>
+            <div className="space-y-2">
+              <Label>Age Category</Label>
+              <Input value={formData.ageCategory} onChange={(event) => setFormData((current) => ({ ...current, ageCategory: event.target.value }))} />
             </div>
           </div>
         </div>

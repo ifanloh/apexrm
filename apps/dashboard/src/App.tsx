@@ -292,6 +292,15 @@ type PrototypePublicFeedItem = {
     createdAt: string;
     updatedAt: string;
   };
+  participants: Array<{
+    id: number;
+    raceId: number;
+    bibNumber: string | null;
+    fullName: string;
+    gender: string | null;
+    countryCode: string | null;
+    status: string | null;
+  }>;
   races: Array<{
     id: number;
     name: string;
@@ -602,7 +611,15 @@ function buildPrototypePublicOrganizerEvent(item: PrototypePublicFeedItem): Orga
       waypoints: race.waypoints.length ? race.waypoints : template.waypoints,
       profilePoints: race.profilePoints.length ? race.profilePoints : template.profilePoints,
       checkpoints: checkpointList,
-      participants: [],
+      participants: item.participants
+        .filter((participant) => participant.raceId === race.id)
+        .map((participant) => ({
+          bib: participant.bibNumber?.trim().toUpperCase() || `RUN${participant.id}`,
+          name: participant.fullName,
+          gender: participant.gender?.toLowerCase() === "women" || participant.gender?.toLowerCase() === "female" ? "women" : "men",
+          countryCode: normalizeCountryCodeValue(participant.countryCode ?? "ID"),
+          club: ""
+        })),
       crewAssignments: [],
       simulatedScans: []
     } satisfies OrganizerRaceDraft;

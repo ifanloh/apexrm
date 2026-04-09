@@ -71,6 +71,7 @@ export interface Participant {
   email: string;
   phone?: string | null;
   gender?: string | null;
+  countryCode?: string | null;
   ageCategory?: string | null;
   emergencyContact?: string | null;
   status: ParticipantStatus;
@@ -578,9 +579,13 @@ function parseCsv(csvData: string) {
   const lines = csvData.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const parseLine = (line: string) => line.split(",").map((value) => value.trim().replace(/^"|"$/g, ""));
   return {
-    headers: lines[0] ? parseLine(lines[0]) : [],
+    headers: lines[0] ? parseLine(lines[0]).map((value) => value.toLowerCase()) : [],
     rows: lines.slice(1).map(parseLine)
   };
+}
+
+function normalizeCountryCode(value: string | null | undefined) {
+  return value?.trim().toUpperCase().slice(0, 2) || "ID";
 }
 
 export function OrganizerPrototypeProvider({ children, user, onLogout }: { children: ReactNode; user: User; onLogout: () => void }) {
@@ -1119,6 +1124,7 @@ export function useCreateParticipant() {
       email: data.email || "runner@trailnesia.local",
       phone: data.phone || null,
       gender: data.gender || null,
+      countryCode: normalizeCountryCode(data.countryCode),
       ageCategory: data.ageCategory || null,
       emergencyContact: data.emergencyContact || null,
       status: "registered",
@@ -1144,9 +1150,18 @@ export function useImportParticipants() {
       let skipped = 0;
       let nextParticipantId = store.nextIds.participant;
       const importedParticipants: Participant[] = [];
+      const bibIndex = headers.indexOf("bibnumber");
+      const nameIndex = headers.indexOf("fullname");
+      const emailIndex = headers.indexOf("email");
+      const phoneIndex = headers.indexOf("phone");
+      const genderIndex = headers.indexOf("gender");
+      const ageCategoryIndex = headers.indexOf("agecategory");
+      const emergencyContactIndex = headers.indexOf("emergencycontact");
+      const nationalityIndex = headers.findIndex((header) => ["nationality", "country", "countrycode", "country_code"].includes(header));
+
       rows.forEach((row, index) => {
-        const fullName = row[headers.indexOf("fullName")] ?? "";
-        const email = row[headers.indexOf("email")] ?? "";
+        const fullName = nameIndex === -1 ? "" : row[nameIndex] ?? "";
+        const email = emailIndex === -1 ? "" : row[emailIndex] ?? "";
         if (!fullName || !email) {
           skipped += 1;
           errors.push(`Row ${index + 2}: fullName and email are required.`);
@@ -1156,13 +1171,14 @@ export function useImportParticipants() {
         importedParticipants.push({
           id: nextParticipantId++,
           raceId,
-          bibNumber: row[headers.indexOf("bibNumber")] ?? null,
+          bibNumber: bibIndex === -1 ? null : row[bibIndex] ?? null,
           fullName,
           email,
-          phone: row[headers.indexOf("phone")] ?? null,
-          gender: row[headers.indexOf("gender")] ?? null,
-          ageCategory: row[headers.indexOf("ageCategory")] ?? null,
-          emergencyContact: null,
+          phone: phoneIndex === -1 ? null : row[phoneIndex] ?? null,
+          gender: genderIndex === -1 ? null : row[genderIndex] ?? null,
+          countryCode: normalizeCountryCode(nationalityIndex === -1 ? "ID" : row[nationalityIndex] ?? "ID"),
+          ageCategory: ageCategoryIndex === -1 ? null : row[ageCategoryIndex] ?? null,
+          emergencyContact: emergencyContactIndex === -1 ? null : row[emergencyContactIndex] ?? null,
           status: "registered",
           createdAt: nowIso()
         });
