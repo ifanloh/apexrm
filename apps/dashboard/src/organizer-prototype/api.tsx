@@ -386,6 +386,11 @@ async function createRemoteScannerCrewMember(
   return payload.item;
 }
 
+function isUnavailableOrganizerScannerCrewRoute(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /404|not found/i.test(message);
+}
+
 function normalizeBib(value: string | null | undefined) {
   return typeof value === "string" ? value.trim().toUpperCase() : "";
 }
@@ -1168,26 +1173,52 @@ export function useCreateScannerCrewMember() {
       throw new Error("Scanner crew username already exists.");
     }
 
-    const remoteResult = await createRemoteScannerCrewMember(store.user, {
-      eventId,
-      name,
-      username,
-      password,
-      assignedCheckpointId: data.assignedCheckpointId ?? null
-    });
-    const nextStore = hydrate({
-      ...store,
-      crew: [...store.crew, remoteResult.member],
-      nextIds: {
-        ...store.nextIds,
-        crew: Math.max(store.nextIds.crew, remoteResult.nextCrewId)
+    let nextStore: Store;
+    let member: ScannerCrewMember;
+
+    try {
+      const remoteResult = await createRemoteScannerCrewMember(store.user, {
+        eventId,
+        name,
+        username,
+        password,
+        assignedCheckpointId: data.assignedCheckpointId ?? null
+      });
+      member = remoteResult.member;
+      nextStore = hydrate({
+        ...store,
+        crew: [...store.crew, remoteResult.member],
+        nextIds: {
+          ...store.nextIds,
+          crew: Math.max(store.nextIds.crew, remoteResult.nextCrewId)
+        }
+      });
+    } catch (error) {
+      if (!isUnavailableOrganizerScannerCrewRoute(error)) {
+        throw error;
       }
-    });
+
+      member = {
+        id: store.nextIds.crew,
+        eventId,
+        name,
+        username,
+        password,
+        assignedCheckpointId: data.assignedCheckpointId ?? null,
+        createdAt: nowIso()
+      };
+      nextStore = hydrate({
+        ...store,
+        crew: [...store.crew, member],
+        nextIds: { ...store.nextIds, crew: store.nextIds.crew + 1 }
+      });
+      await saveRemoteWorkspace(store.user, nextStore);
+    }
 
     saveStore(nextStore);
     markRemoteStoreSaved(nextStore);
     setStore(nextStore);
-    return remoteResult.member;
+    return member;
   });
 }
 
