@@ -87,6 +87,17 @@ export interface ScannerCrewMember {
   createdAt: string;
 }
 
+export interface EventCheckpointOption {
+  id: number;
+  raceId: number;
+  raceName: string;
+  name: string;
+  orderIndex: number;
+  distanceFromStart?: number | null;
+  isStartLine: boolean;
+  isFinishLine: boolean;
+}
+
 export interface ScanEvent {
   id: number | string;
   participantId: number;
@@ -668,6 +679,7 @@ export const getListRacesQueryKey = (eventId: number) => ["prototype-races", eve
 export const getListCheckpointsQueryKey = (eventId: number, raceId: number) => ["prototype-checkpoints", eventId, raceId];
 export const getListParticipantsQueryKey = (eventId: number, raceId: number) => ["prototype-participants", eventId, raceId];
 export const getListScannerCrewQueryKey = (eventId: number) => ["prototype-crew", eventId];
+export const getListEventCheckpointsQueryKey = (eventId: number) => ["prototype-event-checkpoints", eventId];
 export const getGetEventSummaryQueryKey = (eventId: number) => ["prototype-summary", eventId];
 export const getGetRaceDayStatusQueryKey = (eventId: number, raceId: number) => ["prototype-race-day-status", eventId, raceId];
 export const getListScansQueryKey = (eventId: number, raceId: number) => ["prototype-scans", eventId, raceId];
@@ -717,6 +729,42 @@ export function useListScannerCrew(eventId: number, options?: QueryOptions) {
   const { store, isStoreLoading } = usePrototypeContext();
   const crew = options?.query?.enabled === false ? undefined : store.crew.filter((member) => member.eventId === eventId);
   return { data: crew, isLoading: isStoreLoading && Array.isArray(crew) && crew.length === 0 };
+}
+
+export function useListEventCheckpoints(eventId: number, options?: QueryOptions) {
+  const { store, isStoreLoading } = usePrototypeContext();
+
+  const data =
+    options?.query?.enabled === false
+      ? []
+      : store.races
+          .filter((race) => race.eventId === eventId)
+          .flatMap((race) =>
+            store.checkpoints
+              .filter((checkpoint) => checkpoint.raceId === race.id)
+              .map((checkpoint) => ({
+                id: checkpoint.id,
+                raceId: race.id,
+                raceName: race.name,
+                name: checkpoint.name,
+                orderIndex: checkpoint.orderIndex,
+                distanceFromStart: checkpoint.distanceFromStart ?? null,
+                isStartLine: checkpoint.isStartLine,
+                isFinishLine: checkpoint.isFinishLine
+              }) satisfies EventCheckpointOption)
+          )
+          .sort((left, right) => {
+            if (left.raceName !== right.raceName) {
+              return left.raceName.localeCompare(right.raceName);
+            }
+
+            return left.orderIndex - right.orderIndex;
+          });
+
+  return {
+    data,
+    isLoading: isStoreLoading && data.length === 0
+  };
 }
 
 export function useGetEventSummary(eventId: number, options?: QueryOptions) {
