@@ -638,10 +638,11 @@ export async function fetchOrganizerLiveRaceOps(user: User, eventId: number, rac
 
     return payload.item ? { ...payload.item, source: "server" } : null;
   } catch (error) {
-    const isRouteMissing =
-      error instanceof Error && /(404|not found|workspace request failed \(404\))/i.test(error.message);
+    const shouldFallback =
+      error instanceof Error &&
+      /(404|not found|workspace request failed \(404\)|failed to fetch|networkerror|load failed)/i.test(error.message);
 
-    if (!isRouteMissing) {
+    if (!shouldFallback) {
       throw error;
     }
 
