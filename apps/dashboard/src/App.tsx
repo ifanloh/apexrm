@@ -3167,10 +3167,6 @@ export default function App() {
         .sort((left, right) => COUNTRY_META[left].name.localeCompare(COUNTRY_META[right].name)),
     [raceLeaderEntries]
   );
-  const leadersSelectedRace = useMemo(
-    () => (leadersRaceFilter === "all" ? null : visibleRaces.find((race) => race.slug === leadersRaceFilter) ?? selectedRaceCard),
-    [leadersRaceFilter, selectedRaceCard, visibleRaces]
-  );
   const filteredRaceLeaderEntries = useMemo(() => {
     return raceLeaderEntries.filter((entry) => {
       const matchesRace = leadersRaceFilter === "all" ? true : entry.raceSlug === leadersRaceFilter;
@@ -3184,10 +3180,6 @@ export default function App() {
   const raceLeadersRangeLabel = filteredRaceLeaderEntries.length
     ? `${(leadersPage - 1) * leadersRowsPerPage + 1}-${Math.min(leadersPage * leadersRowsPerPage, filteredRaceLeaderEntries.length)} of ${filteredRaceLeaderEntries.length}`
     : "0-0 of 0";
-  const leadersRaceCount = useMemo(
-    () => new Set(filteredRaceLeaderEntries.map((entry) => entry.raceSlug)).size,
-    [filteredRaceLeaderEntries]
-  );
   const searchRunnerEntries = useMemo(() => {
     if (!normalizedRunnerQuery) {
       return [] as RunnerDirectoryEntry[];
@@ -3499,23 +3491,6 @@ export default function App() {
   const statisticsContextLabel = statisticsSelectedRace
     ? `${statisticsSelectedRace.title} Â· ${statisticsSelectedRace.distanceKm.toFixed(1)} km Â· ${statisticsSelectedRace.ascentM} m+`
     : `${visibleRaces.length} races Â· ${statisticsRegisteredCount.toLocaleString()} registered runners`;
-  const leadersScopeItems = useMemo(() => {
-    if (leadersSelectedRace) {
-      return [
-        { label: "Status", value: leadersSelectedRace.editionLabel },
-        { label: "Distance", value: `${leadersSelectedRace.distanceKm.toFixed(1)} km` },
-        { label: "Ascent", value: `${leadersSelectedRace.ascentM} m+` },
-        { label: "Visible", value: `${filteredRaceLeaderEntries.length} runners` }
-      ];
-    }
-
-    return [
-      { label: "Scope", value: `${leadersRaceCount} races` },
-      { label: "Visible", value: `${filteredRaceLeaderEntries.length} runners` },
-      { label: "Category", value: leadersCategoryFilter === "all" ? "All" : formatCategoryLabel(leadersCategoryFilter) },
-      { label: "Nationality", value: leadersCountryFilter === "all" ? "All" : COUNTRY_META[leadersCountryFilter as CountryCode].name }
-    ];
-  }, [filteredRaceLeaderEntries.length, leadersCategoryFilter, leadersCountryFilter, leadersRaceCount, leadersSelectedRace]);
   useEffect(() => {
     if (runnerDirectoryPage > runnerDirectoryPageCount) {
       setRunnerDirectoryPage(runnerDirectoryPageCount);
@@ -6916,25 +6891,11 @@ export default function App() {
         ) : null}
 
         <section className="panel menu-feature-panel race-leaders-directory-view" hidden={raceDetailView !== "leaders"} id="race-leaders-view">
-          <div className="panel-head compact utility-panel-head">
+          <div className="panel-head compact utility-panel-head race-leaders-panel-head">
             <div>
               <p className="section-label">Follow the race</p>
               <h3>Race leaders</h3>
             </div>
-            <div className="panel-badge compact-badge">
-              <span>Visible</span>
-              <strong>{filteredRaceLeaderEntries.length}</strong>
-              <span>leader rows</span>
-            </div>
-          </div>
-
-          <div className="leaders-scope-strip">
-            {leadersScopeItems.map((item) => (
-              <article className="leaders-scope-item" key={`leaders-scope-${item.label}`}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </article>
-            ))}
           </div>
 
           <div className="runner-list-shell race-leaders-directory-shell">
@@ -7017,10 +6978,9 @@ export default function App() {
             <div className="runner-list-table race-leaders-table">
               <div className="runner-list-head race-leaders-head">
                 <span>Ranking</span>
-                <span>Runner/Team</span>
-                <span>Cat. & Nat.</span>
-                <span>Last point</span>
-                <span>Next estimated passing</span>
+                <span>Runner / Progress</span>
+                <span>Gender</span>
+                <span>Nationality</span>
                 <span>Actions</span>
               </div>
 
@@ -7051,31 +7011,36 @@ export default function App() {
                             <strong>{entry.name}</strong>
                             <span>{entry.teamName}</span>
                             <div className={`runner-status-pill ${statusClass}`}>{entry.statusLabel}</div>
+                            <div className="race-leaders-progressline">
+                              <div className="race-leaders-progress-chip">
+                                <span>Last point</span>
+                                <strong>{entry.lastPointLabel}</strong>
+                                <small>{formatScanTime(entry.scannedAt)}</small>
+                              </div>
+                              <div className="race-leaders-progress-chip">
+                                <span>Next estimated</span>
+                                <strong>{entry.nextPassingLabel}</strong>
+                                <small>{entry.nextPassingTime}</small>
+                              </div>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="race-leaders-catnat">
-                          <div className="runner-list-category">
+                        <div className="race-inline-cell race-leaders-gender gender-cell">
+                          <strong>
                             <span className={`gender-dot ${entry.category}`} />
-                            <strong>{formatCategoryLabel(entry.category)}</strong>
-                          </div>
-                          <div className="runner-list-country">
+                            {formatCategoryLabel(entry.category)}
+                          </strong>
+                        </div>
+
+                        <div className="race-inline-cell race-leaders-nationality nationality-cell">
+                          <strong aria-label={entry.countryCode}>
                             <img alt={entry.countryCode} className="flag-icon" height="18" loading="lazy" src={getFlagIconUrl(entry.countryCode)} width="24" />
-                            <small>{entry.countryCode}</small>
-                          </div>
+                          </strong>
+                          <span>{entry.countryCode}</span>
                         </div>
 
-                        <div className="race-leaders-point">
-                          <strong>{entry.lastPointLabel}</strong>
-                          <span>{formatScanTime(entry.scannedAt)}</span>
-                        </div>
-
-                        <div className="race-leaders-next">
-                          <strong>{entry.nextPassingLabel}</strong>
-                          <span>{entry.nextPassingTime}</span>
-                        </div>
-
-                        <div className="runner-list-actions">
+                        <div className="runner-list-actions race-leaders-actions">
                           <button
                             aria-label={favoriteBibs.includes(entry.bib) ? `Remove ${entry.name} from favorites` : `Add ${entry.name} to favorites`}
                           className={`runner-action ghost ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}

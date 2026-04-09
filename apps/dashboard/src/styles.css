@@ -3266,7 +3266,7 @@ body {
 }
 
 .race-leaders-directory-view {
-  gap: 18px;
+  gap: 14px;
 }
 
 .leaders-scope-strip {
@@ -3318,20 +3318,15 @@ body {
   align-items: center;
   column-gap: 16px;
   display: grid;
-  grid-template-columns: minmax(150px, 0.9fr) minmax(280px, 1.5fr) minmax(140px, 0.9fr) minmax(140px, 0.9fr) minmax(170px, 1fr) 110px;
+  grid-template-columns: 92px minmax(340px, 1.9fr) 110px 110px 88px;
 }
 
-.race-leaders-rank,
-.race-leaders-catnat,
-.race-leaders-point,
-.race-leaders-next {
+.race-leaders-rank {
   display: grid;
   gap: 4px;
 }
 
-.race-leaders-rank strong,
-.race-leaders-point strong,
-.race-leaders-next strong {
+.race-leaders-rank strong {
   align-items: center;
   color: var(--ink);
   display: inline-flex;
@@ -3340,16 +3335,11 @@ body {
 
 .race-leaders-rank span,
 .race-leaders-rank small,
-.race-leaders-catnat small,
-.race-leaders-point span,
-.race-leaders-next span {
+.race-leaders-progress-chip span,
+.race-leaders-progress-chip small,
+.race-leaders-nationality span {
   color: var(--ink-soft);
   font-size: 0.82rem;
-}
-
-.race-leaders-catnat .runner-list-country,
-.race-leaders-catnat .runner-list-category {
-  justify-content: flex-start;
 }
 
 .race-leaders-runner {
@@ -3357,6 +3347,36 @@ body {
   display: grid;
   gap: 14px;
   grid-template-columns: auto minmax(0, 1fr);
+}
+
+.race-leaders-progressline {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 8px;
+}
+
+.race-leaders-progress-chip {
+  background: rgba(243, 236, 225, 0.48);
+  border: 1px solid rgba(20, 22, 24, 0.07);
+  border-radius: 12px;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+}
+
+.race-leaders-progress-chip strong {
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+.race-leaders-gender,
+.race-leaders-nationality {
+  justify-items: center;
+}
+
+.race-leaders-actions {
+  justify-content: flex-end;
 }
 
 .race-leaders-table .search-empty-state {
@@ -3765,9 +3785,44 @@ body {
     row-gap: 12px;
   }
 
-  .race-leaders-row,
-  .race-leaders-head {
+  .race-leaders-row {
+    align-items: start;
+    column-gap: 12px;
+    grid-template-areas:
+      "rank runner actions"
+      "rank progress progress"
+      "rank gender nationality";
+    grid-template-columns: 78px minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+
+  .race-leaders-rank {
+    grid-area: rank;
+  }
+
+  .race-leaders-runner {
+    grid-area: runner;
+  }
+
+  .race-leaders-actions {
+    grid-area: actions;
+    justify-content: flex-end;
+  }
+
+  .race-leaders-progressline {
+    grid-area: progress;
     grid-template-columns: 1fr;
+    margin-top: 0;
+  }
+
+  .race-leaders-gender {
+    grid-area: gender;
+    justify-items: start;
+  }
+
+  .race-leaders-nationality {
+    grid-area: nationality;
+    justify-items: start;
   }
 
   .favorites-list-head {
@@ -3781,6 +3836,53 @@ body {
   .statistics-card-grid,
   .statistics-distribution-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 961px) and (max-width: 1280px) {
+  .race-leaders-toolbar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-items: center;
+  }
+
+  .race-leaders-toolbar .ranking-toolbar-label {
+    width: min(100%, 180px);
+  }
+
+  .race-leaders-directory-shell .runner-list-pagination {
+    grid-template-columns: minmax(0, 150px) auto auto;
+    justify-content: end;
+  }
+
+  .race-leaders-head {
+    display: grid;
+    grid-template-columns: 86px minmax(280px, 1.8fr) 92px 92px 78px;
+  }
+
+  .race-leaders-row {
+    align-items: center;
+    grid-template-areas: none;
+    grid-template-columns: 86px minmax(280px, 1.8fr) 92px 92px 78px;
+    row-gap: 0;
+  }
+
+  .race-leaders-rank,
+  .race-leaders-runner,
+  .race-leaders-gender,
+  .race-leaders-nationality,
+  .race-leaders-actions {
+    grid-area: auto;
+  }
+
+  .race-leaders-progressline {
+    grid-area: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 8px;
+  }
+
+  .race-leaders-gender,
+  .race-leaders-nationality {
+    justify-items: center;
   }
 }
 
