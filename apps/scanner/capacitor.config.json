@@ -1,6 +1,6 @@
 {
   "appId": "com.trailnesia.scanner",
-  "appName": "Trailnesia Scanner",
+  "appName": "Altix Timing",
   "webDir": "dist",
   "android": {
     "backgroundColor": "#F7FAF5"

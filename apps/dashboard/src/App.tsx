@@ -31,7 +31,8 @@ import runnerIcon from "./assets/runner.svg";
 import podium1stIcon from "./assets/podium-1st.svg";
 import podium2ndIcon from "./assets/podium-2nd.svg";
 import podium3rdIcon from "./assets/podium-3rd.svg";
-import trailnesiaLogo from "./assets/trailnesia.png";
+import altixLogo from "./assets/altix.png";
+import altixLogoLight from "./assets/altix-light.png";
 import platformHomeHeroPhoto from "./assets/platform-home-hero-photo.jpg";
 import worldMapSvgRaw from "./assets/world-map-detailed.svg?raw";
 import { getDemoCourseForRace, type DemoCourse } from "./demoCourseVariants";
@@ -212,8 +213,8 @@ const ORGANIZER_ROLES = ["admin", "panitia", "observer"] as const;
 const EDITION_HOME_VALUE = "__edition-home";
 const COUNTRY_CODES = ["ID", "MY", "SG", "AU", "JP", "TH", "PH", "KR", "CN", "VN", "US", "FR"] as const;
 const EMPTY_FESTIVAL = {
-  brandStack: ["TRAIL", "NESIA"],
-  brandName: "Trailnesia",
+  brandStack: ["ALT", "IX"],
+  brandName: "Altix",
   editionLabel: "Edition draft",
   dateRibbon: "Set event date",
   locationRibbon: "Set event location",
@@ -3697,7 +3698,7 @@ export default function App() {
         return {
           id: event.id,
           title: event.title,
-          organizerName: event.setup.branding.organizerName || "Trailnesia Organizer",
+          organizerName: event.setup.branding.organizerName || "Altix Organizer",
           editionLabel: event.setup.branding.editionLabel,
           eventDateAt: event.setup.branding.eventDateAt,
           dateRibbon: event.setup.branding.dateRibbon,
@@ -4199,7 +4200,7 @@ export default function App() {
     const newSetup: OrganizerSetupDraft = {
       branding: {
         ...createDefaultOrganizerSetup().branding,
-        organizerName: organizerWizardDraft.organizerName.trim() || "Trailnesia Organizer",
+        organizerName: organizerWizardDraft.organizerName.trim() || "Altix Organizer",
         brandName,
         brandStackTop: brandParts[0]?.toUpperCase() || "EVENT",
         brandStackBottom: brandParts.slice(1).join(" ").toUpperCase() || "RACE",
@@ -4994,7 +4995,7 @@ export default function App() {
           <nav className="sidebar-nav live-sidebar-nav" aria-label="Race navigation">
             <button className="live-sidebar-logo" onClick={focusHome} type="button" aria-label="Back to edition home">
               <span className="brand-logo-frame">
-                <img alt="Trailnesia" className="brand-logo-image" src={trailnesiaLogo} />
+                <img alt="Altix" className="brand-logo-image" src={altixLogo} />
               </span>
             </button>
 
@@ -5091,7 +5092,7 @@ export default function App() {
 
               <div className="platform-home-commandbar">
                 <div className="platform-home-commandbrand">
-                  <img alt="Trailnesia" src={trailnesiaLogo} />
+                  <img alt="Altix" src={altixLogoLight} />
                 </div>
                 <div className="platform-home-commandcenter">
                   <div className="platform-home-commandnav" role="navigation" aria-label="Platform home sections">
@@ -5181,7 +5182,7 @@ export default function App() {
                     <p>
                       {platformEventQuery.trim()
                         ? `${filteredPublicEventCards.length} event results for "${platformEventQuery.trim()}".`
-                        : "Published Trailnesia events presented in a faster, more scannable directory inspired by LiveTrail."}
+                        : "Published Altix events presented in a faster, more scannable directory inspired by LiveTrail."}
                     </p>
                   </div>
 
@@ -5254,13 +5255,13 @@ export default function App() {
                       <span className="detail-label">Contact</span>
                       <h3>Need help bringing your trail event live?</h3>
                     </div>
-                    <p>Trailnesia helps organizers launch public event hubs, scanner crews, and race-day live tracking with one structured workflow.</p>
+                    <p>Altix helps organizers launch public event hubs, scanner crews, and race-day live tracking with one structured workflow.</p>
                   </div>
 
                   <article className="platform-home-contact-card">
                     <div className="platform-home-contact-copy">
                       <strong>Organizer onboarding and platform support</strong>
-                      <p>Use the organizer login if your account is ready, or contact the Trailnesia team for onboarding, publishing, and race-day setup assistance.</p>
+                      <p>Use the organizer login if your account is ready, or contact the Altix team for onboarding, publishing, and race-day setup assistance.</p>
                     </div>
                     <div className="platform-home-contact-actions">
                       {organizerSessionActive ? (
@@ -7164,7 +7165,7 @@ export default function App() {
             </div>
 
             <div className="auth-modal-copy">
-              <strong>Dear Organiser, please identify yourself to access Trailnesia&apos;s tools.</strong>
+              <strong>Dear Organiser, please identify yourself to access Altix&apos;s tools.</strong>
               <span>Dear spectators, the live following is free and you do not need to register to follow the race.</span>
               <span>Trial shortcut: username `admin`, password `admin`.</span>
             </div>

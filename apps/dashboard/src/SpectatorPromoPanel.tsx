@@ -6,7 +6,7 @@ export function SpectatorPromoPanel() {
       </div>
 
       <div className="spectator-promo-copy">
-        <span className="spectator-promo-kicker">Trailnesia App</span>
+        <span className="spectator-promo-kicker">Altix App</span>
         <h3>An essential app for runners and support crew</h3>
         <p>
           All the information to optimize your race management and share the adventure with your followers thanks to

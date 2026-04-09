@@ -192,7 +192,7 @@ export function buildOrganizerTrialScenario(race: OrganizerRaceDraft): Organizer
 
 const SAMPLE_COUNTRIES = ["ID", "MY", "SG", "TH", "JP", "AU", "PH", "KR"] as const;
 const SAMPLE_CLUBS = [
-  "Trailnesia Racing",
+  "Altix Racing",
   "Arjuno Collective",
   "Welirang Peak Lab",
   "Kaliandra Endurance",
@@ -252,7 +252,7 @@ function createCheckpointCrewForRace(race: OrganizerRaceDraft): OrganizerCrewAss
     return {
       id: `${race.slug}-crew-${checkpoint.id}`,
       name: `Crew ${checkpoint.code}`,
-      email: `${checkpoint.code.toLowerCase()}.${race.slug}@trailnesia.local`,
+      email: `${checkpoint.code.toLowerCase()}.${race.slug}@altix.local`,
       role: "scan",
       checkpointId: checkpoint.id,
       deviceLabel: `Scanner ${checkpoint.code}`,

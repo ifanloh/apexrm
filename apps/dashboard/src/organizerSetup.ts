@@ -403,7 +403,7 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
       {
         id: `${race.slug}-crew-start`,
         name: "Crew Start",
-        email: `start.${race.slug}@trailnesia.local`,
+        email: `start.${race.slug}@altix.local`,
         role: "scan",
         checkpointId: "cp-start",
         deviceLabel: "Android Start",
@@ -413,7 +413,7 @@ export function createOrganizerRaceDraftFromCard(race: DemoRaceCard): OrganizerR
       {
         id: `${race.slug}-crew-finish`,
         name: "Crew Finish",
-        email: `finish.${race.slug}@trailnesia.local`,
+        email: `finish.${race.slug}@altix.local`,
         role: "scan",
         checkpointId: "finish",
         deviceLabel: "iPad Finish",
@@ -472,10 +472,10 @@ export function createEmptyOrganizerSetup(): OrganizerSetupDraft {
   const eventDateAt = DEFAULT_ORGANIZER_EVENT_DATETIME;
   return {
     branding: {
-      organizerName: "Trailnesia Organizer",
-      brandStackTop: "TRAIL",
-      brandStackBottom: "NESIA",
-      brandName: "Trailnesia",
+      organizerName: "Altix Organizer",
+      brandStackTop: "ALT",
+      brandStackBottom: "IX",
+      brandName: "Altix",
       editionLabel: "Edition draft",
       bannerTagline: "Organizer edition hub",
       homeTitle: "Race Categories",

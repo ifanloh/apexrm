@@ -1121,7 +1121,7 @@ export function useCreateParticipant() {
       raceId,
       bibNumber: data.bibNumber || null,
       fullName: data.fullName || "Unnamed runner",
-      email: data.email || "runner@trailnesia.local",
+      email: data.email || "runner@altix.local",
       phone: data.phone || null,
       gender: data.gender || null,
       countryCode: normalizeCountryCode(data.countryCode),

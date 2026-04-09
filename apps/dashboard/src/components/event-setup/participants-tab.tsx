@@ -55,7 +55,7 @@ function downloadBlob(filename: string, blob: Blob) {
 
 async function downloadParticipantTemplate(kind: "xlsx" | "csv") {
   if (kind === "csv") {
-    downloadBlob("trailnesia-participants-template.csv", new Blob([createParticipantTemplateCsv()], { type: "text/csv;charset=utf-8" }));
+    downloadBlob("altix-participants-template.csv", new Blob([createParticipantTemplateCsv()], { type: "text/csv;charset=utf-8" }));
     return;
   }
 
@@ -77,7 +77,7 @@ async function downloadParticipantTemplate(kind: "xlsx" | "csv") {
   XLSX.utils.book_append_sheet(workbook, worksheet, "Participants");
   const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
   downloadBlob(
-    "trailnesia-participants-template.xlsx",
+    "altix-participants-template.xlsx",
     new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
   );
 }

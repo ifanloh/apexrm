@@ -2924,7 +2924,9 @@ body {
 }
 
 .live-sidebar-logo .brand-logo-image {
-  filter: brightness(0) invert(1);
+  filter: none;
+  max-height: 62px;
+  width: auto;
 }
 
 .live-sidebar-nav .nav-link,
@@ -8397,10 +8399,10 @@ body {
 }
 
 .platform-home-commandbrand img {
-  width: 96px;
-  height: auto;
-  display: block;
-}
+    width: 132px;
+    height: auto;
+    display: block;
+  }
 
 .platform-home-commandnav {
   display: inline-flex;

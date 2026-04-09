@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import trailnesiaLogo from "@/assets/trailnesia.png";
+import altixLogo from "@/assets/altix.png";
 
 interface LayoutProps {
   children: ReactNode;
@@ -29,7 +29,7 @@ export function Layout({ children }: LayoutProps) {
         <div className="container flex h-16 items-center px-4 justify-between">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2 text-primary">
-              <img alt="Trailnesia" className="h-8 w-auto object-contain" src={trailnesiaLogo} />
+              <img alt="Altix" className="h-8 w-auto object-contain" src={altixLogo} />
               <span className="font-bold text-lg tracking-tight">Organizer</span>
             </Link>
             <nav className="hidden md:flex items-center gap-4 text-sm font-medium">

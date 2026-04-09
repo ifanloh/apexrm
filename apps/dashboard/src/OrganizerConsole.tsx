@@ -610,7 +610,7 @@ export function OrganizerConsole({
               type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             }
           );
-    const fileName = kind === "csv" ? "trailnesia-participants-template.csv" : "trailnesia-participants-template.xlsx";
+    const fileName = kind === "csv" ? "altix-participants-template.csv" : "altix-participants-template.xlsx";
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -1782,7 +1782,7 @@ export function OrganizerConsole({
                 <div className="organizer-crew-invite">
                   <span>Invite</span>
                   <strong>{crew.inviteCode}</strong>
-                  <small>{`trailnesia://crew/invite/${crew.inviteCode}`}</small>
+                  <small>{`altix://crew/invite/${crew.inviteCode}`}</small>
                   <div className="organizer-crew-workflow">
                     {crew.status === "invited" ? (
                       <button
