@@ -3,6 +3,7 @@ import {
   type DuplicateScan,
   type NotificationEvent,
   type OverallLeaderboard,
+  type RecentPassing,
   runnerDetailSchema,
   runnerSearchResponseSchema,
   type RunnerDetail,
@@ -82,6 +83,20 @@ async function requestJson<T>(
   throw new Error("Permintaan ke server gagal.");
 }
 
+export type PrototypePublicLiveRaceSnapshot = {
+  updatedAt: string;
+  raceId: number;
+  raceName: string;
+  raceStatus: string;
+  totalParticipants: number;
+  scannedIn: number;
+  finished: number;
+  dnf: number;
+  overallLeaderboard: OverallLeaderboard;
+  womenLeaderboard: OverallLeaderboard;
+  checkpointLeaderboards: CheckpointLeaderboard[];
+};
+
 export async function fetchDashboardSnapshot(accessToken: string) {
   const [overallLeaderboard, leaderboardPayload, duplicatePayload, notificationPayload] = await Promise.all([
     fetchOverallLeaderboard(accessToken, undefined, 120),
@@ -148,6 +163,38 @@ export async function fetchOverallLeaderboard(accessToken?: string | null, categ
     retries: 1,
     timeoutMs: 15000
   });
+}
+
+export async function fetchPrototypePublicLiveRace(input: {
+  ownerUserId: string;
+  eventId: number;
+  raceId: number;
+}) {
+  const query = new URLSearchParams({
+    ownerUserId: input.ownerUserId,
+    eventId: String(input.eventId),
+    raceId: String(input.raceId)
+  });
+
+  const payload = await requestJson<{ item: PrototypePublicLiveRaceSnapshot | null }>(
+    `/organizer/public-live-race?${query.toString()}`,
+    null,
+    {
+      retries: 1,
+      timeoutMs: 15000
+    }
+  );
+
+  return payload.item;
+}
+
+export async function fetchRecentPassings(limit = 100) {
+  const payload = await requestJson<{ items: RecentPassing[] }>(`/passings/recent?limit=${Math.max(1, Math.min(limit, 100))}`, null, {
+    retries: 1,
+    timeoutMs: 15000
+  });
+
+  return payload.items;
 }
 
 export async function fetchRunnerSearch(

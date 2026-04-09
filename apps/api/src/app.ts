@@ -31,6 +31,7 @@ import {
 } from "./repository.js";
 import { config } from "./config.js";
 import { extractOrganizerPrototypePublicEvents } from "./organizer-public-events.js";
+import { getOrganizerPublicLiveRaceSnapshot } from "./organizer-public-live-race.js";
 import { getOrganizerLiveRaceSnapshot } from "./organizer-live-race.js";
 import { createScannerDemoLogin } from "./scanner-demo-auth.js";
 
@@ -274,6 +275,36 @@ export async function createServer() {
           workspace.updatedAt
         )
       )
+    };
+  });
+
+  server.get(`${config.apiPrefix}/organizer/public-live-race`, async (request) => {
+    await ensureOrganizerWorkspaceBootstrap();
+
+    const query = z
+      .object({
+        ownerUserId: z.string().trim().min(1),
+        eventId: z.coerce.number().int().positive(),
+        raceId: z.coerce.number().int().positive()
+      })
+      .parse(request.query);
+
+    const workspace = await getOrganizerWorkspace(sql, query.ownerUserId);
+
+    if (!workspace) {
+      return {
+        item: null
+      };
+    }
+
+    return {
+      item: await getOrganizerPublicLiveRaceSnapshot(sql, {
+        ownerUserId: workspace.ownerUserId,
+        payload: workspace.payload,
+        eventId: query.eventId,
+        raceId: query.raceId,
+        updatedAt: workspace.updatedAt
+      })
     };
   });
 

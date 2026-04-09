@@ -9,6 +9,7 @@ import {
   type DuplicateScan,
   type NotificationEvent,
   type OverallLeaderboard,
+  type RecentPassing,
   type RunnerDetail,
   type RunnerPassing,
   type RunnerSearchEntry
@@ -18,8 +19,11 @@ import {
   fetchCheckpointLeaderboards,
   fetchOrganizerSignals,
   fetchOverallLeaderboard,
+  fetchPrototypePublicLiveRace,
+  fetchRecentPassings,
   fetchRunnerDetail,
-  fetchRunnerSearch
+  fetchRunnerSearch,
+  type PrototypePublicLiveRaceSnapshot
 } from "./api";
 import { CourseProfilePanel } from "./CourseProfilePanel";
 import { EditionHeroBanner } from "./EditionHeroBanner";
@@ -47,6 +51,7 @@ import {
   getOrganizerRaceModeLabel,
   getOrganizerRaceModeSummary,
   getOrganizerRaceStateTone,
+  isOrganizerRaceFinishedState,
   isOrganizerRaceLiveState,
   isOrganizerRaceUpcomingState,
   loadOrganizerWorkspace,
@@ -321,6 +326,16 @@ type PrototypePublicFeedItem = {
       isFinishLine: boolean;
     }>;
   }>;
+};
+
+type PrototypePublicRaceSource = {
+  slug: string;
+  ownerUserId: string;
+  eventId: number;
+  raceId: number;
+  eventPublicId: string;
+  updatedAt: string;
+  race: PrototypePublicFeedItem["races"][number];
 };
 
 type CountryCode = (typeof COUNTRY_CODES)[number];
@@ -620,6 +635,183 @@ function buildPrototypePublicOrganizerEvent(item: PrototypePublicFeedItem): Orga
       },
       races
     }
+  };
+}
+
+function buildPrototypePublicRaceSourceMap(items: PrototypePublicFeedItem[]) {
+  const map = new Map<string, PrototypePublicRaceSource>();
+
+  for (const item of items) {
+    const eventPublicId = `prototype:${item.ownerUserId}:${item.event.id}`;
+
+    for (const race of item.races) {
+      const slug = slugifyOrganizerValue(`${item.ownerUserId}-${item.event.id}-${race.id}-${race.name}`) || `prototype-race-${race.id}`;
+      map.set(slug, {
+        slug,
+        ownerUserId: item.ownerUserId,
+        eventId: item.event.id,
+        raceId: race.id,
+        eventPublicId,
+        updatedAt: item.updatedAt,
+        race
+      });
+    }
+  }
+
+  return map;
+}
+
+function hasPrototypePublicLiveSignal(snapshot: PrototypePublicLiveRaceSnapshot | null | undefined) {
+  if (!snapshot) {
+    return false;
+  }
+
+  return (
+    snapshot.overallLeaderboard.topEntries.length > 0 ||
+    snapshot.checkpointLeaderboards.some((board) => board.totalOfficialScans > 0) ||
+    snapshot.scannedIn > 0
+  );
+}
+
+function buildPrototypeFallbackScannerCheckpointId(
+  checkpoint: PrototypePublicFeedItem["races"][number]["checkpoints"][number],
+  intermediateIndex: number
+) {
+  if (checkpoint.isStartLine) {
+    return "cp-start";
+  }
+
+  if (checkpoint.isFinishLine) {
+    return "finish";
+  }
+
+  const demoCheckpointIds = ["cp-start", "cp-10", "cp-21", "cp-30", "cp-40", "finish"] as const;
+  return demoCheckpointIds[Math.min(intermediateIndex, demoCheckpointIds.length - 2)] ?? `cp-extra-${checkpoint.orderIndex}`;
+}
+
+function buildPrototypePublicLiveRaceFallback(
+  source: PrototypePublicRaceSource,
+  recentPassings: RecentPassing[]
+): PrototypePublicLiveRaceSnapshot {
+  let customCheckpointCount = 0;
+  let intermediateIndex = 1;
+
+  const checkpointMappings = source.race.checkpoints
+    .slice()
+    .sort((left, right) => left.orderIndex - right.orderIndex)
+    .map((checkpoint, orderIndex) => {
+      if (!checkpoint.isStartLine && !checkpoint.isFinishLine) {
+        customCheckpointCount += 1;
+      }
+
+      const currentIntermediateIndex = checkpoint.isStartLine || checkpoint.isFinishLine ? intermediateIndex : intermediateIndex++;
+
+      return {
+        publicCheckpointId: checkpoint.isStartLine ? "cp-start" : checkpoint.isFinishLine ? "finish" : `cp-${customCheckpointCount}`,
+        publicCheckpointCode: checkpoint.isStartLine ? "START" : checkpoint.isFinishLine ? "FIN" : `CP${customCheckpointCount}`,
+        publicCheckpointName: checkpoint.name,
+        publicCheckpointKmMarker: checkpoint.distanceFromStart ?? 0,
+        publicCheckpointOrder: orderIndex,
+        scannerCheckpointId: buildPrototypeFallbackScannerCheckpointId(checkpoint, currentIntermediateIndex)
+      };
+    });
+  const checkpointByScannerId = new Map<string, (typeof checkpointMappings)[number]>(
+    checkpointMappings.map((mapping) => [mapping.scannerCheckpointId, mapping] as const)
+  );
+  const allowedCrewPrefix = `crew-${source.ownerUserId}-${source.eventId}-`;
+  const filteredPassings = recentPassings
+    .filter(
+      (passing) => checkpointByScannerId.has(passing.checkpointId) && (passing.crewId ?? "").startsWith(allowedCrewPrefix)
+    )
+    .sort((left, right) => new Date(right.scannedAt).getTime() - new Date(left.scannedAt).getTime());
+
+  const checkpointLeaderboards = checkpointMappings.map((mapping) => {
+    const items = filteredPassings
+      .filter((passing) => passing.checkpointId === mapping.scannerCheckpointId)
+      .map((passing, index) => ({
+        bib: passing.bib,
+        checkpointId: mapping.publicCheckpointId,
+        position: index + 1,
+        scannedAt: passing.scannedAt,
+        crewId: passing.crewId ?? "scanner-demo",
+        deviceId: "spectator-fallback"
+      }));
+
+    return {
+      checkpointId: mapping.publicCheckpointId,
+      totalOfficialScans: items.length,
+      topEntries: items.slice(0, 10)
+    };
+  });
+
+  const latestByBib = new Map<
+    string,
+    {
+      passing: RecentPassing;
+      mapping: (typeof checkpointMappings)[number];
+    }
+  >();
+
+  for (const passing of filteredPassings) {
+    const mapping = checkpointByScannerId.get(passing.checkpointId);
+
+    if (!mapping) {
+      continue;
+    }
+
+    const existing = latestByBib.get(passing.bib);
+
+    if (
+      !existing ||
+      mapping.publicCheckpointOrder > existing.mapping.publicCheckpointOrder ||
+      (mapping.publicCheckpointOrder === existing.mapping.publicCheckpointOrder &&
+        new Date(passing.scannedAt).getTime() < new Date(existing.passing.scannedAt).getTime())
+    ) {
+      latestByBib.set(passing.bib, { passing, mapping });
+    }
+  }
+
+  const overallEntries = [...latestByBib.entries()]
+    .sort((left, right) => {
+      if (left[1].mapping.publicCheckpointOrder !== right[1].mapping.publicCheckpointOrder) {
+        return right[1].mapping.publicCheckpointOrder - left[1].mapping.publicCheckpointOrder;
+      }
+
+      return new Date(left[1].passing.scannedAt).getTime() - new Date(right[1].passing.scannedAt).getTime();
+    })
+    .map(([bib, item], index) => ({
+      bib,
+      name: item.passing.name || `Runner ${bib}`,
+      category: "men",
+      rank: index + 1,
+      checkpointId: item.mapping.publicCheckpointId,
+      checkpointCode: item.mapping.publicCheckpointCode,
+      checkpointName: item.mapping.publicCheckpointName,
+      checkpointKmMarker: item.mapping.publicCheckpointKmMarker,
+      checkpointOrder: item.mapping.publicCheckpointOrder,
+      scannedAt: item.passing.scannedAt,
+      crewId: item.passing.crewId ?? "scanner-demo",
+      deviceId: "spectator-fallback"
+    }));
+
+  return {
+    updatedAt: filteredPassings[0]?.scannedAt ?? source.updatedAt,
+    raceId: source.raceId,
+    raceName: source.race.name,
+    raceStatus: source.race.status,
+    totalParticipants: source.race.participantCount,
+    scannedIn: latestByBib.size,
+    finished: overallEntries.filter((entry) => entry.checkpointId === "finish").length,
+    dnf: 0,
+    overallLeaderboard: {
+      totalRankedRunners: overallEntries.length,
+      topEntries: overallEntries
+    },
+    womenLeaderboard: {
+      totalRankedRunners: 0,
+      topEntries: []
+    },
+    checkpointLeaderboards
   };
 }
 
@@ -1564,6 +1756,7 @@ export default function App() {
   const [organizerWizardStep, setOrganizerWizardStep] = useState<OrganizerWizardStep>("basics");
   const [organizerWizardDraft, setOrganizerWizardDraft] = useState<OrganizerWizardDraft>(() => buildOrganizerWizardDraft());
   const [prototypePublicFeed, setPrototypePublicFeed] = useState<PrototypePublicFeedItem[]>([]);
+  const [prototypePublicLiveSnapshots, setPrototypePublicLiveSnapshots] = useState<Record<string, PrototypePublicLiveRaceSnapshot>>({});
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
   const [isTopbarMenuOpen, setIsTopbarMenuOpen] = useState(false);
@@ -1602,6 +1795,11 @@ export default function App() {
   const organizerActiveEvent =
     organizerVisibleEvents.find((event) => event.id === organizerWorkspace.activeEventId) ?? organizerVisibleEvents[0] ?? null;
   const spectatorEvent = publicVisibleEvents.find((event) => event.id === selectedPublicEventId) ?? null;
+  const prototypePublicRaceSourceMap = useMemo(() => buildPrototypePublicRaceSourceMap(prototypePublicFeed), [prototypePublicFeed]);
+  const prototypePublicLivePollingSources = useMemo(
+    () => Array.from(prototypePublicRaceSourceMap.values()),
+    [prototypePublicRaceSourceMap]
+  );
   const organizerSetup = organizerActiveEvent?.setup ?? createDefaultOrganizerSetup();
   const spectatorSetup = spectatorEvent?.setup ?? createDefaultOrganizerSetup();
   const apiHost = getApiHost();
@@ -1611,6 +1809,27 @@ export default function App() {
   const isOrganizerConsoleOpen = organizerSessionActive && organizerWorkspaceView === "console";
   const isOrganizerWorkspaceOpen = isOrganizerHomeOpen || isOrganizerConsoleOpen;
   const activeFestivalSetup = isOrganizerWorkspaceOpen ? organizerSetup : spectatorSetup;
+  const prototypeSpectatorRaceSources = useMemo(
+    () =>
+      spectatorSetup.races.flatMap((race) => {
+        const source = prototypePublicRaceSourceMap.get(race.slug);
+        return source && source.eventPublicId === spectatorEvent?.id ? [source] : [];
+      }),
+    [prototypePublicRaceSourceMap, spectatorEvent?.id, spectatorSetup.races]
+  );
+  const prototypePublicLiveSnapshotBySlug = useMemo(
+    () =>
+      new Map(
+        Object.entries(prototypePublicLiveSnapshots).map(([slug, snapshot]) => [slug, snapshot] as const)
+      ),
+    [prototypePublicLiveSnapshots]
+  );
+  const eventHasPrototypeLiveSignal = useMemo(
+    () =>
+      spectatorEvent?.setup.races.some((race) => hasPrototypePublicLiveSignal(prototypePublicLiveSnapshotBySlug.get(race.slug))) ??
+      false,
+    [prototypePublicLiveSnapshotBySlug, spectatorEvent?.setup.races]
+  );
   const festivalData = useMemo(() => {
     const races = activeFestivalSetup.races.map((raceDraft) => ({ ...raceDraft }) as DemoRaceCard);
 
@@ -1621,7 +1840,10 @@ export default function App() {
         activeFestivalSetup.branding.brandStackTop || EMPTY_FESTIVAL.brandStack[0],
         activeFestivalSetup.branding.brandStackBottom || EMPTY_FESTIVAL.brandStack[1]
       ],
-      editionLabel: activeFestivalSetup.branding.editionLabel || EMPTY_FESTIVAL.editionLabel,
+      editionLabel:
+        !isOrganizerWorkspaceOpen && eventHasPrototypeLiveSignal
+          ? "Live edition"
+          : activeFestivalSetup.branding.editionLabel || EMPTY_FESTIVAL.editionLabel,
       dateRibbon: activeFestivalSetup.branding.dateRibbon || EMPTY_FESTIVAL.dateRibbon,
       locationRibbon: activeFestivalSetup.branding.locationRibbon || EMPTY_FESTIVAL.locationRibbon,
       homeTitle: activeFestivalSetup.branding.homeTitle || EMPTY_FESTIVAL.homeTitle,
@@ -1629,14 +1851,19 @@ export default function App() {
       bannerTagline: activeFestivalSetup.branding.bannerTagline || EMPTY_FESTIVAL.bannerTagline,
       races
     };
-  }, [activeFestivalSetup]);
+  }, [activeFestivalSetup, eventHasPrototypeLiveSignal, isOrganizerWorkspaceOpen]);
   const spectatorRaces = useMemo(
     () => festivalData.races.filter((race) => spectatorSetup.races.find((draft) => draft.slug === race.slug)?.isPublished !== false),
     [festivalData.races, spectatorSetup.races]
   );
   const visibleRaces = spectatorRaces;
   const fallbackVisibleRace = visibleRaces[0] ?? festivalData.races[0] ?? EMPTY_RACE_CARD;
-  const liveSourceRace = visibleRaces.find((race) => isOrganizerRaceLiveState(race.editionLabel)) ?? null;
+  const prototypeLiveSourceRace =
+    visibleRaces.find((race) => {
+      const snapshot = prototypePublicLiveSnapshotBySlug.get(race.slug);
+      return !isOrganizerRaceFinishedState(race.editionLabel) && hasPrototypePublicLiveSignal(snapshot);
+    }) ?? null;
+  const liveSourceRace = prototypeLiveSourceRace ?? visibleRaces.find((race) => isOrganizerRaceLiveState(race.editionLabel)) ?? null;
   const featuredRace =
     liveSourceRace ?? visibleRaces.find((race) => isOrganizerRaceUpcomingState(race.editionLabel)) ?? fallbackVisibleRace;
   const selectedRaceCard =
@@ -1644,7 +1871,11 @@ export default function App() {
     (selectedRaceSlug === EDITION_HOME_VALUE ? featuredRace : festivalData.races.find((race) => race.slug === selectedRaceSlug)) ??
     featuredRace;
   const selectedOrganizerRace = activeFestivalSetup.races.find((race) => race.slug === selectedRaceCard.slug) ?? null;
-  const activeRaceStateTone = getOrganizerRaceStateTone(selectedRaceCard.editionLabel);
+  const selectedPrototypePublicLiveSnapshot = !isOrganizerWorkspaceOpen ? prototypePublicLiveSnapshotBySlug.get(selectedRaceCard.slug) ?? null : null;
+  const activeRaceStateTone =
+    selectedPrototypePublicLiveSnapshot && hasPrototypePublicLiveSignal(selectedPrototypePublicLiveSnapshot)
+      ? "live"
+      : getOrganizerRaceStateTone(selectedRaceCard.editionLabel);
   const isActiveRaceLive = activeRaceStateTone === "live";
   const isActiveRaceFinished = activeRaceStateTone === "finished";
   const isActiveRaceUpcoming = activeRaceStateTone === "upcoming";
@@ -1824,6 +2055,96 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (isOrganizerWorkspaceOpen || !prototypePublicLivePollingSources.length) {
+      setPrototypePublicLiveSnapshots({});
+      return;
+    }
+
+    let isActive = true;
+
+    async function loadPrototypePublicLiveSnapshots() {
+      try {
+        const items = await Promise.all(
+          prototypePublicLivePollingSources.map(async (source) => {
+            const snapshot = await fetchPrototypePublicLiveRace(source).catch(() => null);
+            return [source.slug, snapshot, source] as const;
+          })
+        );
+
+        const missingSources = items.filter((entry) => !entry[1]).map((entry) => entry[2]);
+        let fallbackSnapshots = new Map<string, PrototypePublicLiveRaceSnapshot>();
+
+        if (missingSources.length > 0) {
+          const recentPassings = await fetchRecentPassings(100).catch(() => []);
+          fallbackSnapshots = new Map(
+            missingSources.map((source) => [source.slug, buildPrototypePublicLiveRaceFallback(source, recentPassings)] as const)
+          );
+        }
+
+        if (!isActive) {
+          return;
+        }
+
+        const nextSnapshots = Object.fromEntries(
+          items
+            .map(([slug, snapshot, source]) => [slug, snapshot ?? fallbackSnapshots.get(source.slug) ?? null] as const)
+            .filter((entry): entry is readonly [string, PrototypePublicLiveRaceSnapshot] => Boolean(entry[1]))
+        );
+        const activeSnapshots = Object.values(nextSnapshots);
+        const latestUpdate = activeSnapshots
+          .map((snapshot) => snapshot.updatedAt)
+          .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ?? null;
+
+        setPrototypePublicLiveSnapshots(nextSnapshots);
+        setFetchError(null);
+
+        if (activeSnapshots.some((snapshot) => hasPrototypePublicLiveSignal(snapshot))) {
+          setLiveStatus("live");
+          setLastLiveEventAt(
+            new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit"
+            })
+          );
+        } else {
+          setLiveStatus("polling");
+        }
+
+        if (latestUpdate) {
+          setLastUpdatedAt(
+            new Date(latestUpdate).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit"
+            })
+          );
+        }
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setFetchError(error instanceof Error ? error.message : "Spectator live feed gagal dimuat.");
+      }
+    }
+
+    void loadPrototypePublicLiveSnapshots();
+    const intervalId = window.setInterval(() => {
+      void loadPrototypePublicLiveSnapshots();
+    }, 5000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
+  }, [isOrganizerWorkspaceOpen, prototypePublicLivePollingSources]);
+
+  useEffect(() => {
     if (!organizerSessionActive) {
       setOrganizerWorkspaceView("spectator");
       setOrganizerWizardOpen(false);
@@ -1932,10 +2253,18 @@ export default function App() {
     }
 
     const token = organizerSessionActive ? accessToken : null;
+    const usesPrototypeSpectatorLiveFeed = !organizerSessionActive && prototypePublicLivePollingSources.length > 0;
     let isMounted = true;
 
     async function refreshRaceHub() {
       if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      if (usesPrototypeSpectatorLiveFeed) {
+        if (isMounted) {
+          setIsRefreshing(false);
+        }
         return;
       }
 
@@ -2008,7 +2337,7 @@ export default function App() {
       isMounted = false;
       window.clearInterval(intervalId);
     };
-  }, [accessToken, isBootstrapping, organizerSessionActive]);
+  }, [accessToken, isBootstrapping, organizerSessionActive, prototypePublicLivePollingSources.length]);
 
   useEffect(() => {
     if (organizerSessionActive) {
@@ -2224,18 +2553,24 @@ export default function App() {
   const activeOverallLeaderboard =
     selectedRaceSimulationSnapshot?.overallLeaderboard.topEntries.length
       ? selectedRaceSimulationSnapshot.overallLeaderboard
+      : selectedPrototypePublicLiveSnapshot?.overallLeaderboard.topEntries.length
+        ? selectedPrototypePublicLiveSnapshot.overallLeaderboard
       : selectedRaceCard.slug === liveSourceRace?.slug && overallLeaderboard.topEntries.length > 0
         ? overallLeaderboard
         : previewOverallLeaderboard;
   const activeWomenLeaderboard =
     selectedRaceSimulationSnapshot?.womenLeaderboard.topEntries.length
       ? selectedRaceSimulationSnapshot.womenLeaderboard
+      : selectedPrototypePublicLiveSnapshot && hasPrototypePublicLiveSignal(selectedPrototypePublicLiveSnapshot)
+        ? selectedPrototypePublicLiveSnapshot.womenLeaderboard
       : selectedRaceCard.slug === liveSourceRace?.slug && womenLeaderboard.topEntries.length > 0
         ? womenLeaderboard
         : previewWomenLeaderboard;
   const activeCheckpointLeaderboards =
     selectedRaceSimulationSnapshot?.checkpointLeaderboards.some((board) => board.totalOfficialScans > 0)
       ? selectedRaceSimulationSnapshot.checkpointLeaderboards
+      : selectedPrototypePublicLiveSnapshot?.checkpointLeaderboards.some((board) => board.totalOfficialScans > 0)
+        ? selectedPrototypePublicLiveSnapshot.checkpointLeaderboards
       : selectedRaceCard.slug === liveSourceRace?.slug && leaderboards.length > 0
         ? leaderboards
         : previewCheckpointLeaderboards;
@@ -2497,11 +2832,21 @@ export default function App() {
     return visibleRaces.flatMap((race) => {
       const organizerRaceDraft = organizerSetup.races.find((item) => item.slug === race.slug);
       const raceSimulationSnapshot = organizerSimulationSnapshots.get(race.slug);
+      const prototypeLiveSnapshot = prototypePublicLiveSnapshotBySlug.get(race.slug) ?? null;
       const simulatedEntries = raceSimulationSnapshot?.overallLeaderboard.topEntries ?? [];
       const useSimulatedEntries = simulatedEntries.length > 0;
-      const useLiveEntries = !useSimulatedEntries && race.slug === liveSourceRace?.slug && overallLeaderboard.topEntries.length > 0;
-      const rankedRows: RunnerDirectoryEntry[] = ((useSimulatedEntries ? simulatedEntries : useLiveEntries ? overallLeaderboard.topEntries : null)
-        ? (useSimulatedEntries ? simulatedEntries : overallLeaderboard.topEntries).map((entry) => ({
+      const usePrototypeLiveEntries = !useSimulatedEntries && hasPrototypePublicLiveSignal(prototypeLiveSnapshot);
+      const useLiveEntries =
+        !useSimulatedEntries && !usePrototypeLiveEntries && race.slug === liveSourceRace?.slug && overallLeaderboard.topEntries.length > 0;
+      const sourceEntries = useSimulatedEntries
+        ? simulatedEntries
+        : usePrototypeLiveEntries
+          ? prototypeLiveSnapshot?.overallLeaderboard.topEntries ?? []
+          : useLiveEntries
+            ? overallLeaderboard.topEntries
+            : null;
+      const rankedRows: RunnerDirectoryEntry[] = (sourceEntries
+        ? sourceEntries.map((entry) => ({
             rank: entry.rank,
             name: entry.name,
             bib: entry.bib,
@@ -2625,7 +2970,7 @@ export default function App() {
 
       return [...mergedRows, ...extraRows];
     });
-  }, [liveSourceRace?.slug, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, visibleRaces]);
+  }, [liveSourceRace?.slug, organizerSetup.races, organizerSimulationSnapshots, overallLeaderboard.topEntries, prototypePublicLiveSnapshotBySlug, visibleRaces]);
   const runnerDirectoryCountries = useMemo(
     () =>
       [...new Set(runnerDirectoryEntries.map((entry) => entry.countryCode))]
@@ -2636,7 +2981,9 @@ export default function App() {
     () => visibleRaces.find((race) => race.slug === rankingRaceFilter) ?? (isEditionHome ? featuredRace : selectedRaceCard),
     [featuredRace, isEditionHome, rankingRaceFilter, selectedRaceCard, visibleRaces]
   );
-  const rankingRaceIsLive = isOrganizerRaceLiveState(rankingSelectedRace.editionLabel);
+  const rankingRaceIsLive =
+    hasPrototypePublicLiveSignal(prototypePublicLiveSnapshotBySlug.get(rankingSelectedRace.slug)) ||
+    isOrganizerRaceLiveState(rankingSelectedRace.editionLabel);
   const rankingRaceEntries = useMemo(() => {
     return runnerDirectoryEntries
       .filter((entry) => entry.raceSlug === rankingSelectedRace.slug)
@@ -3191,12 +3538,18 @@ export default function App() {
       const raceDraft = spectatorSetup.races.find((item) => item.slug === race.slug) ?? null;
       const cardCourse = raceDraft ? buildOrganizerCourseFromRaceDraft(raceDraft) : null;
       const raceSimulationSnapshot = spectatorSimulationSnapshots.get(race.slug);
+      const prototypeLiveSnapshot = prototypePublicLiveSnapshotBySlug.get(race.slug) ?? null;
+      const hasPrototypeLiveEntries = hasPrototypePublicLiveSignal(prototypeLiveSnapshot);
       const hasSimulatedEntries = (raceSimulationSnapshot?.overallLeaderboard.topEntries.length ?? 0) > 0;
       const homeEntries = hasSimulatedEntries
         ? raceSimulationSnapshot?.overallLeaderboard.topEntries ?? []
+        : hasPrototypeLiveEntries
+          ? prototypeLiveSnapshot?.overallLeaderboard.topEntries ?? []
         : race.slug === liveSourceRace?.slug && overallLeaderboard.topEntries.length
           ? overallLeaderboard.topEntries
           : null;
+      const runtimeEditionLabel =
+        hasPrototypeLiveEntries && !isOrganizerRaceFinishedState(race.editionLabel) ? "Live" : race.editionLabel;
 
       if (!homeEntries) {
         return {
@@ -3204,7 +3557,8 @@ export default function App() {
           profilePoints: cardCourse?.profilePoints ?? race.profilePoints,
           modeLabel: raceDraft ? getOrganizerRaceModeLabel(raceDraft.raceMode) : undefined,
           modeSummary: raceDraft ? getOrganizerRaceModeSummary(raceDraft) : undefined,
-          isLive: isOrganizerRaceLiveState(race.editionLabel),
+          editionLabel: runtimeEditionLabel,
+          isLive: isOrganizerRaceLiveState(runtimeEditionLabel),
           isSelected: race.slug === selectedRaceCard.slug
         };
       }
@@ -3214,10 +3568,13 @@ export default function App() {
         profilePoints: cardCourse?.profilePoints ?? race.profilePoints,
         modeLabel: raceDraft ? getOrganizerRaceModeLabel(raceDraft.raceMode) : undefined,
         modeSummary: raceDraft ? getOrganizerRaceModeSummary(raceDraft) : undefined,
+        editionLabel: runtimeEditionLabel,
         finishers: hasSimulatedEntries
           ? raceSimulationSnapshot?.checkpointLeaderboards.find((board) => board.checkpointId === "finish")?.totalOfficialScans ?? 0
+          : hasPrototypeLiveEntries
+            ? prototypeLiveSnapshot?.finished ?? 0
           : finisherCount,
-        dnf: hasSimulatedEntries ? 0 : dnfDnsCount,
+        dnf: hasSimulatedEntries ? 0 : hasPrototypeLiveEntries ? prototypeLiveSnapshot?.dnf ?? 0 : dnfDnsCount,
         rankingPreview: homeEntries
           .slice(0, 3)
           .map((entry) => ({
@@ -3233,11 +3590,12 @@ export default function App() {
             checkpointKmMarker: entry.checkpointKmMarker,
             checkpointOrder: entry.checkpointOrder
           })),
-        isLive: isOrganizerRaceLiveState(race.editionLabel),
+        isLive: isOrganizerRaceLiveState(runtimeEditionLabel),
         isSelected: race.slug === selectedRaceCard.slug
       };
     });
   }, [
+    prototypePublicLiveSnapshotBySlug,
     dnfDnsCount,
     finisherCount,
     liveSourceRace?.slug,
@@ -3295,10 +3653,20 @@ export default function App() {
     () =>
       publicVisibleEvents.map((event) => {
         const publishedRaces = event.setup.races.filter((race) => race.isPublished);
-        const liveCount = publishedRaces.filter((race) => isOrganizerRaceLiveState(race.editionLabel)).length;
-        const upcomingCount = publishedRaces.filter((race) => isOrganizerRaceUpcomingState(race.editionLabel)).length;
+        const prototypeLiveCount = publishedRaces.filter((race) => hasPrototypePublicLiveSignal(prototypePublicLiveSnapshotBySlug.get(race.slug))).length;
+        const storedLiveCount = publishedRaces.filter((race) => isOrganizerRaceLiveState(race.editionLabel)).length;
+        const liveCount = Math.max(storedLiveCount, prototypeLiveCount);
+        const upcomingCount = Math.max(
+          0,
+          publishedRaces.filter((race) => isOrganizerRaceUpcomingState(race.editionLabel)).length - prototypeLiveCount
+        );
         const finishedCount = publishedRaces.filter((race) => getOrganizerRaceStateTone(race.editionLabel) === "finished").length;
-        const publicStatus = deriveOrganizerPublicEventStatus(event);
+        const publicStatus = liveCount > 0 ? "live" : deriveOrganizerPublicEventStatus(event);
+        const primaryRaceSlug =
+          publishedRaces.find((race) => hasPrototypePublicLiveSignal(prototypePublicLiveSnapshotBySlug.get(race.slug)))?.slug ??
+          publishedRaces.find((race) => isOrganizerRaceLiveState(race.editionLabel))?.slug ??
+          publishedRaces[0]?.slug ??
+          null;
 
         return {
           id: event.id,
@@ -3320,10 +3688,10 @@ export default function App() {
           upcomingCount,
           finishedCount,
           publicStatus,
-          primaryRaceSlug: publishedRaces.find((race) => isOrganizerRaceLiveState(race.editionLabel))?.slug ?? publishedRaces[0]?.slug ?? null
+          primaryRaceSlug
         };
       }),
-    [publicVisibleEvents]
+    [prototypePublicLiveSnapshotBySlug, publicVisibleEvents]
   );
   const filteredPublicEventCards = useMemo(() => {
     const normalizedQuery = platformEventQuery.trim().toLowerCase();
