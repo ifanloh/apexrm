@@ -3,8 +3,10 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = "C:\\ARM";
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, "..");
 const scannerDir = path.join(repoRoot, "apps", "scanner");
 const androidDir = path.join(scannerDir, "android");
 const generatedCapConfigPath = path.join(androidDir, "app", "src", "main", "assets", "capacitor.config.json");
