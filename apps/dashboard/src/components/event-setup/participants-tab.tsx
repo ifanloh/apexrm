@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { parseParticipantImportFile } from "@/organizerSetup";
 import { Upload, Plus, Download, Trash2, Search } from "lucide-react";
 
 const PARTICIPANT_TEMPLATE_HEADERS = [
@@ -32,14 +33,16 @@ const PARTICIPANT_TEMPLATE_HEADERS = [
   "emergencyContact"
 ];
 
-const PARTICIPANT_TEMPLATE_ROWS = [
-  PARTICIPANT_TEMPLATE_HEADERS.join(","),
-  "101,John Doe,john@example.com,08123456789,Male,ID,Open,Jane Doe 081200000001",
-  "102,Siti Rahma,siti@example.com,08129876543,Female,MY,Master,Ahmad 081200000002"
+const PARTICIPANT_TEMPLATE_SAMPLE_ROWS = [
+  ["101", "John Doe", "john@example.com", "08123456789", "Male", "ID", "Open", "Jane Doe 081200000001"],
+  ["102", "Siti Rahma", "siti@example.com", "08129876543", "Female", "MY", "Master", "Ahmad 081200000002"]
 ];
 
-function downloadCsv(filename: string, rows: string[]) {
-  const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+function createParticipantTemplateCsv() {
+  return [PARTICIPANT_TEMPLATE_HEADERS.join(","), ...PARTICIPANT_TEMPLATE_SAMPLE_ROWS.map((row) => row.join(","))].join("\n");
+}
+
+function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -50,8 +53,33 @@ function downloadCsv(filename: string, rows: string[]) {
   URL.revokeObjectURL(url);
 }
 
-function downloadParticipantTemplate() {
-  downloadCsv("trailnesia-participants-template.csv", PARTICIPANT_TEMPLATE_ROWS);
+async function downloadParticipantTemplate(kind: "xlsx" | "csv") {
+  if (kind === "csv") {
+    downloadBlob("trailnesia-participants-template.csv", new Blob([createParticipantTemplateCsv()], { type: "text/csv;charset=utf-8" }));
+    return;
+  }
+
+  const XLSX = await import("xlsx");
+  const worksheet = XLSX.utils.aoa_to_sheet([PARTICIPANT_TEMPLATE_HEADERS, ...PARTICIPANT_TEMPLATE_SAMPLE_ROWS]);
+  worksheet["!cols"] = [
+    { wch: 12 },
+    { wch: 28 },
+    { wch: 28 },
+    { wch: 16 },
+    { wch: 12 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 28 }
+  ];
+  worksheet["!autofilter"] = { ref: `A1:H${PARTICIPANT_TEMPLATE_SAMPLE_ROWS.length + 1}` };
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Participants");
+  const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+  downloadBlob(
+    "trailnesia-participants-template.xlsx",
+    new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+  );
 }
 
 export function ParticipantsTab({ eventId }: { eventId: number }) {
@@ -115,7 +143,7 @@ export function ParticipantsTab({ eventId }: { eventId: number }) {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" className="gap-2" onClick={downloadParticipantTemplate}>
+          <Button variant="outline" className="gap-2" onClick={() => void downloadParticipantTemplate("xlsx")}>
             <Download className="h-4 w-4" /> Download Template
           </Button>
 
@@ -191,10 +219,46 @@ export function ParticipantsTab({ eventId }: { eventId: number }) {
 function ImportDialog({ eventId, raceId }: { eventId: number; raceId: number }) {
   const [open, setOpen] = useState(false);
   const [csvData, setCsvData] = useState("");
+  const [sourceFileName, setSourceFileName] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   const importMutation = useImportParticipants();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const handleTemplateDownload = (kind: "xlsx" | "csv") => {
+    void downloadParticipantTemplate(kind).catch((error) =>
+      toast({
+        variant: "destructive",
+        title: "Failed to download template",
+        description: error instanceof Error ? error.message : "Please try again."
+      })
+    );
+  };
+
+  const handleFileSelect = async (file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const parsed = await parseParticipantImportFile(file);
+
+      if (!parsed) {
+        throw new Error("Unsupported file format. Use CSV or XLSX.");
+      }
+
+      setCsvData(parsed.text);
+      setSourceFileName(parsed.fileName);
+      setPreviewData(null);
+      toast({ title: "Import file loaded", description: parsed.fileName });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to read import file",
+        description: error instanceof Error ? error.message : "Please try another file."
+      });
+    }
+  };
 
   const handlePreview = () => {
     importMutation.mutate(
@@ -215,6 +279,7 @@ function ImportDialog({ eventId, raceId }: { eventId: number; raceId: number }) 
           toast({ title: `Imported ${response.imported} participants successfully` });
           setOpen(false);
           setCsvData("");
+          setSourceFileName(null);
           setPreviewData(null);
         },
         onError: (error: Error) => toast({ variant: "destructive", title: "Import failed", description: error.message })
@@ -236,16 +301,43 @@ function ImportDialog({ eventId, raceId }: { eventId: number; raceId: number }) 
             <p className="font-medium text-foreground mb-1">Required column order</p>
             <p>{PARTICIPANT_TEMPLATE_HEADERS.join(", ")}</p>
             <p className="mt-2">Use <code>nationality</code> as a 2-letter ISO code like <code>ID</code>, <code>MY</code>, or <code>SG</code> so spectator flags render correctly.</p>
-            <Button variant="link" className="px-0 h-auto mt-2" onClick={downloadParticipantTemplate}>
-              Download template CSV
-            </Button>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <Button variant="link" className="px-0 h-auto" onClick={() => handleTemplateDownload("xlsx")}>
+                Download template XLSX
+              </Button>
+              <Button variant="link" className="px-0 h-auto" onClick={() => handleTemplateDownload("csv")}>
+                Download template CSV
+              </Button>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Paste CSV Data</Label>
+            <Label>Upload Template File</Label>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild variant="outline">
+                <label className="cursor-pointer">
+                  <Upload className="h-4 w-4" />
+                  Upload CSV / XLSX
+                  <input
+                    accept=".csv,.tsv,.txt,.xlsx,.xls"
+                    className="hidden"
+                    onChange={(event) => {
+                      void handleFileSelect(event.target.files?.[0]);
+                      event.currentTarget.value = "";
+                    }}
+                    type="file"
+                  />
+                </label>
+              </Button>
+              <span className="text-xs text-muted-foreground">{sourceFileName ?? "No file selected yet."}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Paste or Review Tabular Data</Label>
             <Textarea
               rows={8}
-              placeholder={PARTICIPANT_TEMPLATE_ROWS.join("\n")}
+              placeholder={createParticipantTemplateCsv()}
               value={csvData}
               onChange={(event) => setCsvData(event.target.value)}
               className="font-mono text-sm"
