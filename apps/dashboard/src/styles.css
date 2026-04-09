@@ -6009,10 +6009,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 168px;
-  min-width: 168px;
+  width: 64px;
+  min-width: 64px;
   height: 64px;
-  border-radius: 16px;
+  padding: 8px;
+  border-radius: 18px;
   border: 1px dashed rgba(225, 183, 76, 0.6);
   background: rgba(255, 248, 233, 0.9);
   color: var(--brand-red, #ff1515);
@@ -6024,27 +6025,28 @@ body {
 }
 
 .event-logo-placeholder.has-uploaded-logo {
-  justify-content: flex-start;
-  background: transparent;
-  border-color: transparent;
-  max-width: 168px;
-  min-width: 0;
-  width: auto;
+  justify-content: center;
+  background: rgba(255, 248, 233, 0.92);
+  border-style: solid;
+  border-color: rgba(225, 183, 76, 0.45);
+  box-shadow: 0 10px 24px rgba(65, 34, 12, 0.08);
+  max-width: none;
+  min-width: 64px;
 }
 
 .event-logo-placeholder img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: left center;
+  object-position: center;
   display: block;
   padding: 0;
 }
 
 .event-logo-placeholder.has-uploaded-logo img {
-  height: 64px;
-  max-width: 168px;
-  width: auto;
+  height: 100%;
+  max-width: 100%;
+  width: 100%;
 }
 
 .organizer-console-shell {
