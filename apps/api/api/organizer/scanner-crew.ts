@@ -18,6 +18,15 @@ const createScannerCrewSchema = z.object({
   assignedCheckpointId: z.number().int().positive().nullable().optional()
 });
 
+const updateScannerCrewSchema = z.object({
+  crewId: z.number().int().positive(),
+  eventId: z.number().int().positive(),
+  name: z.string().trim().min(1),
+  username: z.string().trim().min(1),
+  password: z.string().min(1),
+  assignedCheckpointId: z.number().int().positive().nullable().optional()
+});
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -67,12 +76,10 @@ export default async function handler(request: IncomingMessage, response: Server
     requireRole(actor, ["admin", "panitia", "observer"]);
     await ensureOrganizerWorkspaceTable(sql);
 
-    if (request.method !== "POST") {
+    if (request.method !== "POST" && request.method !== "PUT") {
       sendError(request, response, 405, "Method not allowed");
       return;
     }
-
-    const input = createScannerCrewSchema.parse(await readJsonBody(request));
     const workspace = await getOrganizerWorkspace(sql, actor.userId);
 
     if (!workspace) {
@@ -82,39 +89,98 @@ export default async function handler(request: IncomingMessage, response: Server
 
     const payload = isRecord(workspace.payload) ? workspace.payload : {};
     const crewRecords = Array.isArray(payload.crew) ? payload.crew.filter(isRecord) : [];
+
+    if (request.method === "POST") {
+      const input = createScannerCrewSchema.parse(await readJsonBody(request));
+      const normalizedUsername = normalizeUsername(input.username);
+
+      if (
+        crewRecords.some(
+          (entry) => typeof entry.username === "string" && normalizeUsername(entry.username) === normalizedUsername
+        )
+      ) {
+        sendError(request, response, 409, "Scanner crew username already exists");
+        return;
+      }
+
+      const nextIds = isRecord(payload.nextIds) ? payload.nextIds : {};
+      const maxExistingCrewId = crewRecords.reduce((maxId, entry) => {
+        const currentId = typeof entry.id === "number" && Number.isFinite(entry.id) ? Math.trunc(entry.id) : 0;
+        return Math.max(maxId, currentId);
+      }, 0);
+      const nextCrewId = Math.max(toPositiveInteger(nextIds.crew, maxExistingCrewId + 1), maxExistingCrewId + 1);
+      const member = {
+        id: nextCrewId,
+        eventId: input.eventId,
+        name: input.name,
+        username: input.username.trim(),
+        password: input.password,
+        assignedCheckpointId: input.assignedCheckpointId ?? null,
+        createdAt: new Date().toISOString()
+      };
+      const nextPayload = {
+        ...payload,
+        crew: [...crewRecords, member],
+        nextIds: {
+          ...nextIds,
+          crew: nextCrewId + 1
+        }
+      };
+
+      await saveOrganizerWorkspace(sql, {
+        ownerUserId: actor.userId,
+        username: workspace.username ?? actor.email,
+        displayName: workspace.displayName ?? actor.displayName,
+        payload: nextPayload as JsonValue
+      });
+
+      sendJson(request, response, 200, {
+        item: {
+          member,
+          nextCrewId: nextCrewId + 1
+        }
+      });
+      return;
+    }
+
+    const input = updateScannerCrewSchema.parse(await readJsonBody(request));
     const normalizedUsername = normalizeUsername(input.username);
 
     if (
       crewRecords.some(
-        (entry) => typeof entry.username === "string" && normalizeUsername(entry.username) === normalizedUsername
+        (entry) =>
+          (typeof entry.id !== "number" || Math.trunc(entry.id) !== input.crewId) &&
+          typeof entry.username === "string" &&
+          normalizeUsername(entry.username) === normalizedUsername
       )
     ) {
       sendError(request, response, 409, "Scanner crew username already exists");
       return;
     }
 
-    const nextIds = isRecord(payload.nextIds) ? payload.nextIds : {};
-    const maxExistingCrewId = crewRecords.reduce((maxId, entry) => {
-      const currentId = typeof entry.id === "number" && Number.isFinite(entry.id) ? Math.trunc(entry.id) : 0;
-      return Math.max(maxId, currentId);
-    }, 0);
-    const nextCrewId = Math.max(toPositiveInteger(nextIds.crew, maxExistingCrewId + 1), maxExistingCrewId + 1);
+    const memberRecord = crewRecords.find(
+      (entry) => typeof entry.id === "number" && Math.trunc(entry.id) === input.crewId
+    );
+
+    if (!memberRecord) {
+      sendError(request, response, 404, "Scanner crew member not found");
+      return;
+    }
+
     const member = {
-      id: nextCrewId,
+      ...memberRecord,
+      id: input.crewId,
       eventId: input.eventId,
       name: input.name,
       username: input.username.trim(),
       password: input.password,
-      assignedCheckpointId: input.assignedCheckpointId ?? null,
-      createdAt: new Date().toISOString()
+      assignedCheckpointId: input.assignedCheckpointId ?? null
     };
     const nextPayload = {
       ...payload,
-      crew: [...crewRecords, member],
-      nextIds: {
-        ...nextIds,
-        crew: nextCrewId + 1
-      }
+      crew: crewRecords.map((entry) =>
+        typeof entry.id === "number" && Math.trunc(entry.id) === input.crewId ? member : entry
+      )
     };
 
     await saveOrganizerWorkspace(sql, {
@@ -126,8 +192,7 @@ export default async function handler(request: IncomingMessage, response: Server
 
     sendJson(request, response, 200, {
       item: {
-        member,
-        nextCrewId: nextCrewId + 1
+        member
       }
     });
   } catch (error) {

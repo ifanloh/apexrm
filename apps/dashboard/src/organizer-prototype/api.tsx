@@ -386,6 +386,29 @@ async function createRemoteScannerCrewMember(
   return payload.item;
 }
 
+async function updateRemoteScannerCrewMember(
+  user: User,
+  input: {
+    crewId: number;
+    eventId: number;
+    name: string;
+    username: string;
+    password: string;
+    assignedCheckpointId: number | null;
+  }
+) {
+  const payload = await requestOrganizerJson<{
+    item: {
+      member: ScannerCrewMember;
+    };
+  }>(user, "/organizer/scanner-crew", {
+    body: JSON.stringify(input),
+    method: "PUT"
+  });
+
+  return payload.item;
+}
+
 function isUnavailableOrganizerScannerCrewRoute(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return /404|not found|failed to fetch|networkerror/i.test(message);
@@ -1220,6 +1243,79 @@ export function useCreateScannerCrewMember() {
     setStore(nextStore);
     return member;
   });
+}
+
+export function useUpdateScannerCrewMember() {
+  return useMutation<{ eventId: number; scannerId: number; data: Partial<ScannerCrewMember> }, ScannerCrewMember>(
+    async ({ setStore, store, markRemoteStoreSaved }, { eventId, scannerId, data }) => {
+      const existingMember = store.crew.find((member) => member.id === scannerId && member.eventId === eventId);
+
+      if (!existingMember) {
+        throw new Error("Scanner crew member not found.");
+      }
+
+      const name = data.name?.trim() || existingMember.name;
+      const username = data.username?.trim() || existingMember.username;
+      const password = typeof data.password === "string" && data.password.length > 0 ? data.password : existingMember.password ?? null;
+      const hasAssignedCheckpointId = Object.prototype.hasOwnProperty.call(data, "assignedCheckpointId");
+      const assignedCheckpointId = hasAssignedCheckpointId ? data.assignedCheckpointId ?? null : existingMember.assignedCheckpointId ?? null;
+      const normalizedUsername = username.toLowerCase();
+
+      if (!password) {
+        throw new Error("Scanner crew password is required.");
+      }
+
+      if (
+        store.crew.some(
+          (member) => member.id !== scannerId && member.username.trim().toLowerCase() === normalizedUsername
+        )
+      ) {
+        throw new Error("Scanner crew username already exists.");
+      }
+
+      let nextStore: Store;
+      let member: ScannerCrewMember;
+
+      try {
+        const remoteResult = await updateRemoteScannerCrewMember(store.user, {
+          crewId: scannerId,
+          eventId,
+          name,
+          username,
+          password,
+          assignedCheckpointId
+        });
+        member = remoteResult.member;
+        nextStore = hydrate({
+          ...store,
+          crew: store.crew.map((entry) => (entry.id === scannerId ? remoteResult.member : entry))
+        });
+      } catch (error) {
+        if (!isUnavailableOrganizerScannerCrewRoute(error)) {
+          throw error;
+        }
+
+        member = {
+          ...existingMember,
+          eventId,
+          name,
+          username,
+          password,
+          assignedCheckpointId
+        };
+        nextStore = hydrate({
+          ...store,
+          crew: store.crew.map((entry) => (entry.id === scannerId ? member : entry))
+        });
+        await saveRemoteWorkspace(store.user, nextStore);
+      }
+
+      saveStore(nextStore);
+      markRemoteStoreSaved(nextStore);
+      setStore(nextStore);
+      return member;
+    }
+  );
 }
 
 export function useDeleteScannerCrewMember() {

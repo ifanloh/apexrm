@@ -1,14 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   getListEventCheckpointsQueryKey,
   getListScannerCrewQueryKey,
   useCreateScannerCrewMember,
   useDeleteScannerCrewMember,
   useListEventCheckpoints,
-  useListScannerCrew
+  useListScannerCrew,
+  useUpdateScannerCrewMember
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { PlusCircle, Trash2, Smartphone, ShieldCheck, MapPin } from "lucide-react";
+import { PlusCircle, Trash2, Smartphone, ShieldCheck, MapPin, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -17,6 +18,21 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import type { ScannerCrewMember } from "@/organizer-prototype/api";
+
+type CrewFormState = {
+  name: string;
+  username: string;
+  password: string;
+  assignedCheckpointId: number | null;
+};
+
+const EMPTY_CREW_FORM: CrewFormState = {
+  name: "",
+  username: "",
+  password: "",
+  assignedCheckpointId: null
+};
 
 function formatCheckpointAssignment(checkpoint: {
   raceName: string;
@@ -32,6 +48,19 @@ function formatCheckpointAssignment(checkpoint: {
   return `${checkpoint.raceName} - ${roleLabel} - ${checkpoint.name}${distanceLabel}`;
 }
 
+function toCrewFormState(member: ScannerCrewMember | null): CrewFormState {
+  if (!member) {
+    return EMPTY_CREW_FORM;
+  }
+
+  return {
+    name: member.name,
+    username: member.username,
+    password: member.password ?? "",
+    assignedCheckpointId: member.assignedCheckpointId ?? null
+  };
+}
+
 export function ScannerCrewTab({ eventId }: { eventId: number }) {
   const { data: crew, isLoading } = useListScannerCrew(eventId, {
     query: { enabled: !!eventId, queryKey: getListScannerCrewQueryKey(eventId) }
@@ -39,6 +68,7 @@ export function ScannerCrewTab({ eventId }: { eventId: number }) {
   const { data: eventCheckpoints } = useListEventCheckpoints(eventId, {
     query: { enabled: !!eventId, queryKey: getListEventCheckpointsQueryKey(eventId) }
   });
+  const [editingMember, setEditingMember] = useState<ScannerCrewMember | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const deleteMutation = useDeleteScannerCrewMember();
@@ -56,6 +86,9 @@ export function ScannerCrewTab({ eventId }: { eventId: number }) {
           queryClient.invalidateQueries({ queryKey: getListScannerCrewQueryKey(eventId) });
           queryClient.invalidateQueries({ queryKey: getListEventCheckpointsQueryKey(eventId) });
           toast({ title: "Crew member removed" });
+          if (editingMember?.id === crewId) {
+            setEditingMember(null);
+          }
         }
       }
     );
@@ -69,6 +102,7 @@ export function ScannerCrewTab({ eventId }: { eventId: number }) {
           <p className="mt-1 text-muted-foreground">
             Create one login per crew member and tie it to a checkpoint so scanner location auto-locks from organizer.
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">Click any crew row to edit the display name, login, password, or checkpoint assignment.</p>
         </div>
         <AddCrewDialog eventId={eventId} checkpointCount={eventCheckpoints?.length ?? 0} />
       </div>
@@ -101,11 +135,23 @@ export function ScannerCrewTab({ eventId }: { eventId: number }) {
               </TableRow>
             ) : (
               crew?.map((member) => (
-                <TableRow key={member.id}>
+                <TableRow
+                  key={member.id}
+                  className="cursor-pointer transition-colors hover:bg-muted/40"
+                  onClick={() => setEditingMember(member)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setEditingMember(member);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="h-4 w-4 text-primary" />
-                      {member.name}
+                      <span>{member.name}</span>
                     </div>
                   </TableCell>
                   <TableCell className="font-mono text-sm">{member.username}</TableCell>
@@ -120,9 +166,28 @@ export function ScannerCrewTab({ eventId }: { eventId: number }) {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(member.id)}>
-                      <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setEditingMember(member);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDelete(member.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -130,26 +195,29 @@ export function ScannerCrewTab({ eventId }: { eventId: number }) {
           </TableBody>
         </Table>
       </Card>
+
+      <EditCrewDialog
+        checkpointCount={eventCheckpoints?.length ?? 0}
+        eventId={eventId}
+        member={editingMember}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingMember(null);
+          }
+        }}
+        open={editingMember !== null}
+      />
     </div>
   );
 }
 
 function AddCrewDialog({ eventId, checkpointCount }: { eventId: number; checkpointCount: number }) {
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    password: "",
-    assignedCheckpointId: null as number | null
-  });
   const createMutation = useCreateScannerCrewMember();
-  const { data: eventCheckpoints } = useListEventCheckpoints(eventId, {
-    query: { enabled: open && !!eventId, queryKey: getListEventCheckpointsQueryKey(eventId) }
-  });
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const handleSubmit = () => {
+  const handleSubmit = (formData: CrewFormState) => {
     createMutation.mutate(
       { eventId, data: formData },
       {
@@ -158,7 +226,6 @@ function AddCrewDialog({ eventId, checkpointCount }: { eventId: number; checkpoi
           queryClient.invalidateQueries({ queryKey: getListEventCheckpointsQueryKey(eventId) });
           toast({ title: "Crew account created" });
           setOpen(false);
-          setFormData({ name: "", username: "", password: "", assignedCheckpointId: null });
         },
         onError: (err: any) =>
           toast({ variant: "destructive", title: "Failed to create account", description: err.message })
@@ -167,15 +234,113 @@ function AddCrewDialog({ eventId, checkpointCount }: { eventId: number; checkpoi
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <CrewAccountDialog
+      checkpointCount={checkpointCount}
+      defaultForm={EMPTY_CREW_FORM}
+      eventId={eventId}
+      mode="create"
+      onOpenChange={setOpen}
+      onSubmit={handleSubmit}
+      open={open}
+      pending={createMutation.isPending}
+      trigger={
         <Button className="gap-2">
           <PlusCircle className="h-4 w-4" /> Add Crew Member
         </Button>
-      </DialogTrigger>
+      }
+    />
+  );
+}
+
+function EditCrewDialog({
+  eventId,
+  checkpointCount,
+  member,
+  open,
+  onOpenChange
+}: {
+  eventId: number;
+  checkpointCount: number;
+  member: ScannerCrewMember | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const updateMutation = useUpdateScannerCrewMember();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const handleSubmit = (formData: CrewFormState) => {
+    if (!member) {
+      return;
+    }
+
+    updateMutation.mutate(
+      { eventId, scannerId: member.id, data: formData },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListScannerCrewQueryKey(eventId) });
+          queryClient.invalidateQueries({ queryKey: getListEventCheckpointsQueryKey(eventId) });
+          toast({ title: "Crew account updated" });
+          onOpenChange(false);
+        },
+        onError: (err: any) =>
+          toast({ variant: "destructive", title: "Failed to update account", description: err.message })
+      }
+    );
+  };
+
+  return (
+    <CrewAccountDialog
+      checkpointCount={checkpointCount}
+      defaultForm={toCrewFormState(member)}
+      eventId={eventId}
+      mode="edit"
+      onOpenChange={onOpenChange}
+      onSubmit={handleSubmit}
+      open={open}
+      pending={updateMutation.isPending}
+    />
+  );
+}
+
+function CrewAccountDialog({
+  eventId,
+  checkpointCount,
+  defaultForm,
+  mode,
+  onOpenChange,
+  onSubmit,
+  open,
+  pending,
+  trigger
+}: {
+  eventId: number;
+  checkpointCount: number;
+  defaultForm: CrewFormState;
+  mode: "create" | "edit";
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (formData: CrewFormState) => void;
+  open: boolean;
+  pending: boolean;
+  trigger?: ReactNode;
+}) {
+  const [formData, setFormData] = useState<CrewFormState>(defaultForm);
+  const { data: eventCheckpoints } = useListEventCheckpoints(eventId, {
+    query: { enabled: open && !!eventId, queryKey: getListEventCheckpointsQueryKey(eventId) }
+  });
+
+  useEffect(() => {
+    if (open) {
+      setFormData(defaultForm);
+    }
+  }, [defaultForm, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New Scanner Account</DialogTitle>
+          <DialogTitle>{mode === "create" ? "New Scanner Account" : "Edit Scanner Account"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
@@ -204,6 +369,7 @@ function AddCrewDialog({ eventId, checkpointCount }: { eventId: number; checkpoi
               type="password"
               value={formData.password}
               onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
+              placeholder={mode === "edit" ? "Update password" : ""}
             />
           </div>
           <div className="space-y-2">
@@ -239,14 +405,14 @@ function AddCrewDialog({ eventId, checkpointCount }: { eventId: number; checkpoi
           ) : null}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
-            onClick={handleSubmit}
-            disabled={!formData.name || !formData.username || !formData.password || createMutation.isPending}
+            onClick={() => onSubmit(formData)}
+            disabled={!formData.name.trim() || !formData.username.trim() || !formData.password || pending}
           >
-            {createMutation.isPending ? "Creating..." : "Create Account"}
+            {pending ? (mode === "create" ? "Creating..." : "Saving...") : mode === "create" ? "Create Account" : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
