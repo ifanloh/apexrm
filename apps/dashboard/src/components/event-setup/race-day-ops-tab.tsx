@@ -79,6 +79,7 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
 
   const activeStatus = liveOps ?? status ?? null;
   const activeScans = liveOps?.recentScans ?? scans ?? [];
+  const liveSyncLabel = liveOps?.source === "client" ? "Live recent-passings sync" : "Live server sync";
 
   if (!activeRaces.length) {
     return (
@@ -148,7 +149,7 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
             <div className="lg:col-span-2 space-y-4">
               <h3 className="text-lg font-semibold text-stone-200 flex items-center gap-2">
                 <Navigation className="h-5 w-5 text-primary" /> Route Status
-                {liveOps ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">Live server sync</Badge> : null}
+                {liveOps ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">{liveSyncLabel}</Badge> : null}
               </h3>
               <div className="grid gap-3">
                 {activeStatus.checkpoints.map(cp => (

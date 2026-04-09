@@ -194,7 +194,19 @@ export type OrganizerLiveRaceOps = {
     lastScanAt: string | null;
   }>;
   recentScans: ScanEvent[];
+  source?: "server" | "client";
 };
+
+type OrganizerRecentPassing = {
+  bib: string;
+  checkpointId: string;
+  checkpointName?: string | null;
+  crewId?: string | null;
+  name?: string | null;
+  scannedAt: string;
+};
+
+const ORGANIZER_DEMO_CHECKPOINT_IDS = ["cp-start", "cp-10", "cp-21", "cp-30", "cp-40", "finish"] as const;
 
 function nowIso() {
   return new Date().toISOString();
@@ -339,6 +351,166 @@ async function saveRemoteWorkspace(user: User, store: Store) {
   });
 }
 
+function normalizeBib(value: string | null | undefined) {
+  return typeof value === "string" ? value.trim().toUpperCase() : "";
+}
+
+function buildOrganizerCrewCode(ownerUserId: string, eventId: number, crewId: number) {
+  return `crew-${ownerUserId}-${eventId}-${crewId}`;
+}
+
+function buildScannerCheckpointId(checkpoint: Checkpoint, intermediateIndex: number) {
+  if (checkpoint.isStartLine) {
+    return ORGANIZER_DEMO_CHECKPOINT_IDS[0];
+  }
+
+  if (checkpoint.isFinishLine) {
+    return ORGANIZER_DEMO_CHECKPOINT_IDS[ORGANIZER_DEMO_CHECKPOINT_IDS.length - 1];
+  }
+
+  return (
+    ORGANIZER_DEMO_CHECKPOINT_IDS[Math.min(intermediateIndex, ORGANIZER_DEMO_CHECKPOINT_IDS.length - 2)] ??
+    `cp-extra-${checkpoint.orderIndex}`
+  );
+}
+
+function mapScannerCheckpointIds(checkpoints: Checkpoint[]) {
+  let intermediateIndex = 1;
+
+  return checkpoints
+    .slice()
+    .sort((left, right) => left.orderIndex - right.orderIndex)
+    .map((checkpoint) => {
+      const currentIntermediateIndex = checkpoint.isStartLine || checkpoint.isFinishLine ? intermediateIndex : intermediateIndex++;
+
+      return {
+        checkpoint,
+        scannerCheckpointId: buildScannerCheckpointId(checkpoint, currentIntermediateIndex)
+      };
+    });
+}
+
+async function fetchRecentOrganizerPassings(): Promise<OrganizerRecentPassing[]> {
+  const response = await fetch(`${API_BASE_URL}/passings/recent?limit=100`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `Recent passings request failed (${response.status})`);
+  }
+
+  const payload = (await response.json()) as {
+    items?: Array<{
+      bib?: string | null;
+      checkpointId?: string | null;
+      checkpointName?: string | null;
+      crewId?: string | null;
+      name?: string | null;
+      scannedAt?: string | null;
+    }>;
+  };
+
+  return Array.isArray(payload.items)
+    ? payload.items
+        .map((item) => ({
+          bib: normalizeBib(item.bib),
+          checkpointId: typeof item.checkpointId === "string" ? item.checkpointId : "",
+          checkpointName: typeof item.checkpointName === "string" ? item.checkpointName : null,
+          crewId: typeof item.crewId === "string" ? item.crewId : null,
+          name: typeof item.name === "string" ? item.name : null,
+          scannedAt: typeof item.scannedAt === "string" ? item.scannedAt : ""
+        }))
+        .filter((item) => item.bib && item.checkpointId && item.scannedAt)
+    : [];
+}
+
+function buildOrganizerLiveRaceOpsFromWorkspace(user: User, store: PersistedStore, eventId: number, raceId: number, recentPassings: OrganizerRecentPassing[]): OrganizerLiveRaceOps | null {
+  const event = store.events.find((entry) => entry.id === eventId && entry.status !== "archived") ?? null;
+  const race = store.races.find((entry) => entry.id === raceId && entry.eventId === eventId) ?? null;
+
+  if (!event || !race) {
+    return null;
+  }
+
+  const raceParticipants = store.participants.filter((participant) => participant.raceId === race.id);
+  const participantByBib = new Map(
+    raceParticipants
+      .map((participant) => {
+        const bib = normalizeBib(participant.bibNumber);
+        return bib ? ([bib, participant] as const) : null;
+      })
+      .filter((entry): entry is readonly [string, Participant] => Boolean(entry))
+  );
+  const raceCheckpoints = store.checkpoints.filter((checkpoint) => checkpoint.raceId === race.id);
+  const checkpointMappings = mapScannerCheckpointIds(raceCheckpoints);
+  const checkpointByScannerId = new Map<string, Checkpoint>(checkpointMappings.map((entry) => [entry.scannerCheckpointId, entry.checkpoint]));
+  const allowedCrewCodes = new Set(
+    store.crew
+      .filter((member) => member.eventId === event.id)
+      .map((member) => buildOrganizerCrewCode(user.workspaceOwnerId, event.id, member.id))
+  );
+  const filteredPassings = recentPassings.filter(
+    (passing) => checkpointByScannerId.has(passing.checkpointId) && (allowedCrewCodes.has(passing.crewId ?? "") || participantByBib.has(passing.bib))
+  );
+  const scanTotals = new Map<string, { total: number; lastScanAt: string | null }>();
+  const scannedBibs = new Set<string>();
+
+  for (const passing of filteredPassings) {
+    scannedBibs.add(passing.bib);
+    const previous = scanTotals.get(passing.checkpointId) ?? { total: 0, lastScanAt: null };
+    const lastScanAt =
+      !previous.lastScanAt || new Date(passing.scannedAt) > new Date(previous.lastScanAt) ? passing.scannedAt : previous.lastScanAt;
+    scanTotals.set(passing.checkpointId, {
+      total: previous.total + 1,
+      lastScanAt
+    });
+  }
+
+  const crewById = new Map(
+    store.crew.filter((member) => member.eventId === event.id).map((member) => [member.id, member.name])
+  );
+
+  return {
+    raceId: race.id,
+    raceName: race.name,
+    raceStatus: race.status,
+    totalParticipants: raceParticipants.length,
+    scannedIn: scannedBibs.size,
+    finished: raceParticipants.filter((participant) => participant.status === "finished").length,
+    dnf: raceParticipants.filter((participant) => participant.status === "dnf").length,
+    checkpoints: checkpointMappings.map(({ checkpoint, scannerCheckpointId }) => {
+      const totals = scanTotals.get(scannerCheckpointId);
+      return {
+        checkpointId: checkpoint.id,
+        name: checkpoint.name,
+        orderIndex: checkpoint.orderIndex,
+        isStartLine: checkpoint.isStartLine,
+        isFinishLine: checkpoint.isFinishLine,
+        assignedCrew: checkpoint.assignedCrewId !== undefined && checkpoint.assignedCrewId !== null ? crewById.get(checkpoint.assignedCrewId) ?? null : null,
+        scanCount: totals?.total ?? 0,
+        lastScanAt: totals?.lastScanAt ?? null
+      };
+    }),
+    recentScans: filteredPassings.slice(0, 50).map((passing) => {
+      const participant = participantByBib.get(passing.bib) ?? null;
+      const checkpoint = checkpointByScannerId.get(passing.checkpointId) ?? null;
+      return {
+        id: `${passing.bib}-${passing.checkpointId}-${passing.scannedAt}`,
+        participantId: participant?.id ?? 0,
+        participantName: participant?.fullName ?? passing.name ?? `Runner ${passing.bib}`,
+        bibNumber: passing.bib,
+        checkpointId: checkpoint?.id ?? 0,
+        checkpointName: checkpoint?.name ?? passing.checkpointName ?? passing.checkpointId,
+        scannedAt: passing.scannedAt,
+        isDuplicate: false,
+        raceId: race.id
+      } satisfies ScanEvent;
+    }),
+    source: "client"
+  };
+}
+
 function parseCsv(csvData: string) {
   const lines = csvData.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const parseLine = (line: string) => line.split(",").map((value) => value.trim().replace(/^"|"$/g, ""));
@@ -446,12 +618,29 @@ export async function fetchOrganizerLiveRaceOps(user: User, eventId: number, rac
     eventId: String(eventId),
     raceId: String(raceId)
   });
-  const payload = await requestOrganizerJson<{ item: OrganizerLiveRaceOps | null }>(
-    user,
-    `/organizer/live-race?${query.toString()}`
-  );
 
-  return payload.item ?? null;
+  try {
+    const payload = await requestOrganizerJson<{ item: OrganizerLiveRaceOps | null }>(
+      user,
+      `/organizer/live-race?${query.toString()}`
+    );
+
+    return payload.item ? { ...payload.item, source: "server" } : null;
+  } catch (error) {
+    const isRouteMissing =
+      error instanceof Error && /(404|not found|workspace request failed \(404\))/i.test(error.message);
+
+    if (!isRouteMissing) {
+      throw error;
+    }
+
+    const [remoteStore, recentPassings] = await Promise.all([
+      fetchRemoteWorkspace(user),
+      fetchRecentOrganizerPassings()
+    ]);
+
+    return remoteStore ? buildOrganizerLiveRaceOpsFromWorkspace(user, remoteStore, eventId, raceId, recentPassings) : null;
+  }
 }
 
 function useMutation<TVars, TData>(runner: (context: PrototypeContextValue, variables: TVars) => TData) {
