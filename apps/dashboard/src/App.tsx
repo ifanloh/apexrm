@@ -292,7 +292,7 @@ type PrototypePublicFeedItem = {
     createdAt: string;
     updatedAt: string;
   };
-  participants: Array<{
+  participants?: Array<{
     id: number;
     raceId: number;
     bibNumber: string | null;
@@ -559,6 +559,7 @@ function buildPrototypePublicOrganizerEvent(item: PrototypePublicFeedItem): Orga
   const brandName = item.event.name.trim() || fallbackSetup.branding.brandName;
   const brandWords = brandName.split(/\s+/).filter(Boolean);
   const eventDateAt = normalizeOrganizerDateTimeInputValue(item.event.startDate ?? item.updatedAt, fallbackSetup.branding.eventDateAt);
+  const publicParticipants = Array.isArray(item.participants) ? item.participants : [];
   const races = item.races.map((race, index) => {
     const template = createOrganizerRaceTemplate(index + 1);
     const startAt = normalizeOrganizerDateTimeInputValue(item.event.startDate ?? item.updatedAt, template.startAt);
@@ -611,7 +612,7 @@ function buildPrototypePublicOrganizerEvent(item: PrototypePublicFeedItem): Orga
       waypoints: race.waypoints.length ? race.waypoints : template.waypoints,
       profilePoints: race.profilePoints.length ? race.profilePoints : template.profilePoints,
       checkpoints: checkpointList,
-      participants: item.participants
+      participants: publicParticipants
         .filter((participant) => participant.raceId === race.id)
         .map((participant) => ({
           bib: participant.bibNumber?.trim().toUpperCase() || `RUN${participant.id}`,
