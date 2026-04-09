@@ -1115,7 +1115,17 @@ export function useCreateScannerCrewMember() {
       assignedCheckpointId: data.assignedCheckpointId ?? null,
       createdAt: nowIso()
     };
-    setStore((current) => hydrate({ ...current, crew: [...current.crew, member], nextIds: { ...current.nextIds, crew: current.nextIds.crew + 1 } }));
+    const nextStore = hydrate({
+      ...store,
+      crew: [...store.crew, member],
+      nextIds: { ...store.nextIds, crew: store.nextIds.crew + 1 }
+    });
+
+    saveStore(nextStore);
+    void saveRemoteWorkspace(store.user, nextStore).catch((error) => {
+      console.error("Organizer scanner crew save failed.", error);
+    });
+    setStore(nextStore);
     return member;
   });
 }
