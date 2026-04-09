@@ -69,6 +69,15 @@ type StoredDemoSession = {
   raceId: string;
 };
 
+type QuickPrefixSlot = "primary" | "secondary";
+
+type QuickPrefixSettings = Record<QuickPrefixSlot, string>;
+
+const DEFAULT_QUICK_PREFIX_SETTINGS: QuickPrefixSettings = {
+  primary: "M",
+  secondary: "W"
+};
+
 function getStoredValue(key: string, fallback: string) {
   return window.localStorage.getItem(key) ?? fallback;
 }
@@ -181,6 +190,45 @@ function setLockedCheckpointForSession(userId: string, checkpointId: string) {
 
 function clearLockedCheckpointForSession(userId: string) {
   window.sessionStorage.removeItem(getCheckpointSessionKey(userId));
+}
+
+function getQuickPrefixStorageKey(userId: string) {
+  return `arm:scannerQuickPrefixes:${userId}`;
+}
+
+function sanitizeQuickPrefixValue(rawValue: string) {
+  return rawValue.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+}
+
+function loadStoredQuickPrefixes(userId: string): QuickPrefixSettings {
+  if (typeof window === "undefined") {
+    return DEFAULT_QUICK_PREFIX_SETTINGS;
+  }
+
+  const raw = window.localStorage.getItem(getQuickPrefixStorageKey(userId));
+
+  if (!raw) {
+    return DEFAULT_QUICK_PREFIX_SETTINGS;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<QuickPrefixSettings>;
+
+    return {
+      primary: sanitizeQuickPrefixValue(parsed.primary ?? DEFAULT_QUICK_PREFIX_SETTINGS.primary) || DEFAULT_QUICK_PREFIX_SETTINGS.primary,
+      secondary: sanitizeQuickPrefixValue(parsed.secondary ?? DEFAULT_QUICK_PREFIX_SETTINGS.secondary) || DEFAULT_QUICK_PREFIX_SETTINGS.secondary
+    };
+  } catch {
+    return DEFAULT_QUICK_PREFIX_SETTINGS;
+  }
+}
+
+function persistQuickPrefixes(userId: string, prefixes: QuickPrefixSettings) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(getQuickPrefixStorageKey(userId), JSON.stringify(prefixes));
 }
 
 function createClientId() {
@@ -359,6 +407,7 @@ export default function App() {
   const [deviceId, setDeviceId] = useState(() => getStoredValue("arm:deviceId", createClientId()));
   const [checkpointId, setCheckpointId] = useState("");
   const [bib, setBib] = useState("");
+  const [quickPrefixes, setQuickPrefixes] = useState<QuickPrefixSettings>(DEFAULT_QUICK_PREFIX_SETTINGS);
   const [isOnline, setIsOnline] = useState(window.navigator.onLine);
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([...defaultCheckpoints]);
   const [queue, setQueue] = useState<QueuedScan[]>([]);
@@ -415,6 +464,7 @@ export default function App() {
 
     return null;
   }, [crewId, demoSession, profile, session]);
+  const activeScannerUserId = effectiveProfile?.userId ?? session?.user?.id ?? null;
   const lastResultSummary = lastActionSummary;
   const canScan = Boolean(
     activeAccessToken &&
@@ -522,6 +572,23 @@ export default function App() {
   }, [deviceId]);
 
   useEffect(() => {
+    if (!activeScannerUserId) {
+      setQuickPrefixes(DEFAULT_QUICK_PREFIX_SETTINGS);
+      return;
+    }
+
+    setQuickPrefixes(loadStoredQuickPrefixes(activeScannerUserId));
+  }, [activeScannerUserId]);
+
+  useEffect(() => {
+    if (!activeScannerUserId) {
+      return;
+    }
+
+    persistQuickPrefixes(activeScannerUserId, quickPrefixes);
+  }, [activeScannerUserId, quickPrefixes]);
+
+  useEffect(() => {
     if (!demoSession) {
       return;
     }
@@ -573,7 +640,7 @@ export default function App() {
       setCheckpointId(demoSession.assignedCheckpointId);
       setIsCheckpointLocked(true);
       setScreen("timing");
-      setStatusMessage("Checkpoint tugas kamu sudah dikunci otomatis dari organizer.");
+      setStatusMessage("Checkpoint tugas kamu sudah dikunci otomatis dari organizer atau kredensial crew.");
       return;
     }
 
@@ -1186,8 +1253,33 @@ export default function App() {
     setBib((current) => `${current}${digit}`);
   }
 
-  function appendBibPrefix(prefix: "M" | "W") {
-    setBib((current) => normalizeBib(`${current}${prefix}`));
+  function updateQuickPrefix(slot: QuickPrefixSlot, nextValue: string) {
+    setQuickPrefixes((current) => ({
+      ...current,
+      [slot]: sanitizeQuickPrefixValue(nextValue)
+    }));
+  }
+
+  function appendConfiguredPrefix(slot: QuickPrefixSlot) {
+    const prefix = quickPrefixes[slot];
+
+    if (!prefix) {
+      return;
+    }
+
+    setBib((current) => {
+      const normalizedCurrent = normalizeBib(current);
+
+      if (!normalizedCurrent) {
+        return prefix;
+      }
+
+      if (/^[0-9-]+$/.test(normalizedCurrent)) {
+        return `${prefix}${normalizedCurrent}`;
+      }
+
+      return `${normalizedCurrent}${prefix}`;
+    });
   }
 
   function clearBib() {
@@ -1292,11 +1384,11 @@ export default function App() {
     return (
       <main className="scanner-shell">
         <section className="scanner-panel auth-panel">
-          <div className="panel-copy auth-copy">
-            <div>
-              <p className="scanner-kicker">Crew Login</p>
-              <h1>Masuk ke Scanner</h1>
-            </div>
+            <div className="panel-copy auth-copy">
+              <div>
+                <p className="scanner-kicker">Crew Login</p>
+                <h1>Masuk ke Scanner</h1>
+              </div>
           </div>
           <form className="scanner-form" onSubmit={handleLogin}>
             <label>
@@ -1315,7 +1407,10 @@ export default function App() {
               Login
             </button>
             {!supabase ? (
-              <div className="placeholder-card">Mode demo aktif. Gunakan username/password crew dari organizer.</div>
+              <div className="placeholder-card">
+                Mode demo aktif. Gunakan username/password crew dari organizer. Kredensial seperti <strong>crew1cp2@event.com</strong> juga bisa
+                mengunci checkpoint otomatis bila assignment eksplisit belum diisi.
+              </div>
             ) : null}
             {loginError ? <div className="placeholder-card">{loginError}</div> : null}
           </form>
@@ -1399,7 +1494,7 @@ export default function App() {
                 <span>{operationalAlert.detail}</span>
               </div>
             ) : null}
-            <div className="scanner-display-card">
+            <div className="scanner-display-card scanner-mode-card">
               <div className="scanner-entry-mode-switch" role="tablist" aria-label="Scanner mode">
                 <button
                   className={`scanner-entry-mode-button ${entryMode === "timing" ? "active" : ""}`}
@@ -1418,39 +1513,7 @@ export default function App() {
                   Withdraw
                 </button>
               </div>
-              <p className="scanner-kicker">Input BIB Manual</p>
-              <strong className="scanner-display-value">{bib || "0"}</strong>
-              <label className="scanner-inline-field">
-                <input
-                  ref={inputRef}
-                  disabled={!canScan || isBusy}
-                  placeholder={entryMode === "withdraw" ? "Tap keypad atau ketik BIB withdraw" : "Tap keypad atau ketik BIB"}
-                  value={bib}
-                  onChange={(event) => setBib(normalizeBib(event.target.value))}
-                />
-              </label>
-              {entryMode === "withdraw" ? (
-                <label className="scanner-inline-field">
-                  <input
-                    disabled={!canScan || isBusy}
-                    maxLength={280}
-                    placeholder="Alasan / catatan withdraw (opsional)"
-                    value={withdrawNote}
-                    onChange={(event) => setWithdrawNote(event.target.value)}
-                  />
-                </label>
-              ) : null}
             </div>
-
-            {lastResultSummary ? (
-              <div className="scanner-result-strip">
-                <article className={`scanner-result-card ${lastResultSummary.tone}`}>
-                  <strong>{lastResultSummary.title}</strong>
-                  <span>{lastResultSummary.meta}</span>
-                  <time>{lastResultSummary.time}</time>
-                </article>
-              </div>
-            ) : null}
 
             {!isCameraOpen ? (
               <button
@@ -1489,6 +1552,73 @@ export default function App() {
               </div>
             ) : null}
 
+            <div className="scanner-display-card scanner-manual-card">
+              <div className="scanner-manual-copy">
+                <p className="scanner-kicker">Input BIB Manual</p>
+                <strong className="scanner-display-value">{bib || "0"}</strong>
+              </div>
+              <label className="scanner-inline-field">
+                <input
+                  ref={inputRef}
+                  disabled={!canScan || isBusy}
+                  placeholder={entryMode === "withdraw" ? "Tap keypad atau ketik BIB withdraw" : "Tap keypad atau ketik BIB"}
+                  value={bib}
+                  onChange={(event) => setBib(normalizeBib(event.target.value))}
+                />
+              </label>
+              {entryMode === "withdraw" ? (
+                <label className="scanner-inline-field">
+                  <input
+                    disabled={!canScan || isBusy}
+                    maxLength={280}
+                    placeholder="Alasan / catatan withdraw (opsional)"
+                    value={withdrawNote}
+                    onChange={(event) => setWithdrawNote(event.target.value)}
+                  />
+                </label>
+              ) : null}
+              <div className="scanner-prefix-config">
+                <div className="scanner-prefix-config-head">
+                  <p className="scanner-kicker">Quick Prefix</p>
+                  <span>Crew bisa ubah huruf prefix sesuai format BIB checkpoint ini.</span>
+                </div>
+                <div className="scanner-prefix-editors">
+                  <label className="scanner-prefix-editor">
+                    <span>Prefix 1</span>
+                    <input
+                      disabled={isBusy}
+                      inputMode="text"
+                      maxLength={4}
+                      onChange={(event) => updateQuickPrefix("primary", event.target.value)}
+                      placeholder="M"
+                      value={quickPrefixes.primary}
+                    />
+                  </label>
+                  <label className="scanner-prefix-editor">
+                    <span>Prefix 2</span>
+                    <input
+                      disabled={isBusy}
+                      inputMode="text"
+                      maxLength={4}
+                      onChange={(event) => updateQuickPrefix("secondary", event.target.value)}
+                      placeholder="W"
+                      value={quickPrefixes.secondary}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {lastResultSummary ? (
+              <div className="scanner-result-strip">
+                <article className={`scanner-result-card ${lastResultSummary.tone}`}>
+                  <strong>{lastResultSummary.title}</strong>
+                  <span>{lastResultSummary.meta}</span>
+                  <time>{lastResultSummary.time}</time>
+                </article>
+              </div>
+            ) : null}
+
             <form className="scanner-hidden-submit" onSubmit={handleSubmit}>
               <button type="submit" />
             </form>
@@ -1496,19 +1626,19 @@ export default function App() {
             <div className="scanner-prefix-row">
               <button
                 className="scanner-prefix-chip"
-                disabled={!canScan || isBusy}
-                onClick={() => appendBibPrefix("M")}
+                disabled={!canScan || isBusy || !quickPrefixes.primary}
+                onClick={() => appendConfiguredPrefix("primary")}
                 type="button"
               >
-                M
+                {quickPrefixes.primary || "Set"}
               </button>
               <button
                 className="scanner-prefix-chip"
-                disabled={!canScan || isBusy}
-                onClick={() => appendBibPrefix("W")}
+                disabled={!canScan || isBusy || !quickPrefixes.secondary}
+                onClick={() => appendConfiguredPrefix("secondary")}
                 type="button"
               >
-                W
+                {quickPrefixes.secondary || "Set"}
               </button>
               <button
                 className="scanner-prefix-chip scanner-prefix-chip-muted"

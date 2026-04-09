@@ -219,6 +219,19 @@ button {
   padding: 16px;
 }
 
+.scanner-mode-card {
+  padding-bottom: 12px;
+}
+
+.scanner-manual-card {
+  gap: 14px;
+}
+
+.scanner-manual-copy {
+  display: grid;
+  gap: 8px;
+}
+
 .scanner-entry-mode-switch {
   background: rgba(226, 184, 77, 0.14);
   border-radius: 999px;
@@ -351,15 +364,17 @@ select {
 .scanner-camera-frame {
   background: #2a1b16;
   border-radius: 18px;
-  min-height: 220px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  max-width: 360px;
   overflow: hidden;
   position: relative;
+  width: min(100%, 360px);
 }
 
 .scanner-camera-video {
   display: block;
   height: 100%;
-  min-height: 220px;
   object-fit: cover;
   width: 100%;
 }
@@ -531,6 +546,50 @@ select {
   display: none;
 }
 
+.scanner-prefix-config {
+  border-top: 1px solid rgba(39, 24, 16, 0.08);
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.scanner-prefix-config-head {
+  display: grid;
+  gap: 4px;
+}
+
+.scanner-prefix-config-head span {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.scanner-prefix-editors {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.scanner-prefix-editor {
+  color: var(--text-soft);
+  display: grid;
+  gap: 6px;
+}
+
+.scanner-prefix-editor span {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.scanner-prefix-editor input {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .scanner-keypad {
   display: grid;
   gap: 14px;
@@ -540,9 +599,9 @@ select {
 }
 
 .scanner-prefix-row {
-  display: flex;
+  display: grid;
   gap: 10px;
-  justify-content: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .scanner-prefix-chip {
@@ -556,8 +615,9 @@ select {
   font-weight: 900;
   height: 44px;
   justify-content: center;
-  min-width: 72px;
-  padding: 0 18px;
+  min-width: 0;
+  padding: 0 14px;
+  width: 100%;
 }
 
 .scanner-prefix-chip-muted {

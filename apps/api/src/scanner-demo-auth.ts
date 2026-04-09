@@ -248,6 +248,36 @@ function mapScannerCheckpoints(checkpoints: ParsedCheckpoint[]) {
   };
 }
 
+function inferAssignedCheckpointIdFromUsername(username: string, checkpoints: ScannerCheckpoint[]) {
+  const normalizedUsername = username.trim().toLowerCase();
+
+  if (!normalizedUsername || checkpoints.length === 0) {
+    return null;
+  }
+
+  if (normalizedUsername.includes("start")) {
+    return checkpoints[0]?.id ?? null;
+  }
+
+  if (normalizedUsername.includes("finish") || normalizedUsername.includes("fin")) {
+    return checkpoints.at(-1)?.id ?? null;
+  }
+
+  const checkpointMatch = normalizedUsername.match(/(?:cp|checkpoint)\s*0*(\d{1,2})/i);
+
+  if (!checkpointMatch) {
+    return null;
+  }
+
+  const checkpointNumber = Number.parseInt(checkpointMatch[1] ?? "", 10);
+
+  if (!Number.isFinite(checkpointNumber) || checkpointNumber < 1) {
+    return null;
+  }
+
+  return checkpoints[checkpointNumber - 1]?.id ?? null;
+}
+
 function selectPrimaryRace(
   races: ParsedRace[],
   checkpoints: ParsedCheckpoint[],
@@ -372,7 +402,8 @@ export async function createScannerDemoLogin(input: ScannerDemoLoginInput): Prom
   const raceCheckpoints = parsed.checkpoints.filter((checkpoint) => checkpoint.raceId === race.id);
   const { assignedCheckpointMap, checkpoints } = mapScannerCheckpoints(raceCheckpoints);
   const assignedCheckpointId =
-    member.assignedCheckpointId !== null ? assignedCheckpointMap.get(member.assignedCheckpointId) ?? null : null;
+    (member.assignedCheckpointId !== null ? assignedCheckpointMap.get(member.assignedCheckpointId) ?? null : null) ??
+    inferAssignedCheckpointIdFromUsername(member.username, checkpoints);
   const crewCode = `crew-${workspace.ownerUserId}-${event.id}-${member.id}`;
   const userId = buildDemoCrewUserId(workspace.ownerUserId, event.id, member.id);
 
