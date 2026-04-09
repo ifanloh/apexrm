@@ -388,7 +388,7 @@ async function createRemoteScannerCrewMember(
 
 function isUnavailableOrganizerScannerCrewRoute(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  return /404|not found/i.test(message);
+  return /404|not found|failed to fetch|networkerror/i.test(message);
 }
 
 function normalizeBib(value: string | null | undefined) {
