@@ -655,21 +655,24 @@ export async function fetchOrganizerLiveRaceOps(user: User, eventId: number, rac
   }
 }
 
-function useMutation<TVars, TData>(runner: (context: PrototypeContextValue, variables: TVars) => TData) {
+function useMutation<TVars, TData>(runner: (context: PrototypeContextValue, variables: TVars) => TData | Promise<TData>) {
   const context = usePrototypeContext();
   const [isPending, setIsPending] = useState(false);
   return {
     isPending,
     mutate(variables: TVars, callbacks?: MutationCallbacks<TData>) {
       setIsPending(true);
-      try {
-        const result = runner(context, variables);
-        callbacks?.onSuccess?.(result);
-      } catch (error) {
-        callbacks?.onError?.(error instanceof Error ? error : new Error("Prototype mutation failed"));
-      } finally {
-        setIsPending(false);
-      }
+      void Promise.resolve()
+        .then(() => runner(context, variables))
+        .then((result) => {
+          callbacks?.onSuccess?.(result);
+        })
+        .catch((error) => {
+          callbacks?.onError?.(error instanceof Error ? error : new Error("Prototype mutation failed"));
+        })
+        .finally(() => {
+          setIsPending(false);
+        });
     }
   };
 }
@@ -1105,7 +1108,7 @@ export function useImportParticipants() {
 }
 
 export function useCreateScannerCrewMember() {
-  return useMutation<{ eventId: number; data: Partial<ScannerCrewMember> }, ScannerCrewMember>(({ setStore, store }, { eventId, data }) => {
+  return useMutation<{ eventId: number; data: Partial<ScannerCrewMember> }, ScannerCrewMember>(async ({ setStore, store }, { eventId, data }) => {
     const member: ScannerCrewMember = {
       id: store.nextIds.crew,
       eventId,
@@ -1122,10 +1125,8 @@ export function useCreateScannerCrewMember() {
     });
 
     saveStore(nextStore);
-    void saveRemoteWorkspace(store.user, nextStore).catch((error) => {
-      console.error("Organizer scanner crew save failed.", error);
-    });
     setStore(nextStore);
+    await saveRemoteWorkspace(store.user, nextStore);
     return member;
   });
 }
