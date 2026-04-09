@@ -1,6 +1,6 @@
-# Trailnesia Scanner Android Build
+# Altix Timing Android Build
 
-Scanner sekarang difokuskan ke **Android dulu** dengan native wrapper Capacitor. Basis UI/logic tetap satu di `apps/scanner`, lalu dibungkus jadi proyek Android native yang bisa menghasilkan APK debug.
+Scanner sekarang difokuskan ke **Android dulu** dengan native wrapper Capacitor. Basis UI/logic tetap satu di `apps/scanner`, lalu dibungkus jadi proyek Android native yang bisa menghasilkan APK debug maupun release.
 
 ## Workspace
 
@@ -15,8 +15,10 @@ Jalankan dari root repo:
 - `npm run cap:sync --workspace @arm/scanner`
 - `npm run cap:android --workspace @arm/scanner`
 - `npm run android:apk --workspace @arm/scanner`
+- `npm run android:release --workspace @arm/scanner`
 - `npm run android:open --workspace @arm/scanner`
 - `npm run scanner:android:apk`
+- `npm run scanner:android:release`
 - `npm run scanner:android:open`
 
 ## Android APK
@@ -39,6 +41,22 @@ Atau langsung dari root repo:
 1. `npm run scanner:android:apk`
 2. Output debug APK:
    - `apps/scanner/android/app/build/outputs/apk/debug/app-debug.apk`
+
+## Signed Release APK
+
+Jalur release sekarang tersedia dari CLI dan akan membuat keystore lokal otomatis di profil user Windows ini.
+
+1. `npm run scanner:android:release`
+2. Output release APK utama:
+   - `apps/scanner/android/app/build/outputs/apk/release/app-release.apk`
+3. APK juga akan disalin ke:
+   - `%USERPROFILE%\\Downloads\\Altix-Timing-release.apk`
+
+Catatan:
+
+- keystore release dibuat lokal di `%USERPROFILE%\\.altix\\android`
+- file rahasia ini tidak disimpan di repo
+- build release akan diverifikasi dengan `jarsigner`
 
 ## Status iOS
 

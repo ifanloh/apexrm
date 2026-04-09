@@ -13,6 +13,7 @@
     "check:deploy": "node scripts/check-deploy.mjs",
     "fix:bib-case": "node scripts/normalize-bib-data.mjs",
     "qc:live": "node scripts/qc-live.mjs",
+    "battletest:live": "node scripts/battletest-live-race.mjs",
     "qc:organizer": "node scripts/qc-organizer-trial.mjs",
     "qc:scanner": "node scripts/qc-scanner.mjs",
     "qc:spectator": "node scripts/qc-spectator-phase-a.mjs",
@@ -26,6 +27,7 @@
     "dev:scanner": "npm --workspace @arm/scanner run dev",
     "dev:dashboard": "npm --workspace @arm/dashboard run dev",
     "scanner:android:apk": "npm run android:apk --workspace @arm/scanner",
+    "scanner:android:release": "node scripts/scanner-android-release.mjs",
     "scanner:android:open": "npm run android:open --workspace @arm/scanner",
     "scanner:android:live": "npm run android:live --workspace @arm/scanner"
   },
