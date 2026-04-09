@@ -166,6 +166,7 @@ type PrototypeContextValue = {
   setStore: React.Dispatch<React.SetStateAction<Store>>;
   logout: () => void;
   isStoreLoading: boolean;
+  markRemoteStoreSaved: (store: Store) => void;
 };
 
 type QueryOptions = {
@@ -362,6 +363,29 @@ async function saveRemoteWorkspace(user: User, store: Store) {
   });
 }
 
+async function createRemoteScannerCrewMember(
+  user: User,
+  input: {
+    eventId: number;
+    name: string;
+    username: string;
+    password: string;
+    assignedCheckpointId: number | null;
+  }
+) {
+  const payload = await requestOrganizerJson<{
+    item: {
+      member: ScannerCrewMember;
+      nextCrewId: number;
+    };
+  }>(user, "/organizer/scanner-crew", {
+    body: JSON.stringify(input),
+    method: "POST"
+  });
+
+  return payload.item;
+}
+
 function normalizeBib(value: string | null | undefined) {
   return typeof value === "string" ? value.trim().toUpperCase() : "";
 }
@@ -536,6 +560,7 @@ export function OrganizerPrototypeProvider({ children, user, onLogout }: { child
   const [isStoreLoading, setIsStoreLoading] = useState(false);
   const hasHydratedRemoteRef = useRef(false);
   const latestStoreRef = useRef(store);
+  const lastRemotePersistedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     latestStoreRef.current = store;
@@ -546,6 +571,7 @@ export function OrganizerPrototypeProvider({ children, user, onLogout }: { child
     const localStore = loadStore(user);
     setStore(localStore);
     hasHydratedRemoteRef.current = false;
+    lastRemotePersistedKeyRef.current = null;
 
     const hydrateRemoteStore = async () => {
       setIsStoreLoading(true);
@@ -562,17 +588,23 @@ export function OrganizerPrototypeProvider({ children, user, onLogout }: { child
         if (remoteStore) {
           if (localChangedDuringHydration) {
             await saveRemoteWorkspace(user, currentStore);
+            lastRemotePersistedKeyRef.current = persistedStoreKey(currentStore);
             saveStore(currentStore);
           } else {
             const nextStore = hydratePersistedStore(user, remoteStore);
+            lastRemotePersistedKeyRef.current = persistedStoreKey(nextStore);
             setStore(nextStore);
             saveStore(nextStore);
           }
         } else {
           if (hasWorkspaceContent(currentStore)) {
             await saveRemoteWorkspace(user, currentStore);
+            lastRemotePersistedKeyRef.current = persistedStoreKey(currentStore);
           } else if (hasWorkspaceContent(localStore)) {
             await saveRemoteWorkspace(user, localStore);
+            lastRemotePersistedKeyRef.current = persistedStoreKey(localStore);
+          } else {
+            lastRemotePersistedKeyRef.current = persistedStoreKey(localStore);
           }
         }
       } catch (error) {
@@ -601,13 +633,27 @@ export function OrganizerPrototypeProvider({ children, user, onLogout }: { child
       return;
     }
 
-    void saveRemoteWorkspace(user, store).catch((error) => {
-      console.error("Organizer workspace save failed.", error);
-    });
+    const storeKey = persistedStoreKey(store);
+
+    if (lastRemotePersistedKeyRef.current === storeKey) {
+      return;
+    }
+
+    void saveRemoteWorkspace(user, store)
+      .then(() => {
+        lastRemotePersistedKeyRef.current = storeKey;
+      })
+      .catch((error) => {
+        console.error("Organizer workspace save failed.", error);
+      });
   }, [store, user.id, user.isLocalAuth, user.name, user.username, user.workspaceOwnerId]);
 
+  const markRemoteStoreSaved = (nextStore: Store) => {
+    lastRemotePersistedKeyRef.current = persistedStoreKey(nextStore);
+  };
+
   const value = useMemo(
-    () => ({ store, setStore, logout: onLogout, isStoreLoading }),
+    () => ({ store, setStore, logout: onLogout, isStoreLoading, markRemoteStoreSaved }),
     [isStoreLoading, onLogout, store]
   );
   return <PrototypeContext.Provider value={value}>{children}</PrototypeContext.Provider>;
@@ -1108,26 +1154,40 @@ export function useImportParticipants() {
 }
 
 export function useCreateScannerCrewMember() {
-  return useMutation<{ eventId: number; data: Partial<ScannerCrewMember> }, ScannerCrewMember>(async ({ setStore, store }, { eventId, data }) => {
-    const member: ScannerCrewMember = {
-      id: store.nextIds.crew,
+  return useMutation<{ eventId: number; data: Partial<ScannerCrewMember> }, ScannerCrewMember>(async ({ setStore, store, markRemoteStoreSaved }, { eventId, data }) => {
+    const name = data.name?.trim() || `Crew ${store.nextIds.crew}`;
+    const username = data.username?.trim() || `crew_${store.nextIds.crew}`;
+    const password = typeof data.password === "string" && data.password.length > 0 ? data.password : null;
+    const normalizedUsername = username.toLowerCase();
+
+    if (!password) {
+      throw new Error("Scanner crew password is required.");
+    }
+
+    if (store.crew.some((member) => member.username.trim().toLowerCase() === normalizedUsername)) {
+      throw new Error("Scanner crew username already exists.");
+    }
+
+    const remoteResult = await createRemoteScannerCrewMember(store.user, {
       eventId,
-      name: data.name || `Crew ${store.nextIds.crew}`,
-      username: data.username || `crew_${store.nextIds.crew}`,
-      password: data.password || null,
-      assignedCheckpointId: data.assignedCheckpointId ?? null,
-      createdAt: nowIso()
-    };
+      name,
+      username,
+      password,
+      assignedCheckpointId: data.assignedCheckpointId ?? null
+    });
     const nextStore = hydrate({
       ...store,
-      crew: [...store.crew, member],
-      nextIds: { ...store.nextIds, crew: store.nextIds.crew + 1 }
+      crew: [...store.crew, remoteResult.member],
+      nextIds: {
+        ...store.nextIds,
+        crew: Math.max(store.nextIds.crew, remoteResult.nextCrewId)
+      }
     });
 
     saveStore(nextStore);
+    markRemoteStoreSaved(nextStore);
     setStore(nextStore);
-    await saveRemoteWorkspace(store.user, nextStore);
-    return member;
+    return remoteResult.member;
   });
 }
 
