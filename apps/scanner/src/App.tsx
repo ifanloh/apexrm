@@ -12,7 +12,7 @@ import {
   type ScanSubmission,
   type WithdrawalSubmission
 } from "@arm/contracts";
-import { fetchCheckpoints, loginDemoCrew, syncOffline, syncOfflineWithdrawals } from "./api";
+import { fetchCheckpoints, loginDemoCrew, resolveApiBaseUrl, syncOffline, syncOfflineWithdrawals } from "./api";
 import {
   getQueuedScans,
   getQueuedWithdrawals,
@@ -281,9 +281,9 @@ function extractBibFromPayload(rawValue: string) {
 
 function getApiHost() {
   try {
-    return new URL(import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").host;
+    return new URL(resolveApiBaseUrl()).host;
   } catch {
-    return import.meta.env.VITE_API_BASE_URL ?? "unknown-api";
+    return resolveApiBaseUrl();
   }
 }
 

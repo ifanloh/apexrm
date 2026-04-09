@@ -9,7 +9,14 @@ import {
   type WithdrawalSubmission
 } from "@arm/contracts";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
+const DEFAULT_DEV_API_BASE_URL = "http://localhost:4000/api";
+const DEFAULT_PROD_API_BASE_URL = "https://apexrm-api.vercel.app/api";
+
+export function resolveApiBaseUrl() {
+  return (import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? DEFAULT_DEV_API_BASE_URL : DEFAULT_PROD_API_BASE_URL)).replace(/\/+$/, "");
+}
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 export type ScannerDemoLoginResponse = {
   accessToken: string;
