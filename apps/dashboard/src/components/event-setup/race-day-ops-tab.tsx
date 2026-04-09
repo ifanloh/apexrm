@@ -23,6 +23,7 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
   const actualRaceId = selectedRaceId ? parseInt(selectedRaceId) : activeRaces?.[0]?.id;
   const [liveOps, setLiveOps] = useState<OrganizerLiveRaceOps | null>(null);
   const [liveOpsError, setLiveOpsError] = useState<string | null>(null);
+  const [isLiveOpsRefreshing, setIsLiveOpsRefreshing] = useState(false);
 
   const { data: status } = useGetRaceDayStatus(eventId, actualRaceId as number, {
     query: {
@@ -50,6 +51,7 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
     let isActive = true;
 
     const refresh = async () => {
+      setIsLiveOpsRefreshing(true);
       try {
         const nextLiveOps = await fetchOrganizerLiveRaceOps(user, eventId, actualRaceId);
 
@@ -65,6 +67,10 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
         }
 
         setLiveOpsError(error instanceof Error ? error.message : "Live race ops unavailable.");
+      } finally {
+        if (isActive) {
+          setIsLiveOpsRefreshing(false);
+        }
       }
     };
 
@@ -150,6 +156,12 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
               <h3 className="text-lg font-semibold text-stone-200 flex items-center gap-2">
                 <Navigation className="h-5 w-5 text-primary" /> Route Status
                 {liveOps ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">{liveSyncLabel}</Badge> : null}
+                {isLiveOpsRefreshing ? (
+                  <span className="prototype-loading-inline text-xs text-stone-400">
+                    <span className="soft-spinner soft-spinner-live" aria-hidden="true" />
+                    Syncing
+                  </span>
+                ) : null}
               </h3>
               <div className="grid gap-3">
                 {activeStatus.checkpoints.map(cp => (
@@ -193,7 +205,16 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
               <Card className="bg-stone-900 border-stone-800 h-[500px] overflow-hidden flex flex-col">
                 <div className="flex-1 overflow-y-auto p-0">
                   {activeScans.length === 0 ? (
-                    <div className="p-8 text-center text-stone-500 text-sm">Waiting for scans...</div>
+                    <div className="p-8 text-center text-stone-500 text-sm">
+                      {isLiveOpsRefreshing ? (
+                        <div className="prototype-loading-stack">
+                          <span className="soft-spinner soft-spinner-live" aria-hidden="true" />
+                          <span>Loading recent scans...</span>
+                        </div>
+                      ) : (
+                        "Waiting for scans..."
+                      )}
+                    </div>
                   ) : (
                     <div className="divide-y divide-stone-800">
                       {activeScans.slice(0, 50).map(scan => (

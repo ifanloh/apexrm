@@ -6049,6 +6049,79 @@ body {
   width: 100%;
 }
 
+@keyframes soft-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.soft-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(226, 184, 77, 0.24);
+  border-top-color: rgba(255, 16, 20, 0.92);
+  border-radius: 999px;
+  display: inline-block;
+  flex: 0 0 auto;
+  animation: soft-spinner-rotate 0.8s linear infinite;
+}
+
+.soft-spinner.soft-spinner-sm {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
+.soft-spinner.soft-spinner-live {
+  width: 20px;
+  height: 20px;
+  border-width: 3px;
+  border-color: rgba(255, 255, 255, 0.2);
+  border-top-color: #f4c861;
+}
+
+.platform-home-loading-inline,
+.platform-home-empty-loading,
+.prototype-loading-inline,
+.prototype-loading-stack {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.platform-home-loading-inline {
+  color: rgba(31, 29, 25, 0.72);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.platform-home-empty-loading {
+  color: #5a4a2d;
+}
+
+.platform-home-empty-loading > div,
+.prototype-loading-stack {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.prototype-loading-inline {
+  align-items: center;
+  color: rgba(244, 237, 224, 0.82);
+  font-weight: 700;
+}
+
+.prototype-loading-stack {
+  justify-items: center;
+  color: rgba(228, 219, 204, 0.78);
+}
+
+.prototype-loading-inline .soft-spinner,
+.prototype-loading-stack .soft-spinner {
+  border-color: rgba(255, 255, 255, 0.18);
+  border-top-color: var(--brand-gold, #e2b84d);
+}
+
 .organizer-console-shell {
   display: grid;
   gap: 1.5rem;
@@ -7856,6 +7929,30 @@ body {
 .topbar-race-lockup {
   flex: 0 0 auto;
   max-width: none;
+}
+
+.topbar-race-lockup .event-logo-placeholder {
+  min-height: 0;
+}
+
+.topbar-race-lockup .event-logo-placeholder.has-uploaded-logo {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  height: auto;
+  min-width: 0;
+  padding: 0;
+  width: auto;
+}
+
+.topbar-race-lockup .event-logo-placeholder.has-uploaded-logo img {
+  display: block;
+  height: 50px;
+  max-width: 64px;
+  object-fit: contain;
+  object-position: left center;
+  width: auto;
 }
 
 .topbar-center {

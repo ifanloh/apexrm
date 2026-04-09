@@ -1774,6 +1774,7 @@ export default function App() {
   const [organizerWizardStep, setOrganizerWizardStep] = useState<OrganizerWizardStep>("basics");
   const [organizerWizardDraft, setOrganizerWizardDraft] = useState<OrganizerWizardDraft>(() => buildOrganizerWizardDraft());
   const [prototypePublicFeed, setPrototypePublicFeed] = useState<PrototypePublicFeedItem[]>([]);
+  const [isPrototypePublicFeedLoading, setIsPrototypePublicFeedLoading] = useState(true);
   const [prototypePublicLiveSnapshots, setPrototypePublicLiveSnapshots] = useState<Record<string, PrototypePublicLiveRaceSnapshot>>({});
   const [runnerNavOpen, setRunnerNavOpen] = useState(true);
   const [raceNavOpen, setRaceNavOpen] = useState(true);
@@ -2056,8 +2057,15 @@ export default function App() {
         }
 
         setPrototypePublicFeed(Array.isArray(payload.items) ? payload.items : []);
+        setIsPrototypePublicFeedLoading(false);
       } catch (error) {
         console.error("Failed to load organizer public events.", error);
+
+        if (!isActive) {
+          return;
+        }
+
+        setIsPrototypePublicFeedLoading(false);
       }
     }
 
@@ -5071,6 +5079,11 @@ export default function App() {
                       <span>{event.title}</span>
                     </button>
                   ))
+                ) : isPrototypePublicFeedLoading ? (
+                  <span className="platform-home-loading-inline" aria-live="polite">
+                    <span className="soft-spinner soft-spinner-sm" aria-hidden="true" />
+                    <span>Loading public events...</span>
+                  </span>
                 ) : (
                   <span className="platform-home-topline-copy">Public events will appear here as soon as organizers publish their races.</span>
                 )}
@@ -5140,9 +5153,22 @@ export default function App() {
 
             {!publicEventCards.length ? (
               <article className="platform-home-empty">
-                <span className="detail-label">No public events yet</span>
-                <h3>Published events will appear here.</h3>
-                <p>Once an organizer publishes at least one race category, the event will show up on the platform home.</p>
+                {isPrototypePublicFeedLoading ? (
+                  <div className="platform-home-empty-loading" aria-live="polite">
+                    <span className="soft-spinner" aria-hidden="true" />
+                    <div>
+                      <span className="detail-label">Loading public events</span>
+                      <h3>Checking the latest published races.</h3>
+                      <p>The platform is warming up the latest organizer feed.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="detail-label">No public events yet</span>
+                    <h3>Published events will appear here.</h3>
+                    <p>Once an organizer publishes at least one race category, the event will show up on the platform home.</p>
+                  </>
+                )}
               </article>
             ) : (
               <>
