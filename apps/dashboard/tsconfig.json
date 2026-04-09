@@ -5,6 +5,7 @@
     "jsx": "react-jsx",
     "types": ["vite/client"],
     "paths": {
+      "@arm/contracts": ["../../packages/contracts/src/index.ts"],
       "@/*": ["./src/*"],
       "@workspace/api-client-react": ["./src/organizer-prototype/api.tsx"]
     }
