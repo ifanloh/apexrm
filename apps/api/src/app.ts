@@ -31,6 +31,7 @@ import {
 } from "./repository.js";
 import { config } from "./config.js";
 import { extractOrganizerPrototypePublicEvents } from "./organizer-public-events.js";
+import { getOrganizerLiveRaceSnapshot } from "./organizer-live-race.js";
 import { createScannerDemoLogin } from "./scanner-demo-auth.js";
 
 const syncOfflineSchema = z.object({
@@ -273,6 +274,36 @@ export async function createServer() {
           workspace.updatedAt
         )
       )
+    };
+  });
+
+  server.get(`${config.apiPrefix}/organizer/live-race`, async (request) => {
+    const actor = await requireOrganizerWorkspaceAuth(request);
+    requireRole(actor, ["admin", "panitia", "observer"]);
+    await ensureOrganizerWorkspaceBootstrap();
+
+    const query = z
+      .object({
+        eventId: z.coerce.number().int().positive(),
+        raceId: z.coerce.number().int().positive()
+      })
+      .parse(request.query);
+
+    const workspace = await getOrganizerWorkspace(sql, actor.userId);
+
+    if (!workspace) {
+      return {
+        item: null
+      };
+    }
+
+    return {
+      item: await getOrganizerLiveRaceSnapshot(sql, {
+        ownerUserId: actor.userId,
+        payload: workspace.payload,
+        eventId: query.eventId,
+        raceId: query.raceId
+      })
     };
   });
 

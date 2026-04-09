@@ -88,7 +88,7 @@ export interface ScannerCrewMember {
 }
 
 export interface ScanEvent {
-  id: number;
+  id: number | string;
   participantId: number;
   participantName: string;
   bibNumber?: string | null;
@@ -174,6 +174,27 @@ type MutationCallbacks<TData> = {
 const STORAGE_KEY = "trailnesia:organizer-prototype:v1";
 const PrototypeContext = createContext<PrototypeContextValue | null>(null);
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000/api").replace(/\/+$/, "");
+
+export type OrganizerLiveRaceOps = {
+  raceId: number;
+  raceName: string;
+  raceStatus: string;
+  totalParticipants: number;
+  scannedIn: number;
+  finished: number;
+  dnf: number;
+  checkpoints: Array<{
+    checkpointId: number;
+    name: string;
+    orderIndex: number;
+    isStartLine: boolean;
+    isFinishLine: boolean;
+    assignedCrew: string | null;
+    scanCount: number;
+    lastScanAt: string | null;
+  }>;
+  recentScans: ScanEvent[];
+};
 
 function nowIso() {
   return new Date().toISOString();
@@ -267,7 +288,7 @@ async function getWorkspaceAccessToken(user: User) {
   return data.session?.access_token ?? null;
 }
 
-async function requestWorkspaceJson<T>(user: User, init?: RequestInit) {
+async function requestOrganizerJson<T>(user: User, path: string, init?: RequestInit) {
   const headers = new Headers(init?.headers);
   const accessToken = await getWorkspaceAccessToken(user);
 
@@ -283,7 +304,7 @@ async function requestWorkspaceJson<T>(user: User, init?: RequestInit) {
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(`${API_BASE_URL}/organizer/workspace`, {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     cache: "no-store",
     headers
@@ -298,17 +319,17 @@ async function requestWorkspaceJson<T>(user: User, init?: RequestInit) {
 }
 
 async function fetchRemoteWorkspace(user: User): Promise<PersistedStore | null> {
-  const payload = await requestWorkspaceJson<{
+  const payload = await requestOrganizerJson<{
     item: {
       payload: PersistedStore | null;
     } | null;
-  }>(user);
+  }>(user, "/organizer/workspace");
 
   return payload.item?.payload ?? null;
 }
 
 async function saveRemoteWorkspace(user: User, store: Store) {
-  await requestWorkspaceJson(user, {
+  await requestOrganizerJson(user, "/organizer/workspace", {
     body: JSON.stringify({
       payload: toPersistedStore(store),
       username: user.username,
@@ -413,6 +434,24 @@ function usePrototypeContext() {
   const context = useContext(PrototypeContext);
   if (!context) throw new Error("Organizer prototype context is missing.");
   return context;
+}
+
+export function usePrototypeUser() {
+  const { store } = usePrototypeContext();
+  return store.user;
+}
+
+export async function fetchOrganizerLiveRaceOps(user: User, eventId: number, raceId: number): Promise<OrganizerLiveRaceOps | null> {
+  const query = new URLSearchParams({
+    eventId: String(eventId),
+    raceId: String(raceId)
+  });
+  const payload = await requestOrganizerJson<{ item: OrganizerLiveRaceOps | null }>(
+    user,
+    `/organizer/live-race?${query.toString()}`
+  );
+
+  return payload.item ?? null;
 }
 
 function useMutation<TVars, TData>(runner: (context: PrototypeContextValue, variables: TVars) => TData) {

@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   useListRaces, getListRacesQueryKey,
   useGetRaceDayStatus, getGetRaceDayStatusQueryKey,
-  useListScans, getListScansQueryKey
+  useListScans, getListScansQueryKey,
+  fetchOrganizerLiveRaceOps,
+  type OrganizerLiveRaceOps,
+  usePrototypeUser
 } from "@workspace/api-client-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, Clock, ShieldAlert, CheckCircle2, Navigation } from "lucide-react";
 
 export function RaceDayOpsTab({ eventId }: { eventId: number }) {
+  const user = usePrototypeUser();
   const { data: races } = useListRaces(eventId, { query: { enabled: !!eventId, queryKey: getListRacesQueryKey(eventId) } });
   
   // Filter only live or upcoming races for ops
@@ -17,6 +21,8 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
   
   const [selectedRaceId, setSelectedRaceId] = useState<string>("");
   const actualRaceId = selectedRaceId ? parseInt(selectedRaceId) : activeRaces?.[0]?.id;
+  const [liveOps, setLiveOps] = useState<OrganizerLiveRaceOps | null>(null);
+  const [liveOpsError, setLiveOpsError] = useState<string | null>(null);
 
   const { data: status } = useGetRaceDayStatus(eventId, actualRaceId as number, {
     query: {
@@ -33,6 +39,46 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
       refetchInterval: 10000
     }
   });
+
+  useEffect(() => {
+    if (!eventId || !actualRaceId) {
+      setLiveOps(null);
+      setLiveOpsError(null);
+      return;
+    }
+
+    let isActive = true;
+
+    const refresh = async () => {
+      try {
+        const nextLiveOps = await fetchOrganizerLiveRaceOps(user, eventId, actualRaceId);
+
+        if (!isActive) {
+          return;
+        }
+
+        setLiveOps(nextLiveOps);
+        setLiveOpsError(null);
+      } catch (error) {
+        if (!isActive) {
+          return;
+        }
+
+        setLiveOpsError(error instanceof Error ? error.message : "Live race ops unavailable.");
+      }
+    };
+
+    void refresh();
+    const intervalId = window.setInterval(() => void refresh(), 5000);
+
+    return () => {
+      isActive = false;
+      window.clearInterval(intervalId);
+    };
+  }, [actualRaceId, eventId, user]);
+
+  const activeStatus = liveOps ?? status ?? null;
+  const activeScans = liveOps?.recentScans ?? scans ?? [];
 
   if (!activeRaces.length) {
     return (
@@ -64,31 +110,36 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
         </Select>
       </div>
 
-      {status && (
+      {activeStatus && (
         <>
+          {liveOpsError ? (
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              Live server feed sedang fallback ke data lokal: {liveOpsError}
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-stone-900 border-stone-800">
               <CardContent className="p-6">
                 <p className="text-sm font-medium text-stone-400 mb-1">Total Runners</p>
-                <p className="text-3xl font-bold text-white">{status.totalParticipants}</p>
+                <p className="text-3xl font-bold text-white">{activeStatus.totalParticipants}</p>
               </CardContent>
             </Card>
             <Card className="bg-stone-900 border-stone-800">
               <CardContent className="p-6">
                 <p className="text-sm font-medium text-stone-400 mb-1">On Course</p>
-                <p className="text-3xl font-bold text-amber-500">{status.scannedIn - status.finished - status.dnf}</p>
+                <p className="text-3xl font-bold text-amber-500">{activeStatus.scannedIn - activeStatus.finished - activeStatus.dnf}</p>
               </CardContent>
             </Card>
             <Card className="bg-stone-900 border-stone-800">
               <CardContent className="p-6">
                 <p className="text-sm font-medium text-stone-400 mb-1">Finished</p>
-                <p className="text-3xl font-bold text-green-500">{status.finished}</p>
+                <p className="text-3xl font-bold text-green-500">{activeStatus.finished}</p>
               </CardContent>
             </Card>
             <Card className="bg-stone-900 border-stone-800">
               <CardContent className="p-6">
                 <p className="text-sm font-medium text-stone-400 mb-1">DNF</p>
-                <p className="text-3xl font-bold text-stone-500">{status.dnf}</p>
+                <p className="text-3xl font-bold text-stone-500">{activeStatus.dnf}</p>
               </CardContent>
             </Card>
           </div>
@@ -97,9 +148,10 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
             <div className="lg:col-span-2 space-y-4">
               <h3 className="text-lg font-semibold text-stone-200 flex items-center gap-2">
                 <Navigation className="h-5 w-5 text-primary" /> Route Status
+                {liveOps ? <Badge variant="outline" className="bg-emerald-500/10 text-emerald-300 border-emerald-500/20">Live server sync</Badge> : null}
               </h3>
               <div className="grid gap-3">
-                {status.checkpoints.map(cp => (
+                {activeStatus.checkpoints.map(cp => (
                   <div key={cp.checkpointId} className="flex items-center justify-between p-4 rounded-lg border border-stone-800 bg-stone-900/50">
                     <div className="flex items-center gap-4">
                       <div className={`flex items-center justify-center h-10 w-10 rounded-full font-bold ${cp.isFinishLine ? 'bg-amber-500/20 text-amber-500' : 'bg-stone-800 text-stone-300'}`}>
@@ -139,11 +191,11 @@ export function RaceDayOpsTab({ eventId }: { eventId: number }) {
               </h3>
               <Card className="bg-stone-900 border-stone-800 h-[500px] overflow-hidden flex flex-col">
                 <div className="flex-1 overflow-y-auto p-0">
-                  {scans?.length === 0 ? (
+                  {activeScans.length === 0 ? (
                     <div className="p-8 text-center text-stone-500 text-sm">Waiting for scans...</div>
                   ) : (
                     <div className="divide-y divide-stone-800">
-                      {scans?.slice(0, 50).map(scan => (
+                      {activeScans.slice(0, 50).map(scan => (
                         <div key={scan.id} className="p-3 hover:bg-stone-800/50 transition-colors">
                           <div className="flex justify-between items-start mb-1">
                             <div className="flex items-center gap-2">
