@@ -3516,15 +3516,6 @@ export default function App() {
       { label: "Nationality", value: leadersCountryFilter === "all" ? "All" : COUNTRY_META[leadersCountryFilter as CountryCode].name }
     ];
   }, [filteredRaceLeaderEntries.length, leadersCategoryFilter, leadersCountryFilter, leadersRaceCount, leadersSelectedRace]);
-  const rankingScopeItems = useMemo(() => {
-    return [
-      { label: "Race", value: rankingSelectedRace.title },
-      { label: "Status", value: rankingSelectedRace.editionLabel },
-      { label: "Category", value: fullRankingView === "overall" ? "Overall" : fullRankingView === "women" ? "Women" : "Men" },
-      { label: "Visible", value: `${fullRankingEntries.length} runners` }
-    ];
-  }, [fullRankingEntries.length, fullRankingView, rankingSelectedRace.editionLabel, rankingSelectedRace.title]);
-
   useEffect(() => {
     if (runnerDirectoryPage > runnerDirectoryPageCount) {
       setRunnerDirectoryPage(runnerDirectoryPageCount);
@@ -5511,20 +5502,6 @@ export default function App() {
               <p className="section-label">Follow the race</p>
               <h3>Ranking</h3>
             </div>
-            <div className="panel-badge compact-badge">
-              <span>Visible</span>
-              <strong>{fullRankingEntries.length}</strong>
-              <span>ranked runners</span>
-            </div>
-          </div>
-
-          <div className="utility-scope-strip">
-            {rankingScopeItems.map((item) => (
-              <div className="utility-scope-item" key={`ranking-scope-${item.label}`}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
           </div>
 
           <div className="ranking-toolbar">
