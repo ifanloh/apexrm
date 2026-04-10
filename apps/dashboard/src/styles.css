@@ -6126,6 +6126,122 @@ body {
   grid-template-columns: 84px minmax(240px, 1.6fr) 120px 120px 104px 72px;
 }
 
+/* Final spectator leaderboard density pass */
+
+.ranking-column-head.livetrail-column-head {
+  grid-template-columns: 110px 92px minmax(240px, 1.55fr) 104px 116px;
+  letter-spacing: 0.08em;
+  min-height: 54px;
+}
+
+.full-ranking-row.race-ranking-row {
+  grid-template-columns: 110px 92px minmax(240px, 1.55fr) 104px 116px;
+  min-height: 70px;
+}
+
+.ranking-submeta small::before {
+  content: "·";
+  margin-right: 4px;
+}
+
+.ranking-bib-cell,
+.race-leaders-bib {
+  align-items: center;
+  display: grid;
+  justify-items: start;
+}
+
+.ranking-name-cell,
+.race-leaders-runner {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ranking-nationality-cell,
+.race-leaders-nationality,
+.race-time-cell,
+.race-leaders-time {
+  justify-items: start;
+}
+
+.race-time-cell strong,
+.race-leaders-time strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.race-leaders-head,
+.race-leaders-row {
+  grid-template-columns: 92px 96px minmax(240px, 1.6fr) 104px 116px;
+}
+
+.race-leaders-head {
+  min-height: 52px;
+}
+
+.race-leaders-row {
+  min-height: 70px;
+}
+
+.race-leaders-rank strong {
+  font-size: 1.26rem;
+}
+
+.race-leaders-rank span,
+.race-leaders-rank small {
+  font-size: 0.74rem;
+}
+
+@media (min-width: 961px) and (max-width: 1280px) {
+  .full-ranking-row.race-ranking-row,
+  .ranking-column-head.livetrail-column-head {
+    grid-template-columns: 102px 84px minmax(220px, 1.45fr) 94px 106px;
+  }
+
+  .race-leaders-head,
+  .race-leaders-row {
+    grid-template-columns: 82px 88px minmax(210px, 1.45fr) 94px 104px;
+  }
+}
+
+@media (max-width: 960px) {
+  .race-leaders-head {
+    display: none;
+  }
+
+  .race-leaders-row {
+    align-items: start;
+    column-gap: 10px;
+    grid-template-columns: 72px 82px minmax(0, 1fr);
+    row-gap: 8px;
+  }
+
+  .race-leaders-rank {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .race-leaders-bib {
+    align-self: start;
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .race-leaders-runner {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .race-leaders-nationality {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .race-leaders-time {
+    grid-column: 3;
+    grid-row: 3;
+  }
+}
+
 .course-map-card {
   background: #eef2e7;
   border: 1px solid rgba(20, 22, 24, 0.08);

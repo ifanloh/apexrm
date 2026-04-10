@@ -5594,9 +5594,10 @@ export default function App() {
 
             <div className="ranking-column-head livetrail-column-head">
               <span>Ranking</span>
-              <span>Runner / Team</span>
-              <span>Profile</span>
-              <span>Race Time</span>
+              <span>BIB</span>
+              <span>Name / Team</span>
+              <span>Nationality</span>
+              <span>Time</span>
             </div>
 
           <div className="full-ranking-list full-ranking-table" role="list" aria-label="Overall leaderboard rows">
@@ -5607,42 +5608,40 @@ export default function App() {
 
                 return (
                   <div className="full-ranking-row race-ranking-row" key={`${entry.raceSlug}-${entry.bib}`} role="listitem">
-                    <div className="ranking-block">
-                      <div className="ranking-rankline">
-                        <strong>{entry.rank}</strong>
+                      <div className="ranking-block">
+                        <div className="ranking-rankline">
+                          <strong>{entry.rank}</strong>
                         {entry.rank && shouldShowLivePodium(entry.rank, entry.checkpointId ?? "", rankingRaceIsLive) ? (
                           <RankingMedal rank={entry.rank} />
                         ) : null}
                       </div>
                       <div className="ranking-submeta">
                         <span>{fullRankingView === "overall" ? "Overall" : fullRankingView === "women" ? "Women" : "Men"}</span>
-                        <small>Sex {rankingGenderRankByBib.get(entry.bib) ?? entry.rank ?? "-"}</small>
+                          <small>Sex {rankingGenderRankByBib.get(entry.bib) ?? entry.rank ?? "-"}</small>
+                        </div>
                       </div>
-                    </div>
-                    <div className="runner-main-cell">
-                      <div className={getBibTileClassName(entry.bib)}>{entry.bib}</div>
-                      <div className="runner-cell">
-                        <div>
-                          <strong>{entry.name}</strong>
-                          <span>{entry.teamName}</span>
-                          <div className={`runner-status-pill ${statusClass}`}>
-                            {getLiveRunnerStatusLabel(
-                              {
-                                checkpointId: entry.checkpointId ?? "",
-                                checkpointCode: entry.checkpointCode ?? entry.statusLabel
-                              },
-                              rankingRaceIsLive
-                            )}
+                      <div className="ranking-bib-cell">
+                        <div className={getBibTileClassName(entry.bib)}>{entry.bib}</div>
+                      </div>
+                      <div className="runner-main-cell ranking-name-cell">
+                        <div className="runner-cell">
+                          <div>
+                            <strong>{entry.name}</strong>
+                            <span>{entry.teamName}</span>
+                            <div className={`runner-status-pill ${statusClass}`}>
+                              {getLiveRunnerStatusLabel(
+                                {
+                                  checkpointId: entry.checkpointId ?? "",
+                                  checkpointCode: entry.checkpointCode ?? entry.statusLabel
+                                },
+                                rankingRaceIsLive
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                      <div className="race-inline-cell ranking-profile-cell">
-                        <strong>
-                          <span className={`gender-dot ${entry.category === "women" ? "women" : "men"}`} />
-                          {entry.category === "women" ? "Woman" : "Man"}
-                        </strong>
-                        <span className="ranking-profile-flag">
+                      <div className="race-inline-cell ranking-nationality-cell">
+                        <strong aria-label={entry.countryCode}>
                           <img
                             alt={entry.countryCode}
                             className="flag-icon"
@@ -5651,12 +5650,12 @@ export default function App() {
                             src={getFlagIconUrl(entry.countryCode)}
                             width="24"
                           />
-                          {entry.countryCode}
-                        </span>
+                        </strong>
+                        <span>{entry.countryCode}</span>
                       </div>
-                    <div className="race-inline-cell race-time-cell">
-                      <strong>{getRankingEntryRaceTime(entry)}</strong>
-                    </div>
+                      <div className="race-inline-cell race-time-cell">
+                        <strong>{getRankingEntryRaceTime(entry)}</strong>
+                      </div>
                   </div>
                 );
               })
@@ -6982,11 +6981,10 @@ export default function App() {
             <div className="runner-list-table race-leaders-table">
               <div className="runner-list-head race-leaders-head">
                 <span>Ranking</span>
-                <span>Runner</span>
-                <span>Last point</span>
-                <span>Next est.</span>
-                <span>Profile</span>
-                <span>Actions</span>
+                <span>BIB</span>
+                <span>Name / Team</span>
+                <span>Nationality</span>
+                <span>Time</span>
               </div>
 
               {raceLeaderRows.length ? (
@@ -7010,8 +7008,11 @@ export default function App() {
                           <small>Sex {entry.genderRank}</small>
                         </div>
 
-                        <div className="runner-list-runner race-leaders-runner">
+                        <div className="race-leaders-bib">
                           <div className={getBibTileClassName(entry.bib)}>{entry.bib}</div>
+                        </div>
+
+                        <div className="runner-list-runner race-leaders-runner">
                           <div className="runner-list-runner-copy">
                             <strong>{entry.name}</strong>
                             <span>{entry.teamName}</span>
@@ -7019,48 +7020,15 @@ export default function App() {
                           </div>
                         </div>
 
-                        <div className="race-inline-cell race-leaders-point-cell race-leaders-last">
-                          <strong>{entry.lastPointLabel}</strong>
-                          <span>{formatScanTime(entry.scannedAt)}</span>
-                        </div>
-
-                        <div className="race-inline-cell race-leaders-point-cell race-leaders-next">
-                          <strong>{entry.nextPassingLabel}</strong>
-                          <span>{entry.nextPassingTime}</span>
-                        </div>
-
-                        <div className="race-inline-cell race-leaders-profile">
-                          <strong>
-                            <span className={`gender-dot ${entry.category}`} />
-                            {formatCategoryLabel(entry.category)}
-                          </strong>
-                          <span className="ranking-profile-flag" aria-label={entry.countryCode}>
+                        <div className="race-inline-cell race-leaders-nationality">
+                          <strong aria-label={entry.countryCode}>
                             <img alt={entry.countryCode} className="flag-icon" height="18" loading="lazy" src={getFlagIconUrl(entry.countryCode)} width="24" />
-                            {entry.countryCode}
-                          </span>
+                          </strong>
+                          <span>{entry.countryCode}</span>
                         </div>
 
-                        <div className="runner-list-actions race-leaders-actions">
-                          <button
-                            aria-label={favoriteBibs.includes(entry.bib) ? `Remove ${entry.name} from favorites` : `Add ${entry.name} to favorites`}
-                          className={`runner-action ghost ${favoriteBibs.includes(entry.bib) ? "active" : ""}`}
-                          onClick={() => toggleFavoriteBib(entry.bib)}
-                          type="button"
-                        >
-                            <NavIcon name="favorite" />
-                          </button>
-                          <button
-                            aria-label={`Open ${entry.name}`}
-                            className="runner-action"
-                            onClick={() => {
-                              setSelectedRaceSlug(entry.raceSlug);
-                              setSelectedRunnerBib(entry.bib);
-                              jumpToRaceSection("my-runners", "my-runners");
-                            }}
-                            type="button"
-                          >
-                            <NavIcon name="search" />
-                          </button>
+                        <div className="race-inline-cell race-leaders-time">
+                          <strong>{getDisplayRaceTime(entry.bib, entry.scannedAt)}</strong>
                         </div>
                       </article>
                     );
