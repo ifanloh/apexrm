@@ -5653,7 +5653,7 @@ body {
   align-items: end;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
 }
 
 .ranking-filters {
@@ -5695,6 +5695,7 @@ body {
   align-items: end;
   gap: 12px;
   justify-content: end;
+  width: 100%;
 }
 
 .ranking-column-head.livetrail-column-head {
