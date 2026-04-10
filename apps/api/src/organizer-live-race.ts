@@ -80,7 +80,21 @@ export type OrganizerLiveRaceSnapshot = {
   }>;
 };
 
-const DEMO_CHECKPOINT_IDS = ["cp-start", "cp-10", "cp-21", "cp-30", "cp-40", "finish"] as const;
+const DEMO_CHECKPOINT_IDS = [
+  "cp-start",
+  "cp-10",
+  "cp-21",
+  "cp-30",
+  "cp-40",
+  "cp-50",
+  "cp-60",
+  "cp-70",
+  "cp-80",
+  "cp-90",
+  "cp-100",
+  "cp-110",
+  "finish"
+] as const;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

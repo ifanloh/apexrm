@@ -15,7 +15,15 @@ export const defaultCheckpoints = [
   { id: "cp-10", code: "CP1", name: "Peyreleau", kmMarker: 23.3, order: 1 },
   { id: "cp-21", code: "CP2", name: "Roquesaltes", kmMarker: 44.4, order: 2 },
   { id: "cp-30", code: "CP3", name: "La Salvage", kmMarker: 55.9, order: 3 },
-  { id: "finish", code: "FIN", name: "Arrivee Millau", kmMarker: 80.6, order: 4 }
+  { id: "cp-40", code: "CP4", name: "Checkpoint 4", kmMarker: 63, order: 4 },
+  { id: "cp-50", code: "CP5", name: "Checkpoint 5", kmMarker: 72, order: 5 },
+  { id: "cp-60", code: "CP6", name: "Checkpoint 6", kmMarker: 84, order: 6 },
+  { id: "cp-70", code: "CP7", name: "Checkpoint 7", kmMarker: 96, order: 7 },
+  { id: "cp-80", code: "CP8", name: "Checkpoint 8", kmMarker: 108, order: 8 },
+  { id: "cp-90", code: "CP9", name: "Checkpoint 9", kmMarker: 120, order: 9 },
+  { id: "cp-100", code: "CP10", name: "Checkpoint 10", kmMarker: 132, order: 10 },
+  { id: "cp-110", code: "CP11", name: "Checkpoint 11", kmMarker: 144, order: 11 },
+  { id: "finish", code: "FIN", name: "Arrivee Millau", kmMarker: 160, order: 12 }
 ] as const satisfies ReadonlyArray<z.infer<typeof checkpointSchema>>;
 
 export const scanSubmissionSchema = z.object({
