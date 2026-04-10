@@ -9,7 +9,7 @@ import {
   useUpdateScannerCrewMember
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { PlusCircle, Trash2, Smartphone, ShieldCheck, MapPin, Pencil } from "lucide-react";
+import { PlusCircle, Trash2, Smartphone, ShieldCheck, MapPin, Pencil, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -56,7 +56,8 @@ function toCrewFormState(member: ScannerCrewMember | null): CrewFormState {
   return {
     name: member.name,
     username: member.username,
-    password: member.password ?? "",
+    // Do not prefill stored passwords in the edit dialog; empty means "keep current".
+    password: "",
     assignedCheckpointId: member.assignedCheckpointId ?? null
   };
 }
@@ -325,6 +326,7 @@ function CrewAccountDialog({
   trigger?: ReactNode;
 }) {
   const [formData, setFormData] = useState<CrewFormState>(defaultForm);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const { data: eventCheckpoints } = useListEventCheckpoints(eventId, {
     query: { enabled: open && !!eventId, queryKey: getListEventCheckpointsQueryKey(eventId) }
   });
@@ -332,6 +334,7 @@ function CrewAccountDialog({
   useEffect(() => {
     if (open) {
       setFormData(defaultForm);
+      setIsPasswordVisible(false);
     }
   }, [defaultForm, open]);
 
@@ -365,12 +368,30 @@ function CrewAccountDialog({
           </div>
           <div className="space-y-2">
             <Label>Password</Label>
-            <Input
-              type="password"
-              value={formData.password}
-              onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
-              placeholder={mode === "edit" ? "Update password" : ""}
-            />
+            <div className="relative">
+              <Input
+                type={isPasswordVisible ? "text" : "password"}
+                value={formData.password}
+                onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
+                placeholder={mode === "edit" ? "Leave blank to keep current password" : "Create a login password"}
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => setIsPasswordVisible((current) => !current)}
+                aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+              >
+                {isPasswordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {mode === "edit"
+                ? "Fill this only if you want to change the current password."
+                : "This password will be used by the scanner crew to log in."}
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Assigned Checkpoint</Label>
@@ -410,7 +431,7 @@ function CrewAccountDialog({
           </Button>
           <Button
             onClick={() => onSubmit(formData)}
-            disabled={!formData.name.trim() || !formData.username.trim() || !formData.password || pending}
+            disabled={!formData.name.trim() || !formData.username.trim() || (mode === "create" && !formData.password) || pending}
           >
             {pending ? (mode === "create" ? "Creating..." : "Saving...") : mode === "create" ? "Create Account" : "Save Changes"}
           </Button>
