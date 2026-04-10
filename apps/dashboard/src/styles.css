@@ -6059,14 +6059,32 @@ body {
 
 .runner-main-cell {
   gap: 12px;
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
 }
 
 .bib-tile {
   border-radius: 4px;
   font-family: "Red Hat Display", sans-serif;
   font-size: 1.05rem;
+  line-height: 1;
   min-height: 42px;
+  min-width: 56px;
+  max-width: 132px;
+  overflow: hidden;
+  padding: 0 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: max-content;
+}
+
+.bib-tile-tight {
+  font-size: 0.86rem;
+  letter-spacing: -0.03em;
+}
+
+.bib-tile-compact {
+  font-size: 0.74rem;
+  letter-spacing: -0.04em;
 }
 
 .runner-cell {

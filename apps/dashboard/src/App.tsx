@@ -1144,6 +1144,12 @@ function formatCategoryLabel(category: string) {
   return category === "women" ? "Women" : category === "men" ? "Men" : category;
 }
 
+function getBibTileClassName(bib: string, extraClassName?: string) {
+  const normalizedBib = bib.trim();
+  const densityClass = normalizedBib.length >= 12 ? "bib-tile-compact" : normalizedBib.length >= 9 ? "bib-tile-tight" : "";
+  return ["bib-tile", densityClass, extraClassName].filter(Boolean).join(" ");
+}
+
 function normalizeRunnerDirectoryState(
   status: DemoRaceRankingPreview["status"] | "Registered" | "DNS" | "Withdrawn"
 ): Exclude<RunnerDirectoryState, "all"> {
@@ -5614,7 +5620,7 @@ export default function App() {
                       </div>
                     </div>
                     <div className="runner-main-cell">
-                      <div className="bib-tile">{entry.bib}</div>
+                      <div className={getBibTileClassName(entry.bib)}>{entry.bib}</div>
                       <div className="runner-cell">
                         <div>
                           <strong>{entry.name}</strong>
@@ -5909,7 +5915,7 @@ export default function App() {
                       </div>
 
                       <div className="runner-list-runner">
-                        <div className="bib-tile runner-list-bib">{entry.bib}</div>
+                        <div className={getBibTileClassName(entry.bib, "runner-list-bib")}>{entry.bib}</div>
                         <div className="runner-list-runner-copy">
                           <strong>{entry.name}</strong>
                           <span>{entry.teamName}</span>
@@ -6167,7 +6173,7 @@ export default function App() {
                         </div>
 
                         <div className="runner-list-runner">
-                          <div className="bib-tile runner-list-bib">{entry.bib}</div>
+                          <div className={getBibTileClassName(entry.bib, "runner-list-bib")}>{entry.bib}</div>
                           <div className="runner-list-runner-copy">
                             <strong>{entry.name}</strong>
                             <span>{entry.teamName}</span>
@@ -7005,7 +7011,7 @@ export default function App() {
                         </div>
 
                         <div className="runner-list-runner race-leaders-runner">
-                          <div className="bib-tile">{entry.bib}</div>
+                          <div className={getBibTileClassName(entry.bib)}>{entry.bib}</div>
                           <div className="runner-list-runner-copy">
                             <strong>{entry.name}</strong>
                             <span>{entry.teamName}</span>
