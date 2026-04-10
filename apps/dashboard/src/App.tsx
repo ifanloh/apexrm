@@ -5471,7 +5471,7 @@ export default function App() {
       </section>
 
       <section className="control-grid" hidden={raceDetailView !== "ranking"}>
-        <article className="panel leaderboard-panel full-ranking-panel livetrail-ranking-panel" id="full-ranking">
+          <article className="panel leaderboard-panel full-ranking-panel livetrail-ranking-panel ranking-directory-panel" id="full-ranking">
           <div className="panel-head compact utility-panel-head">
             <div>
               <p className="section-label">Follow the race</p>
@@ -5586,13 +5586,12 @@ export default function App() {
             </div>
           ) : null}
 
-          <div className="ranking-column-head livetrail-column-head">
-            <span>Ranking</span>
-            <span>Runner / Team</span>
-            <span>Gender</span>
-            <span>Nationality</span>
-            <span>Race Time</span>
-          </div>
+            <div className="ranking-column-head livetrail-column-head">
+              <span>Ranking</span>
+              <span>Runner / Team</span>
+              <span>Profile</span>
+              <span>Race Time</span>
+            </div>
 
           <div className="full-ranking-list full-ranking-table" role="list" aria-label="Overall leaderboard rows">
             {fullRankingRows.length ? (
@@ -5632,24 +5631,23 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    <div className="race-inline-cell gender-cell">
-                      <strong>
-                        <span className={`gender-dot ${entry.category === "women" ? "women" : "men"}`} />
-                        {entry.category === "women" ? "Woman" : "Man"}
-                      </strong>
-                    </div>
-                    <div className="race-inline-cell nationality-cell">
-                      <strong aria-label={entry.countryCode}>
-                        <img
-                          alt={entry.countryCode}
-                          className="flag-icon"
-                          height="18"
-                          loading="lazy"
-                          src={getFlagIconUrl(entry.countryCode)}
-                          width="24"
-                        />
-                      </strong>
-                    </div>
+                      <div className="race-inline-cell ranking-profile-cell">
+                        <strong>
+                          <span className={`gender-dot ${entry.category === "women" ? "women" : "men"}`} />
+                          {entry.category === "women" ? "Woman" : "Man"}
+                        </strong>
+                        <span className="ranking-profile-flag">
+                          <img
+                            alt={entry.countryCode}
+                            className="flag-icon"
+                            height="18"
+                            loading="lazy"
+                            src={getFlagIconUrl(entry.countryCode)}
+                            width="24"
+                          />
+                          {entry.countryCode}
+                        </span>
+                      </div>
                     <div className="race-inline-cell race-time-cell">
                       <strong>{getRankingEntryRaceTime(entry)}</strong>
                     </div>
@@ -6978,9 +6976,10 @@ export default function App() {
             <div className="runner-list-table race-leaders-table">
               <div className="runner-list-head race-leaders-head">
                 <span>Ranking</span>
-                <span>Runner / Progress</span>
-                <span>Gender</span>
-                <span>Nationality</span>
+                <span>Runner</span>
+                <span>Last point</span>
+                <span>Next est.</span>
+                <span>Profile</span>
                 <span>Actions</span>
               </div>
 
@@ -7011,33 +7010,28 @@ export default function App() {
                             <strong>{entry.name}</strong>
                             <span>{entry.teamName}</span>
                             <div className={`runner-status-pill ${statusClass}`}>{entry.statusLabel}</div>
-                            <div className="race-leaders-progressline">
-                              <div className="race-leaders-progress-chip">
-                                <span>Last point</span>
-                                <strong>{entry.lastPointLabel}</strong>
-                                <small>{formatScanTime(entry.scannedAt)}</small>
-                              </div>
-                              <div className="race-leaders-progress-chip">
-                                <span>Next estimated</span>
-                                <strong>{entry.nextPassingLabel}</strong>
-                                <small>{entry.nextPassingTime}</small>
-                              </div>
-                            </div>
                           </div>
                         </div>
 
-                        <div className="race-inline-cell race-leaders-gender gender-cell">
+                        <div className="race-inline-cell race-leaders-point-cell race-leaders-last">
+                          <strong>{entry.lastPointLabel}</strong>
+                          <span>{formatScanTime(entry.scannedAt)}</span>
+                        </div>
+
+                        <div className="race-inline-cell race-leaders-point-cell race-leaders-next">
+                          <strong>{entry.nextPassingLabel}</strong>
+                          <span>{entry.nextPassingTime}</span>
+                        </div>
+
+                        <div className="race-inline-cell race-leaders-profile">
                           <strong>
                             <span className={`gender-dot ${entry.category}`} />
                             {formatCategoryLabel(entry.category)}
                           </strong>
-                        </div>
-
-                        <div className="race-inline-cell race-leaders-nationality nationality-cell">
-                          <strong aria-label={entry.countryCode}>
+                          <span className="ranking-profile-flag" aria-label={entry.countryCode}>
                             <img alt={entry.countryCode} className="flag-icon" height="18" loading="lazy" src={getFlagIconUrl(entry.countryCode)} width="24" />
-                          </strong>
-                          <span>{entry.countryCode}</span>
+                            {entry.countryCode}
+                          </span>
                         </div>
 
                         <div className="runner-list-actions race-leaders-actions">
