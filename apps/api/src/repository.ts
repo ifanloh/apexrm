@@ -225,16 +225,97 @@ async function ensureCrewAndParticipant(
 export async function ensureDefaultCheckpoints(sql: Sql) {
   for (const checkpoint of defaultCheckpoints) {
     await sql`
-      insert into public.checkpoints (id, code, name, km_marker, order_index)
-      values (${checkpoint.id}, ${checkpoint.code}, ${checkpoint.name}, ${checkpoint.kmMarker}, ${checkpoint.order})
+      insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
+      values (${checkpoint.id}, ${checkpoint.code}, ${checkpoint.name}, ${checkpoint.kmMarker}, ${checkpoint.order}, true)
       on conflict (id) do update
       set
         code = excluded.code,
         name = excluded.name,
         km_marker = excluded.km_marker,
-        order_index = excluded.order_index
+        order_index = excluded.order_index,
+        is_active = true
     `;
   }
+}
+
+function resolveFallbackCheckpointSeed(checkpointId: string) {
+  const predefined = defaultCheckpoints.find((checkpoint) => checkpoint.id === checkpointId);
+
+  if (predefined) {
+    return {
+      code: predefined.code,
+      name: predefined.name,
+      kmMarker: predefined.kmMarker,
+      order: predefined.order
+    };
+  }
+
+  if (checkpointId === "cp-start" || checkpointId === "start") {
+    return {
+      code: "START",
+      name: "Start",
+      kmMarker: 0,
+      order: 0
+    };
+  }
+
+  if (checkpointId === "finish" || checkpointId === "cp-finish") {
+    return {
+      code: "FIN",
+      name: "Finish",
+      kmMarker: 999,
+      order: 999
+    };
+  }
+
+  const extraMatch = /^cp-extra-(\d+)$/i.exec(checkpointId);
+
+  if (extraMatch) {
+    const checkpointNumber = Number(extraMatch[1]);
+
+    return {
+      code: `CP${checkpointNumber}`,
+      name: `Checkpoint ${checkpointNumber}`,
+      kmMarker: checkpointNumber,
+      order: checkpointNumber
+    };
+  }
+
+  const numericMatch = /^cp-(\d+)$/i.exec(checkpointId);
+
+  if (!numericMatch) {
+    return null;
+  }
+
+  const rawValue = Number(numericMatch[1]);
+
+  if (!Number.isFinite(rawValue)) {
+    return null;
+  }
+
+  const checkpointNumber = rawValue >= 40 && rawValue % 10 === 0 ? rawValue / 10 : rawValue;
+
+  return {
+    code: `CP${checkpointNumber}`,
+    name: `Checkpoint ${checkpointNumber}`,
+    kmMarker: rawValue,
+    order: checkpointNumber
+  };
+}
+
+async function ensureCheckpointExists(sql: Sql, checkpointId: string) {
+  const seed = resolveFallbackCheckpointSeed(checkpointId);
+
+  if (!seed) {
+    return;
+  }
+
+  await sql`
+    insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
+    values (${checkpointId}, ${seed.code}, ${seed.name}, ${seed.kmMarker}, ${seed.order}, true)
+    on conflict (id) do update
+    set is_active = true
+  `;
 }
 
 export async function processSingleScan(
@@ -242,6 +323,8 @@ export async function processSingleScan(
   scan: ScanSubmission,
   actor: AuthUser
 ): Promise<ScanProcessResult> {
+  await ensureCheckpointExists(sql, scan.checkpointId);
+
   const result = await sql.begin(async (txAny) => {
     const tx = txAny as unknown as Sql;
     const { crew, crewCode, normalizedBib, participant } = await ensureCrewAndParticipant(tx, actor, {

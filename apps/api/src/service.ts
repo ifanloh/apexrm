@@ -27,6 +27,8 @@ export async function ensureCheckpointBootstrap() {
 }
 
 export async function listActiveCheckpoints() {
+  await ensureCheckpointBootstrap();
+
   const rows = await sql<{
     id: string;
     code: string;

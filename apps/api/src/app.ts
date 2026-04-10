@@ -110,6 +110,8 @@ export async function createServer() {
   server.get(`${config.apiPrefix}/health`, async () => createHealthPayload());
 
   server.get(`${config.apiPrefix}/meta/checkpoints`, async () => {
+    await ensureCheckpointBootstrap();
+
     const rows = await sql<{
       id: string;
       code: string;
