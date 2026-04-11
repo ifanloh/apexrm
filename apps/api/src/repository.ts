@@ -223,19 +223,58 @@ async function ensureCrewAndParticipant(
 }
 
 export async function ensureDefaultCheckpoints(sql: Sql) {
-  for (const checkpoint of defaultCheckpoints) {
-    await sql`
-      insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
-      values (${checkpoint.id}, ${checkpoint.code}, ${checkpoint.name}, ${checkpoint.kmMarker}, ${checkpoint.order}, true)
-      on conflict (id) do update
-      set
-        code = excluded.code,
-        name = excluded.name,
-        km_marker = excluded.km_marker,
-        order_index = excluded.order_index,
-        is_active = true
-    `;
-  }
+  await sql.begin(async (txAny) => {
+    const tx = txAny as unknown as Sql;
+
+    // Existing production data may have the old `finish` at order 4. Move known
+    // rows to a temporary range first so adding CP4+ cannot hit the unique order index.
+    for (const checkpoint of defaultCheckpoints) {
+      await tx`
+        update public.checkpoints
+        set order_index = ${10000 + checkpoint.order}
+        where id = ${checkpoint.id}
+      `;
+    }
+
+    for (const checkpoint of defaultCheckpoints) {
+      await tx`
+        insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
+        values (${checkpoint.id}, ${checkpoint.code}, ${checkpoint.name}, ${checkpoint.kmMarker}, ${checkpoint.order}, true)
+        on conflict (id) do update
+        set
+          code = excluded.code,
+          name = excluded.name,
+          km_marker = excluded.km_marker,
+          order_index = excluded.order_index,
+          is_active = true
+      `;
+    }
+  });
+}
+
+async function reserveCheckpointOrderIndex(sql: Sql, checkpointId: string, orderIndex: number) {
+  await sql`
+    update public.checkpoints
+    set order_index = ${10000 + orderIndex}
+    where order_index = ${orderIndex}
+      and id <> ${checkpointId}
+  `;
+}
+
+async function upsertCheckpointSeed(sql: Sql, checkpointId: string, seed: { code: string; name: string; kmMarker: number; order: number }) {
+  await reserveCheckpointOrderIndex(sql, checkpointId, seed.order);
+
+  await sql`
+    insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
+    values (${checkpointId}, ${seed.code}, ${seed.name}, ${seed.kmMarker}, ${seed.order}, true)
+    on conflict (id) do update
+    set
+      code = excluded.code,
+      name = excluded.name,
+      km_marker = excluded.km_marker,
+      order_index = excluded.order_index,
+      is_active = true
+  `;
 }
 
 function resolveFallbackCheckpointSeed(checkpointId: string) {
@@ -310,12 +349,7 @@ async function ensureCheckpointExists(sql: Sql, checkpointId: string) {
     return;
   }
 
-  await sql`
-    insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
-    values (${checkpointId}, ${seed.code}, ${seed.name}, ${seed.kmMarker}, ${seed.order}, true)
-    on conflict (id) do update
-    set is_active = true
-  `;
+  await upsertCheckpointSeed(sql, checkpointId, seed);
 }
 
 export async function processSingleScan(
