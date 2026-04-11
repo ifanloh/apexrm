@@ -144,7 +144,7 @@ export async function loginDemoCrew(username: string, password: string): Promise
       password
     },
     retries: 0,
-    timeoutMs: 12000
+    timeoutMs: 25000
   });
 
   return {
