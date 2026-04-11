@@ -51,6 +51,18 @@
       "destination": "/api/core?view=me"
     },
     {
+      "source": "/api/meta/checkpoints",
+      "destination": "/api/core?view=checkpoints"
+    },
+    {
+      "source": "/api/passings/recent",
+      "destination": "/api/core?view=recent-passings"
+    },
+    {
+      "source": "/api/scanner/demo-login",
+      "destination": "/api/core?view=scanner-demo-login"
+    },
+    {
       "source": "/api/scan",
       "destination": "/api/ops?view=scan"
     },
