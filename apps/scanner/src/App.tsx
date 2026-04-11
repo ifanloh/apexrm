@@ -338,6 +338,10 @@ function getApiHost() {
   }
 }
 
+function isAuthSessionError(message: string) {
+  return /invalid or expired token|missing bearer token|jwt expired|unauthorized|forbidden/i.test(message);
+}
+
 type ScannerActivityStatus = "queued" | "accepted" | "duplicate" | "rejected" | "withdrawn";
 
 type ScannerActivity = {
@@ -1031,6 +1035,7 @@ export default function App() {
 
     syncLockRef.current = true;
     setIsSyncing(true);
+    let shouldRetryLater = false;
     const syncStartedAt = new Date().toISOString();
     const [pendingScans, pendingWithdrawals] = await Promise.all([getQueuedScans(), getQueuedWithdrawals()]);
 
@@ -1106,6 +1111,30 @@ export default function App() {
         error instanceof Error && error.message.trim()
           ? error.message.trim()
           : "Queue lokal tetap disimpan sampai koneksi stabil kembali.";
+
+      if (isAuthSessionError(detail)) {
+        const reloginMessage = "Session scanner expired. Queue lokal tetap aman. Login ulang untuk melanjutkan sync.";
+
+        setLastSyncFailedAt(syncStartedAt);
+        setLastSyncSummary({
+          label: "Login ulang dibutuhkan",
+          detail: reloginMessage,
+          tone: "warning"
+        });
+        setStatusMessage(reloginMessage);
+        setLoginError(reloginMessage);
+        setDemoSession(null);
+        setSupabaseSession(null);
+        persistStoredDemoSession(null);
+        setProfile(null);
+        setCheckpointId("");
+        setIsCheckpointLocked(false);
+        setScreen("timing");
+        await refreshQueue();
+        return;
+      }
+
+      shouldRetryLater = true;
       setLastSyncFailedAt(syncStartedAt);
       setLastSyncSummary({
         label: "Sync tertunda",
@@ -1118,11 +1147,11 @@ export default function App() {
       syncLockRef.current = false;
       setIsSyncing(false);
 
-      if (window.navigator.onLine) {
+      if (shouldRetryLater && window.navigator.onLine) {
         const [nextPendingScans, nextPendingWithdrawals] = await Promise.all([getQueuedScans(), getQueuedWithdrawals()]);
 
         if (nextPendingScans.length > 0 || nextPendingWithdrawals.length > 0) {
-          void syncQueue();
+          window.setTimeout(() => void syncQueue(), AUTO_SYNC_INTERVAL_MS);
         }
       }
     }
