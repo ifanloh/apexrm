@@ -42,6 +42,11 @@ type ScannerAlertTone = "warning" | "danger";
 type WakeLockState = "idle" | "active" | "unsupported" | "released";
 type ScannerSyncSummaryTone = "default" | "warning";
 
+type CameraRepeatGuard = {
+  bib: string;
+  key: string;
+};
+
 type BatteryManagerLike = {
   level: number;
   charging: boolean;
@@ -363,6 +368,13 @@ type ScannerActionSummary = {
   tone: ScannerActionSummaryTone;
 };
 
+type CameraScanConfirmation = {
+  bib: string;
+  detail: string;
+  title: string;
+  tone: "success" | "duplicate";
+};
+
 type ScannerSyncSummary = {
   label: string;
   detail: string;
@@ -457,6 +469,7 @@ export default function App() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraHint, setCameraHint] = useState("Arahkan QR ke area kamera.");
   const [cameraDismissed, setCameraDismissed] = useState(false);
+  const [cameraConfirmation, setCameraConfirmation] = useState<CameraScanConfirmation | null>(null);
   const [batteryPercent, setBatteryPercent] = useState<number | null>(null);
   const [isCharging, setIsCharging] = useState<boolean | null>(null);
   const [wakeLockState, setWakeLockState] = useState<WakeLockState>("idle");
@@ -466,6 +479,7 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
   const cameraLockRef = useRef(false);
+  const cameraRepeatGuardRef = useRef<CameraRepeatGuard | null>(null);
   const wakeLockRef = useRef<WakeLockSentinelLike | null>(null);
   const session = demoSession ? createDemoSessionLike(demoSession) : supabaseSession;
   const activeAccessToken = session?.access_token ?? null;
@@ -884,14 +898,51 @@ export default function App() {
               return;
             }
 
+            const payload = typeof result === "string" ? result : result.data;
+            const scannedBib = extractBibFromPayload(payload);
+            const scanKey = [entryMode, checkpointId || "no-checkpoint", scannedBib || normalizeBib(payload)].join(":");
+            const repeatGuard = cameraRepeatGuardRef.current;
+
+            if (repeatGuard?.key === scanKey) {
+              setCameraHint(`BIB ${repeatGuard.bib} sudah terbaca. Arahkan ke QR berikutnya.`);
+              return;
+            }
+
+            cameraRepeatGuardRef.current = {
+              bib: scannedBib || "QR ini",
+              key: scanKey
+            };
             cameraLockRef.current = true;
             setIsCameraBusy(true);
             setCameraHint("QR terdeteksi. Memproses scan...");
 
             try {
-              const payload = typeof result === "string" ? result : result.data;
+              const isKnownDeviceDuplicate =
+                Boolean(scannedBib && checkpointId && isValidBib(scannedBib)) &&
+                (entryMode === "withdraw"
+                  ? await hasLocalWithdrawalDuplicate(activeRaceId, scannedBib)
+                  : await hasLocalDuplicate(checkpointId, scannedBib));
+
               await processCurrentEntry(payload);
               setIsCameraOpen(false);
+              setCameraDismissed(true);
+
+              if (scannedBib && isValidBib(scannedBib)) {
+                setCameraConfirmation({
+                  bib: scannedBib,
+                  detail: isKnownDeviceDuplicate
+                    ? "BIB ini sudah pernah tercatat di device ini. Tap OK setelah QR diarahkan ke runner berikutnya."
+                    : entryMode === "withdraw"
+                      ? "Withdraw tersimpan di device dan akan sinkron otomatis. Tap OK untuk scan berikutnya."
+                      : "Scan tersimpan di device dan akan sinkron otomatis. Tap OK untuk scan berikutnya.",
+                  title: isKnownDeviceDuplicate
+                    ? `BIB ${scannedBib} sudah tercatat`
+                    : entryMode === "withdraw"
+                      ? `Withdraw ${scannedBib} tersimpan`
+                      : `BIB ${scannedBib} berhasil discan`,
+                  tone: isKnownDeviceDuplicate ? "duplicate" : "success"
+                });
+              }
             } finally {
               cameraLockRef.current = false;
               setIsCameraBusy(false);
@@ -1422,6 +1473,8 @@ export default function App() {
   }
 
   function openCameraScanner() {
+    cameraRepeatGuardRef.current = null;
+    setCameraConfirmation(null);
     setCameraDismissed(false);
     setCameraError(null);
     setCameraHint("Arahkan QR ke area kamera.");
@@ -1429,8 +1482,18 @@ export default function App() {
   }
 
   function closeCameraScanner() {
+    cameraRepeatGuardRef.current = null;
+    setCameraConfirmation(null);
     setCameraDismissed(true);
     setIsCameraOpen(false);
+  }
+
+  function confirmCameraScan() {
+    setCameraConfirmation(null);
+    setCameraDismissed(false);
+    setCameraError(null);
+    setCameraHint("Arahkan QR ke area kamera berikutnya.");
+    setIsCameraOpen(true);
   }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -1494,6 +1557,8 @@ export default function App() {
     setWithdrawNote("");
     setLastActionSummary(null);
     setRecentActivity([]);
+    cameraRepeatGuardRef.current = null;
+    setCameraConfirmation(null);
     setCheckpointId("");
     setIsCheckpointLocked(false);
     setScreen("timing");
@@ -2029,6 +2094,28 @@ export default function App() {
           History
         </button>
       </nav>
+
+      {cameraConfirmation ? (
+        <div className="scanner-modal-backdrop">
+          <section
+            aria-labelledby="scanner-confirmation-title"
+            aria-modal="true"
+            className={`scanner-confirmation-card ${cameraConfirmation.tone}`}
+            role="dialog"
+          >
+            <div className="scanner-confirmation-icon" aria-hidden="true">
+              {cameraConfirmation.tone === "duplicate" ? "DUP" : "OK"}
+            </div>
+            <p className="scanner-kicker">QR Processed</p>
+            <h2 id="scanner-confirmation-title">{cameraConfirmation.title}</h2>
+            <strong>{cameraConfirmation.bib}</strong>
+            <p>{cameraConfirmation.detail}</p>
+            <button autoFocus className="submit-button scanner-confirmation-action" onClick={confirmCameraScan} type="button">
+              OK, scan berikutnya
+            </button>
+          </section>
+        </div>
+      ) : null}
 
       <footer className="runtime-footer">
         <span>Build {__APP_BUILD__}</span>

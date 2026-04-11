@@ -502,6 +502,86 @@ select {
   opacity: 0.5;
 }
 
+.scanner-modal-backdrop {
+  align-items: center;
+  background: rgba(31, 20, 16, 0.52);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 90;
+}
+
+.scanner-confirmation-card {
+  background: #fffdf8;
+  border: 1px solid rgba(226, 184, 77, 0.38);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px rgba(31, 20, 16, 0.24);
+  color: #1f1410;
+  display: grid;
+  gap: 10px;
+  max-width: 360px;
+  padding: 24px;
+  text-align: center;
+  width: 100%;
+}
+
+.scanner-confirmation-card h2,
+.scanner-confirmation-card p {
+  margin: 0;
+}
+
+.scanner-confirmation-card h2 {
+  font-size: 1.32rem;
+  line-height: 1.08;
+}
+
+.scanner-confirmation-card > strong {
+  color: var(--brand-strong);
+  font-size: 2.6rem;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.scanner-confirmation-card p:not(.scanner-kicker) {
+  color: var(--text-soft);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.scanner-confirmation-icon {
+  align-items: center;
+  background: linear-gradient(180deg, #ff474b 0%, #ff1014 100%);
+  border-radius: 999px;
+  color: #fff7f4;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 900;
+  height: 56px;
+  justify-content: center;
+  justify-self: center;
+  letter-spacing: 0.04em;
+  width: 56px;
+}
+
+.scanner-confirmation-card.duplicate {
+  border-color: rgba(210, 58, 49, 0.28);
+}
+
+.scanner-confirmation-card.duplicate .scanner-confirmation-icon {
+  background: rgba(210, 58, 49, 0.12);
+  color: var(--danger);
+}
+
+.scanner-confirmation-action {
+  color: #fff7f4;
+  justify-content: center;
+  margin-top: 6px;
+  min-height: 48px;
+}
+
 .scanner-log-block {
   display: grid;
   gap: 10px;
@@ -878,6 +958,10 @@ select {
   border: 0;
   color: #111a12;
   font-weight: 900;
+}
+
+.submit-button.scanner-confirmation-action {
+  color: #fff7f4;
 }
 
 .scanner-login-button {
