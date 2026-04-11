@@ -28,6 +28,7 @@ import {
   type QueuedWithdrawal
 } from "./db";
 import { supabase } from "./supabase";
+import altixTimingLogo from "../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png";
 import "./styles.css";
 
 const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
@@ -1513,11 +1514,14 @@ export default function App() {
     return (
       <main className="scanner-shell">
         <section className="scanner-panel auth-panel">
-            <div className="panel-copy auth-copy">
-              <div>
-                <p className="scanner-kicker">Crew Login</p>
-                <h1>Masuk ke Scanner</h1>
-              </div>
+          <div className="scanner-login-brand">
+            <img src={altixTimingLogo} alt="Altix Timing" />
+          </div>
+          <div className="panel-copy auth-copy">
+            <div>
+              <p className="scanner-kicker">Crew Login</p>
+              <h1>Masuk ke Scanner</h1>
+            </div>
           </div>
           <form className="scanner-form" onSubmit={handleLogin}>
             <label>
