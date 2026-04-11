@@ -183,6 +183,14 @@ export type WithdrawalProcessResult =
       withdrawal: DuplicateWithdrawal;
     };
 
+type CheckpointSeed = {
+  id: string;
+  code: string;
+  name: string;
+  kmMarker: number;
+  order: number;
+};
+
 async function ensureCrewAndParticipant(
   tx: Sql,
   actor: AuthUser,
@@ -226,26 +234,23 @@ export async function ensureDefaultCheckpoints(sql: Sql) {
   await sql.begin(async (txAny) => {
     const tx = txAny as unknown as Sql;
 
-    // Existing production data may have the old `finish` at order 4. Move known
-    // rows to a temporary range first so adding CP4+ cannot hit the unique order index.
     for (const checkpoint of defaultCheckpoints) {
+      await insertCheckpointSeedIfMissing(tx, checkpoint);
+    }
+  });
+}
+
+export async function syncConfiguredCheckpoints(sql: Sql, checkpoints: CheckpointSeed[]) {
+  await sql.begin(async (txAny) => {
+    const tx = txAny as unknown as Sql;
+
+    for (const checkpoint of checkpoints) {
       await moveCheckpointToSafeOrder(tx, checkpoint.id);
     }
 
-    for (const checkpoint of defaultCheckpoints) {
+    for (const checkpoint of checkpoints) {
       await reserveCheckpointOrderIndex(tx, checkpoint.id, checkpoint.order);
-
-      await tx`
-        insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
-        values (${checkpoint.id}, ${checkpoint.code}, ${checkpoint.name}, ${checkpoint.kmMarker}, ${checkpoint.order}, true)
-        on conflict (id) do update
-        set
-          code = excluded.code,
-          name = excluded.name,
-          km_marker = excluded.km_marker,
-          order_index = excluded.order_index,
-          is_active = true
-      `;
+      await upsertCheckpointSeed(tx, checkpoint);
     }
   });
 }
@@ -273,12 +278,41 @@ async function reserveCheckpointOrderIndex(sql: Sql, checkpointId: string, order
   `;
 }
 
-async function upsertCheckpointSeed(sql: Sql, checkpointId: string, seed: { code: string; name: string; kmMarker: number; order: number }) {
-  await reserveCheckpointOrderIndex(sql, checkpointId, seed.order);
+async function resolveSafeOrderIndex(sql: Sql, checkpointId: string, preferredOrder: number) {
+  const [row] = await sql<{ order_index: number }[]>`
+    select
+      case
+        when exists (
+          select 1
+          from public.checkpoints
+          where order_index = ${preferredOrder}
+            and id <> ${checkpointId}
+        )
+        then (
+          select coalesce(max(existing.order_index), 0) + 1000
+          from public.checkpoints as existing
+        )
+        else ${preferredOrder}
+      end as order_index
+  `;
+
+  return Number(row?.order_index ?? preferredOrder);
+}
+
+async function insertCheckpointSeedIfMissing(sql: Sql, seed: CheckpointSeed) {
+  const orderIndex = await resolveSafeOrderIndex(sql, seed.id, seed.order);
 
   await sql`
     insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
-    values (${checkpointId}, ${seed.code}, ${seed.name}, ${seed.kmMarker}, ${seed.order}, true)
+    values (${seed.id}, ${seed.code}, ${seed.name}, ${seed.kmMarker}, ${orderIndex}, true)
+    on conflict (id) do nothing
+  `;
+}
+
+async function upsertCheckpointSeed(sql: Sql, seed: CheckpointSeed) {
+  await sql`
+    insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
+    values (${seed.id}, ${seed.code}, ${seed.name}, ${seed.kmMarker}, ${seed.order}, true)
     on conflict (id) do update
     set
       code = excluded.code,
@@ -361,7 +395,7 @@ async function ensureCheckpointExists(sql: Sql, checkpointId: string) {
     return;
   }
 
-  await upsertCheckpointSeed(sql, checkpointId, seed);
+  await insertCheckpointSeedIfMissing(sql, { id: checkpointId, ...seed });
 }
 
 export async function processSingleScan(
@@ -1173,10 +1207,16 @@ async function maybeNotifyTop5(
     return null;
   }
 
-  const [checkpoint] = defaultCheckpoints.filter((item) => item.id === input.checkpointId);
+  const [checkpoint] = await tx<{ code: string }[]>`
+    select code
+    from public.checkpoints
+    where id = ${input.checkpointId}
+    limit 1
+  `;
+  const [defaultCheckpoint] = defaultCheckpoints.filter((item) => item.id === input.checkpointId);
   const telegram = await sendTelegramTop5Message({
     bib: input.bib,
-    checkpointCode: checkpoint?.code ?? input.checkpointId,
+    checkpointCode: checkpoint?.code ?? defaultCheckpoint?.code ?? input.checkpointId,
     position: input.position,
     scannedAt: input.scannedAt
   });

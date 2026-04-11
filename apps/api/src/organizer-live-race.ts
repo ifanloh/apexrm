@@ -129,7 +129,7 @@ function buildScannerCheckpointId(checkpoint: ParsedCheckpoint, intermediateInde
     return DEMO_CHECKPOINT_IDS[DEMO_CHECKPOINT_IDS.length - 1];
   }
 
-  return DEMO_CHECKPOINT_IDS[Math.min(intermediateIndex, DEMO_CHECKPOINT_IDS.length - 2)] ?? `cp-extra-${checkpoint.orderIndex}`;
+  return DEMO_CHECKPOINT_IDS[intermediateIndex] ?? `cp-extra-${checkpoint.orderIndex}`;
 }
 
 function mapScannerCheckpoints(checkpoints: ParsedCheckpoint[]) {

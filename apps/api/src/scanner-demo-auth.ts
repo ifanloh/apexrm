@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { SignJWT } from "jose";
 import { checkpointSchema, defaultCheckpoints } from "./contracts.js";
 import { config } from "./config.js";
-import { listOrganizerWorkspaces } from "./repository.js";
+import { listOrganizerWorkspaces, syncConfiguredCheckpoints } from "./repository.js";
 import { sql } from "./db.js";
 
 type ScannerDemoLoginInput = {
@@ -214,7 +214,7 @@ function buildScannerCheckpointId(checkpoint: ParsedCheckpoint, orderIndex: numb
     return DEMO_CHECKPOINT_IDS[DEMO_CHECKPOINT_IDS.length - 1];
   }
 
-  return DEMO_CHECKPOINT_IDS[Math.min(intermediateIndex, DEMO_CHECKPOINT_IDS.length - 2)] ?? `cp-extra-${orderIndex}`;
+  return DEMO_CHECKPOINT_IDS[intermediateIndex] ?? `cp-extra-${orderIndex}`;
 }
 
 function buildScannerCheckpointCode(checkpoint: ParsedCheckpoint, intermediateIndex: number) {
@@ -226,7 +226,7 @@ function buildScannerCheckpointCode(checkpoint: ParsedCheckpoint, intermediateIn
     return DEMO_CHECKPOINT_CODES[DEMO_CHECKPOINT_CODES.length - 1];
   }
 
-  return DEMO_CHECKPOINT_CODES[Math.min(intermediateIndex, DEMO_CHECKPOINT_CODES.length - 2)] ?? `CP${intermediateIndex}`;
+  return DEMO_CHECKPOINT_CODES[intermediateIndex] ?? `CP${intermediateIndex}`;
 }
 
 function mapScannerCheckpoints(checkpoints: ParsedCheckpoint[]) {
@@ -415,6 +415,9 @@ export async function createScannerDemoLogin(input: ScannerDemoLoginInput): Prom
 
   const raceCheckpoints = parsed.checkpoints.filter((checkpoint) => checkpoint.raceId === race.id);
   const { assignedCheckpointMap, checkpoints } = mapScannerCheckpoints(raceCheckpoints);
+  if (raceCheckpoints.length > 0) {
+    await syncConfiguredCheckpoints(sql, checkpoints);
+  }
   const assignedCheckpointId =
     (member.assignedCheckpointId !== null ? assignedCheckpointMap.get(member.assignedCheckpointId) ?? null : null) ??
     inferAssignedCheckpointIdFromUsername(member.username, checkpoints);
