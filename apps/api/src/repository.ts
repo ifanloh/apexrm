@@ -253,6 +253,11 @@ export async function syncConfiguredCheckpoints(sql: Sql, checkpoints: Checkpoin
   await sql.begin(async (txAny) => {
     const tx = txAny as unknown as Sql;
 
+    await tx`
+      update public.checkpoints
+      set is_active = false
+    `;
+
     for (const checkpoint of checkpoints) {
       await moveCheckpointToSafeOrder(tx, checkpoint.id);
     }
