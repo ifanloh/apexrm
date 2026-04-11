@@ -426,6 +426,7 @@ export default function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
   const [crewId, setCrewId] = useState(() => getStoredValue("arm:crewId", "crew-01"));
   const [deviceId, setDeviceId] = useState(() => getStoredValue("arm:deviceId", createClientId()));
   const [checkpointId, setCheckpointId] = useState("");
@@ -1442,24 +1443,25 @@ export default function App() {
     }
 
     setLoginError(null);
+    setIsLoginSubmitting(true);
     let supabaseErrorMessage: string | null = null;
 
-    if (supabase && identifier.includes("@")) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: identifier,
-        password
-      });
+    try {
+      if (supabase && identifier.includes("@")) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: identifier,
+          password
+        });
 
-      if (!error) {
-        setDemoSession(null);
-        persistStoredDemoSession(null);
-        return;
+        if (!error) {
+          setDemoSession(null);
+          persistStoredDemoSession(null);
+          return;
+        }
+
+        supabaseErrorMessage = error.message;
       }
 
-      supabaseErrorMessage = error.message;
-    }
-
-    try {
       const result = await loginDemoCrew(identifier, password);
       const nextDemoSession: StoredDemoSession = {
         accessToken: result.accessToken,
@@ -1477,6 +1479,8 @@ export default function App() {
       setLoginPassword("");
     } catch (error) {
       setLoginError(supabaseErrorMessage ?? (error instanceof Error ? error.message : "Login scanner gagal."));
+    } finally {
+      setIsLoginSubmitting(false);
     }
   }
 
@@ -1518,19 +1522,36 @@ export default function App() {
           <form className="scanner-form" onSubmit={handleLogin}>
             <label>
               Email atau username
-              <input value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} />
+              <input disabled={isLoginSubmitting} value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} />
             </label>
             <label>
               Password
               <input
+                disabled={isLoginSubmitting}
                 type="password"
                 value={loginPassword}
                 onChange={(event) => setLoginPassword(event.target.value)}
               />
             </label>
-            <button className="submit-button" type="submit">
-              Login
+            <button className="submit-button scanner-login-button" disabled={isLoginSubmitting} type="submit">
+              {isLoginSubmitting ? (
+                <>
+                  <span className="scanner-login-spinner" aria-hidden="true" />
+                  Menghubungkan...
+                </>
+              ) : (
+                "Login"
+              )}
             </button>
+            {isLoginSubmitting ? (
+              <div className="scanner-login-progress" role="status">
+                <span className="scanner-login-spinner" aria-hidden="true" />
+                <div>
+                  <strong>Login sedang diproses</strong>
+                  <span>Mengambil sesi crew dan checkpoint terbaru dari server.</span>
+                </div>
+              </div>
+            ) : null}
             {!supabase ? (
               <div className="placeholder-card">
                 Mode demo aktif. Gunakan username/password crew dari organizer. Kredensial seperti <strong>crew1cp2@event.com</strong> juga bisa

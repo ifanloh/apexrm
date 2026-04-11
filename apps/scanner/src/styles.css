@@ -861,6 +861,63 @@ select {
   font-weight: 900;
 }
 
+.scanner-login-button {
+  align-items: center;
+  display: inline-flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.scanner-login-button:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.scanner-login-spinner {
+  animation: scanner-spin 0.78s linear infinite;
+  border: 2px solid rgba(17, 26, 18, 0.2);
+  border-top-color: #111a12;
+  border-radius: 999px;
+  display: inline-block;
+  height: 16px;
+  width: 16px;
+}
+
+.scanner-login-progress {
+  align-items: center;
+  background: rgba(255, 16, 20, 0.06);
+  border: 1px solid rgba(255, 16, 20, 0.16);
+  border-radius: 18px;
+  color: var(--ink);
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+}
+
+.scanner-login-progress .scanner-login-spinner {
+  border-color: rgba(255, 16, 20, 0.18);
+  border-top-color: var(--brand);
+  flex: 0 0 auto;
+  height: 20px;
+  width: 20px;
+}
+
+.scanner-login-progress div {
+  display: grid;
+  gap: 3px;
+}
+
+.scanner-login-progress span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+@keyframes scanner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .placeholder-card {
   padding: 14px;
 }

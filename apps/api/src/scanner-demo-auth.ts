@@ -416,7 +416,9 @@ export async function createScannerDemoLogin(input: ScannerDemoLoginInput): Prom
   const raceCheckpoints = parsed.checkpoints.filter((checkpoint) => checkpoint.raceId === race.id);
   const { assignedCheckpointMap, checkpoints } = mapScannerCheckpoints(raceCheckpoints);
   if (raceCheckpoints.length > 0) {
-    await syncConfiguredCheckpoints(sql, checkpoints);
+    void syncConfiguredCheckpoints(sql, checkpoints).catch((error) => {
+      console.error("Failed to sync organizer checkpoint settings", error);
+    });
   }
   const assignedCheckpointId =
     (member.assignedCheckpointId !== null ? assignedCheckpointMap.get(member.assignedCheckpointId) ?? null : null) ??
