@@ -18,7 +18,7 @@ export function resolveApiBaseUrl() {
 
 const API_BASE_URL = resolveApiBaseUrl();
 
-export type ScannerDemoLoginResponse = {
+export type ScannerPilotLoginResponse = {
   accessToken: string;
   assignedCheckpointId: string | null;
   checkpoints: Checkpoint[];
@@ -123,7 +123,7 @@ export async function fetchCheckpoints(): Promise<Checkpoint[]> {
   );
 }
 
-export async function loginDemoCrew(username: string, password: string): Promise<ScannerDemoLoginResponse> {
+export async function loginPilotCrew(username: string, password: string): Promise<ScannerPilotLoginResponse> {
   const payload = await requestJson<{
     accessToken: string;
     assignedCheckpointId: string | null;
@@ -137,7 +137,7 @@ export async function loginDemoCrew(username: string, password: string): Promise
     eventLabel: string;
     profile: unknown;
     raceId: string;
-  }>("/scanner/demo-login", {
+  }>("/scanner/pilot-login", {
     method: "POST",
     body: {
       username,

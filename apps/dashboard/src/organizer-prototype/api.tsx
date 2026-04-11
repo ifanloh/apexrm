@@ -329,7 +329,7 @@ async function requestOrganizerJson<T>(user: User, path: string, init?: RequestI
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   } else if (user.workspaceOwnerId === "local-admin") {
-    headers.set("x-organizer-demo-user", user.workspaceOwnerId);
+    headers.set("x-organizer-pilot-user", user.workspaceOwnerId);
   } else {
     throw new Error("Organizer workspace auth is unavailable.");
   }

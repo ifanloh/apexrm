@@ -341,7 +341,7 @@ async function issueDemoCrewToken(payload: {
   const sharedSecret = config.supabaseJwtSecret || config.databaseUrl;
 
   if (!sharedSecret) {
-    throw new Error("Server-side auth secret is required for demo scanner login.");
+    throw new Error("Server-side auth secret is required for pilot scanner login.");
   }
 
   const jwtKey = new TextEncoder().encode(sharedSecret);
@@ -352,7 +352,7 @@ async function issueDemoCrewToken(payload: {
       crew_code: payload.crewCode,
       role: "crew"
     },
-    email: `${payload.username}@scanner.demo`,
+    email: `${payload.username}@scanner.altix.local`,
     role: "crew",
     user_metadata: {
       name: payload.displayName
@@ -391,7 +391,7 @@ function findMatchingWorkspace(workspaces: WorkspaceRecord[], input: ScannerDemo
   return null;
 }
 
-export async function createScannerDemoLogin(input: ScannerDemoLoginInput): Promise<ScannerDemoLoginResult> {
+export async function createScannerPilotLogin(input: ScannerDemoLoginInput): Promise<ScannerDemoLoginResult> {
   const workspaces = await listOrganizerWorkspaces(sql);
   const match = findMatchingWorkspace(workspaces, input);
 
@@ -439,10 +439,12 @@ export async function createScannerDemoLogin(input: ScannerDemoLoginInput): Prom
     profile: {
       crewCode,
       displayName: member.name,
-      email: `${member.username}@scanner.demo`,
+      email: `${member.username}@scanner.altix.local`,
       role: "crew",
       userId
     },
     raceId: buildRaceScopedId(workspace.ownerUserId, event.id, race.id)
   };
 }
+
+export const createScannerDemoLogin = createScannerPilotLogin;

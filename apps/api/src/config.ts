@@ -9,6 +9,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url("SUPABASE_URL must be a valid URL"),
   SUPABASE_ANON_KEY: z.string().min(1, "SUPABASE_ANON_KEY is required"),
   SUPABASE_JWT_SECRET: z.string().optional(),
+  ENABLE_ORGANIZER_PILOT_AUTH: z.enum(["true", "false"]).default("true"),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_CHAT_ID: z.string().optional()
 });
@@ -31,6 +32,7 @@ export const config = {
   supabaseUrl: env.SUPABASE_URL.replace(/\/+$/, ""),
   supabaseAnonKey: env.SUPABASE_ANON_KEY,
   supabaseJwtSecret: env.SUPABASE_JWT_SECRET ?? "",
+  organizerPilotAuthEnabled: env.ENABLE_ORGANIZER_PILOT_AUTH === "true",
   telegramBotToken: env.TELEGRAM_BOT_TOKEN ?? "",
   telegramChatId: env.TELEGRAM_CHAT_ID ?? ""
 };

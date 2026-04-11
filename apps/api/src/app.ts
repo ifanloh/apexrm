@@ -33,7 +33,7 @@ import { config } from "./config.js";
 import { extractOrganizerPrototypePublicEvents } from "./organizer-public-events.js";
 import { getOrganizerPublicLiveRaceSnapshot } from "./organizer-public-live-race.js";
 import { getOrganizerLiveRaceSnapshot } from "./organizer-live-race.js";
-import { createScannerDemoLogin } from "./scanner-demo-auth.js";
+import { createScannerPilotLogin } from "./scanner-demo-auth.js";
 
 const syncOfflineSchema = z.object({
   scans: z.array(scanSubmissionSchema).min(1)
@@ -340,10 +340,16 @@ export async function createServer() {
     };
   });
 
+  server.post(`${config.apiPrefix}/scanner/pilot-login`, async (request) => {
+    await ensureOrganizerWorkspaceBootstrap();
+    const payload = scannerDemoLoginSchema.parse(request.body);
+    return createScannerPilotLogin(payload);
+  });
+
   server.post(`${config.apiPrefix}/scanner/demo-login`, async (request) => {
     await ensureOrganizerWorkspaceBootstrap();
     const payload = scannerDemoLoginSchema.parse(request.body);
-    return createScannerDemoLogin(payload);
+    return createScannerPilotLogin(payload);
   });
 
   server.get(`${config.apiPrefix}/snapshot`, async (request) => {

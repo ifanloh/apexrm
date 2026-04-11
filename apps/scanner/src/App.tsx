@@ -12,7 +12,7 @@ import {
   type ScanSubmission,
   type WithdrawalSubmission
 } from "@arm/contracts";
-import { fetchCheckpoints, loginDemoCrew, resolveApiBaseUrl, syncOffline, syncOfflineWithdrawals } from "./api";
+import { fetchCheckpoints, loginPilotCrew, resolveApiBaseUrl, syncOffline, syncOfflineWithdrawals } from "./api";
 import {
   getQueuedScans,
   getQueuedWithdrawals,
@@ -31,9 +31,10 @@ import { supabase } from "./supabase";
 import altixTimingLogo from "../android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png";
 import "./styles.css";
 
-const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "templiers-demo-2026";
-const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Grand Trail des Templiers Demo";
-const DEMO_SESSION_STORAGE_KEY = "arm:scannerDemoSession:v1";
+const DEFAULT_RACE_ID = import.meta.env.VITE_RACE_ID ?? "altix-pilot-2026";
+const DEMO_EVENT_LABEL = import.meta.env.VITE_EVENT_LABEL ?? "Altix Timing Pilot";
+const PILOT_SESSION_STORAGE_KEY = "altix:scannerPilotSession:v1";
+const LEGACY_DEMO_SESSION_STORAGE_KEY = "arm:scannerDemoSession:v1";
 const SYNC_BATCH_SIZE = 25;
 const AUTO_SYNC_INTERVAL_MS = 15000;
 type ScannerScreen = "timing" | "checkpoint" | "history";
@@ -140,7 +141,7 @@ function loadStoredDemoSession() {
     return null;
   }
 
-  const raw = window.localStorage.getItem(DEMO_SESSION_STORAGE_KEY);
+  const raw = window.localStorage.getItem(PILOT_SESSION_STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_DEMO_SESSION_STORAGE_KEY);
 
   if (!raw) {
     return null;
@@ -178,11 +179,13 @@ function persistStoredDemoSession(payload: StoredDemoSession | null) {
   }
 
   if (!payload) {
-    window.localStorage.removeItem(DEMO_SESSION_STORAGE_KEY);
+    window.localStorage.removeItem(PILOT_SESSION_STORAGE_KEY);
+    window.localStorage.removeItem(LEGACY_DEMO_SESSION_STORAGE_KEY);
     return;
   }
 
-  window.localStorage.setItem(DEMO_SESSION_STORAGE_KEY, JSON.stringify(payload));
+  window.localStorage.setItem(PILOT_SESSION_STORAGE_KEY, JSON.stringify(payload));
+  window.localStorage.removeItem(LEGACY_DEMO_SESSION_STORAGE_KEY);
 }
 
 function getCheckpointSessionKey(userId: string) {
@@ -1526,7 +1529,7 @@ export default function App() {
         supabaseErrorMessage = error.message;
       }
 
-      const result = await loginDemoCrew(identifier, password);
+      const result = await loginPilotCrew(identifier, password);
       const nextDemoSession: StoredDemoSession = {
         accessToken: result.accessToken,
         assignedCheckpointId: result.assignedCheckpointId,
@@ -1539,7 +1542,7 @@ export default function App() {
       setDemoSession(nextDemoSession);
       persistStoredDemoSession(nextDemoSession);
       setCrewId(result.profile.crewCode ?? result.profile.userId);
-      setStatusMessage(`Scanner siap untuk ${result.eventLabel}. Login crew demo aktif.`);
+      setStatusMessage(`Scanner siap untuk ${result.eventLabel}. Sesi crew pilot aktif.`);
       setLoginPassword("");
     } catch (error) {
       setLoginError(supabaseErrorMessage ?? (error instanceof Error ? error.message : "Login scanner gagal."));
@@ -1623,7 +1626,7 @@ export default function App() {
             ) : null}
             {!supabase ? (
               <div className="placeholder-card">
-                Mode demo aktif. Gunakan username/password crew dari organizer. Kredensial seperti <strong>crew1cp2@event.com</strong> juga bisa
+                Pilot mode aktif. Gunakan username/password crew dari organizer. Kredensial seperti <strong>crew1cp2@event.com</strong> juga bisa
                 mengunci checkpoint otomatis bila assignment eksplisit belum diisi.
               </div>
             ) : null}

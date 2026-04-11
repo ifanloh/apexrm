@@ -752,7 +752,7 @@ function buildPrototypePublicLiveRaceFallback(
         checkpointId: mapping.publicCheckpointId,
         position: index + 1,
         scannedAt: passing.scannedAt,
-        crewId: passing.crewId ?? "scanner-demo",
+        crewId: passing.crewId ?? "scanner-pilot",
         deviceId: "spectator-fallback"
       }));
 
@@ -809,7 +809,7 @@ function buildPrototypePublicLiveRaceFallback(
       checkpointKmMarker: item.mapping.publicCheckpointKmMarker,
       checkpointOrder: item.mapping.publicCheckpointOrder,
       scannedAt: item.passing.scannedAt,
-      crewId: item.passing.crewId ?? "scanner-demo",
+      crewId: item.passing.crewId ?? "scanner-pilot",
       deviceId: "spectator-fallback"
     }));
 
@@ -1238,7 +1238,7 @@ function buildLocalOrganizerProfile() {
     email: LOCAL_ORGANIZER_USERNAME,
     role: "admin",
     crewCode: null,
-    displayName: "Admin"
+    displayName: "Altix Pilot"
   });
 }
 
@@ -7077,7 +7077,7 @@ export default function App() {
             <div className="auth-modal-copy">
               <strong>Dear Organiser, please identify yourself to access Altix&apos;s tools.</strong>
               <span>Dear spectators, the live following is free and you do not need to register to follow the race.</span>
-              <span>Trial shortcut: username `admin`, password `admin`.</span>
+              <span>Pilot access is enabled for authorized organizer testers.</span>
             </div>
 
             <form className="auth-modal-form" onSubmit={handleLogin}>
@@ -7085,7 +7085,7 @@ export default function App() {
                 Username
                 <input
                   autoComplete="username"
-                  placeholder="admin or admin1@arm.local"
+                  placeholder="Username atau email organizer"
                   value={loginEmail}
                   onChange={(event) => setLoginEmail(event.target.value)}
                 />

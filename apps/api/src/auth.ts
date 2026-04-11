@@ -226,16 +226,17 @@ export async function requireOrganizerWorkspaceAuth(request: FastifyRequest): Pr
     return authenticateToken(token);
   }
 
-  const demoUserHeader = request.headers["x-organizer-demo-user"];
-  const demoUser = typeof demoUserHeader === "string" ? demoUserHeader.trim() : null;
+  // Pilot auth keeps the local organizer workspace usable until Supabase organizer auth is fully cut over.
+  const pilotUserHeader = request.headers["x-organizer-pilot-user"] ?? request.headers["x-organizer-demo-user"];
+  const pilotUser = typeof pilotUserHeader === "string" ? pilotUserHeader.trim() : null;
 
-  if (demoUser === "local-admin") {
+  if (config.organizerPilotAuthEnabled && pilotUser === "local-admin") {
     return {
       userId: "local-admin",
       email: "admin",
       role: "admin",
       crewCode: null,
-      displayName: "Admin"
+      displayName: "Altix Pilot"
     };
   }
 
