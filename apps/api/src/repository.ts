@@ -231,6 +231,15 @@ async function ensureCrewAndParticipant(
 }
 
 export async function ensureDefaultCheckpoints(sql: Sql) {
+  const [existing] = await sql<{ total: number }[]>`
+    select count(*)::int as total
+    from public.checkpoints
+  `;
+
+  if (Number(existing?.total ?? 0) > 0) {
+    return;
+  }
+
   await sql.begin(async (txAny) => {
     const tx = txAny as unknown as Sql;
 
