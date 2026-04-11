@@ -229,14 +229,12 @@ export async function ensureDefaultCheckpoints(sql: Sql) {
     // Existing production data may have the old `finish` at order 4. Move known
     // rows to a temporary range first so adding CP4+ cannot hit the unique order index.
     for (const checkpoint of defaultCheckpoints) {
-      await tx`
-        update public.checkpoints
-        set order_index = ${10000 + checkpoint.order}
-        where id = ${checkpoint.id}
-      `;
+      await moveCheckpointToSafeOrder(tx, checkpoint.id);
     }
 
     for (const checkpoint of defaultCheckpoints) {
+      await reserveCheckpointOrderIndex(tx, checkpoint.id, checkpoint.order);
+
       await tx`
         insert into public.checkpoints (id, code, name, km_marker, order_index, is_active)
         values (${checkpoint.id}, ${checkpoint.code}, ${checkpoint.name}, ${checkpoint.kmMarker}, ${checkpoint.order}, true)
@@ -252,10 +250,24 @@ export async function ensureDefaultCheckpoints(sql: Sql) {
   });
 }
 
+async function moveCheckpointToSafeOrder(sql: Sql, checkpointId: string) {
+  await sql`
+    update public.checkpoints
+    set order_index = (
+      select coalesce(max(existing.order_index), 0) + 1000
+      from public.checkpoints as existing
+    )
+    where id = ${checkpointId}
+  `;
+}
+
 async function reserveCheckpointOrderIndex(sql: Sql, checkpointId: string, orderIndex: number) {
   await sql`
     update public.checkpoints
-    set order_index = ${10000 + orderIndex}
+    set order_index = (
+      select coalesce(max(existing.order_index), 0) + 1000
+      from public.checkpoints as existing
+    )
     where order_index = ${orderIndex}
       and id <> ${checkpointId}
   `;
