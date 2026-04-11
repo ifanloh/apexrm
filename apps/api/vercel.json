@@ -19,7 +19,7 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Authorization, Content-Type, X-Organizer-Demo-User"
+          "value": "Authorization, Content-Type, X-Organizer-Pilot-User, X-Organizer-Demo-User"
         }
       ]
     },
@@ -36,7 +36,7 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Authorization, Content-Type, X-Organizer-Demo-User"
+          "value": "Authorization, Content-Type, X-Organizer-Pilot-User, X-Organizer-Demo-User"
         }
       ]
     }
@@ -57,6 +57,10 @@
     {
       "source": "/api/passings/recent",
       "destination": "/api/core?view=recent-passings"
+    },
+    {
+      "source": "/api/scanner/pilot-login",
+      "destination": "/api/core?view=scanner-pilot-login"
     },
     {
       "source": "/api/scanner/demo-login",

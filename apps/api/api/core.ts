@@ -3,7 +3,7 @@ import { z } from "zod";
 import { authenticateToken, getBearerToken } from "../src/auth.js";
 import { sql } from "../src/db.js";
 import { ensureOrganizerWorkspaceTable, getRecentPassings } from "../src/repository.js";
-import { createScannerDemoLogin } from "../src/scanner-demo-auth.js";
+import { createScannerPilotLogin } from "../src/scanner-demo-auth.js";
 import { listActiveCheckpoints } from "../src/service.js";
 import { handlePreflight, readJsonBody, sendError, sendJson } from "../src/vercel-shared.js";
 
@@ -59,7 +59,7 @@ export default async function handler(request: IncomingMessage, response: Server
       return;
     }
 
-    if (view === "scanner-demo-login") {
+    if (view === "scanner-pilot-login" || view === "scanner-demo-login") {
       if (request.method !== "POST") {
         sendError(request, response, 405, "Method not allowed");
         return;
@@ -67,7 +67,7 @@ export default async function handler(request: IncomingMessage, response: Server
 
       await ensureOrganizerWorkspaceTable(sql);
       const payload = scannerDemoLoginSchema.parse(await readJsonBody(request));
-      sendJson(request, response, 200, await createScannerDemoLogin(payload));
+      sendJson(request, response, 200, await createScannerPilotLogin(payload));
       return;
     }
 
